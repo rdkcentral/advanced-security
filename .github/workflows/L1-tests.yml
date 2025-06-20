@@ -7,7 +7,6 @@ on:
 env:
   AUTOMATICS_UNAME: ${{ secrets.AUTOMATICS_UNAME }}
   AUTOMATICS_PASSCODE: ${{ secrets.AUTOMATICS_PASSCODE }}
-  RDKCM_RDKE: ${{ secrets.RDKCM_RDKE }}
 
 jobs:
   execute-unit-tests-on-pr:
