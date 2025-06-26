@@ -28,6 +28,7 @@
 #include "base64.h"
 #include "safec_lib_common.h"
 
+
 #define MIN_AGENT_MEMORY_HARD_LIMIT 45
 #define MAX_RABID_MACCACHE_SIZE 32768
 #define MAX_RABID_DNSCACHE_SIZE 32768
