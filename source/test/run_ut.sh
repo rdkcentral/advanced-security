@@ -34,7 +34,7 @@ if [ -d "RdkbGMock" ]; then
 else
     log "INFO" "Cloning RdkbGMock repository from GitHub..."
     # Use token for authentication if provided
-    if git clone -b "develop" "https://${RDKCM_RDKE}@github.com/rdkcentral/rdkb-gmock.git" RdkbGMock; then
+    if git clone -b "develop" "https://github.com/rdkcentral/gmock-broadband.git" RdkbGMock; then
         cd RdkbGMock
     else
         log "ERROR" "Failed to clone repository with branch: develop"
@@ -46,7 +46,7 @@ fi
 if [ -n "$1" ]; then
     pr_id="$1"
     log "INFO" "Fetching PR ID: $pr_id and checking out FETCH_HEAD"
-    if git fetch "https://${RDKCM_RDKE}@github.com/rdkcentral/rdkb-gmock.git" pull/"$pr_id"/head && git checkout FETCH_HEAD; then
+    if git fetch "https://github.com/rdkcentral/gmock-broadband.git" pull/"$pr_id"/head && git checkout FETCH_HEAD; then
         log "INFO" "Successfully checked out PR #$pr_id"
     else
         log "ERROR" "Failed to fetch or checkout PR #$pr_id"
@@ -54,7 +54,7 @@ if [ -n "$1" ]; then
     fi
 else
     log "INFO" "No PR ID provided. Fetching latest from branch: develop"
-    if git fetch "https://${RDKCM_RDKE}@github.com/rdkcentral/rdkb-gmock.git" develop && git checkout develop; then
+    if git fetch "https://github.com/rdkcentral/gmock-broadband.git" develop && git checkout develop; then
         log "INFO" "Checked out latest branch: develop"
     else
         log "ERROR" "Failed to fetch or checkout branch: develop"
