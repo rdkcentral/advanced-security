@@ -16,6 +16,7 @@
 * SPDX-License-Identifier: Apache-2.0
 */
 
++++
 #include "CcspAdvSecurityMock.h"
 
 typedef void* ANSC_HANDLE;
