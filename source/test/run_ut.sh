@@ -167,13 +167,13 @@ else
 fi
 
 log "INFO" "Starting Gcov for code coverage analysis"
- # Capture initial coverage data
- if lcov --directory . --capture --output-file coverage.info; then
-     log "INFO" "Initial coverage data captured successfully"
- else
-     log "ERROR" "Failed to capture initial coverage data"
-     exit 1
- fi
+# Capture initial coverage data
+if lcov --directory . --capture --output-file coverage.info; then
+    log "INFO" "Initial coverage data captured successfully"
+else
+    log "ERROR" "Failed to capture initial coverage data"
+    exit 1
+fi
 
 # Removing unwanted coverage paths
 if lcov --remove coverage.info "${PWD}/source/test/*" --output-file coverage.info && \
