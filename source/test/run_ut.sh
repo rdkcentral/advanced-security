@@ -114,23 +114,66 @@ fi
 log "INFO" "Completed running UT script."
 
 log "INFO" "Preparing to run the Gtest Binary"
-if [ -f "./source/test/CcspAdvSecurityDmlTest/CcspAdvSecurityDmlTest_gtest.bin" ]; then
-    log "INFO" "Running CcspAdvSecurityDmlTest_gtest.bin"
-    ./source/test/CcspAdvSecurityDmlTest/CcspAdvSecurityDmlTest_gtest.bin
-    log "INFO" "Completed Test Execution"
+# Generic function to build and run all gtest binaries under source/test and its subfolders
+run_all_gtests() {
+    local test_dirs
+    local make_dir
+    local bin_files
+    local bin_file
+
+    # Only include directories that contain a Makefile and do not contain makefile or GNUmakefile
+    test_dirs=( $(find source/test -type f -name 'Makefile' -exec dirname {} \; | sort -u) )
+
+    for make_dir in "${test_dirs[@]}"; do
+        log "INFO" "Running make in $make_dir..."
+        if make -C "$make_dir"; then
+            log "INFO" "Make operation completed successfully in $make_dir."
+        else
+            log "ERROR" "Make operation failed in $make_dir."
+            exit 1
+        fi
+    done
+
+    log "INFO" "Completed running all make operations."
+
+    # Find all .bin files under source/test and its subfolders
+    bin_files=( $(find source/test -type f -name "*.bin") )
+
+    if [[ ${#bin_files[@]} -eq 0 ]]; then
+        log "ERROR" "No .bin files found under source/test, cannot run tests"
+        exit 1
+    fi
+
+    for bin_file in "${bin_files[@]}"; do
+        if [[ -x "$bin_file" ]]; then
+            log "INFO" "Running $(basename "$bin_file")"
+            "$bin_file"
+            log "INFO" "Completed Test Execution for $(basename "$bin_file")"
+        else
+            log "ERROR" "$(basename "$bin_file") is not executable, skipping"
+        fi
+    done
+}
+
+# Call the generic function to build and run all gtest binaries
+run_all_gtests
+log "INFO" "Completed running all Gtest Binaries"
+
+if [ -f coverage.info ]; then
+    log "INFO" "Removing existing coverage.info file"
+    rm coverage.info
 else
-    log "ERROR" "CcspAdvSecurityDmlTest_gtest.bin does not exist, cannot run tests"
-    exit 1
+    log "INFO" "No existing coverage.info file found"
 fi
 
 log "INFO" "Starting Gcov for code coverage analysis"
-# Capture initial coverage data
-if lcov --directory . --capture --output-file coverage.info; then
-    log "INFO" "Initial coverage data captured successfully"
-else
-    log "ERROR" "Failed to capture initial coverage data"
-    exit 1
-fi
+ # Capture initial coverage data
+ if lcov --directory . --capture --output-file coverage.info; then
+     log "INFO" "Initial coverage data captured successfully"
+ else
+     log "ERROR" "Failed to capture initial coverage data"
+     exit 1
+ fi
 
 # Removing unwanted coverage paths
 if lcov --remove coverage.info "${PWD}/source/test/*" --output-file coverage.info && \
