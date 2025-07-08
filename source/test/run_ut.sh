@@ -163,7 +163,8 @@ if [ -f coverage.info ]; then
     log "INFO" "Removing existing coverage.info file"
     rm coverage.info
 else
-    log "INFO" "No existing coverage.info file found"
+    log "ERROR" "No existing coverage.info file found"
+    exit 1
 fi
 
 log "INFO" "Starting Gcov for code coverage analysis"
