@@ -103,25 +103,51 @@ else
     log "INFO" "CPLUS_INCLUDE_PATH is set to: $CPLUS_INCLUDE_PATH"
 fi
 
-# Run make for specific target
-log "INFO" "Running make for CcspAdvSecurityDmlTest_gtest.bin..."
-if make -C source/test/CcspAdvSecurityDmlTest; then
-    log "INFO" "Make operation completed successfully."
-else
-    log "ERROR" "Make operation failed."
-    exit 1
-fi
-log "INFO" "Completed running UT script."
-
 log "INFO" "Preparing to run the Gtest Binary"
-if [ -f "./source/test/CcspAdvSecurityDmlTest/CcspAdvSecurityDmlTest_gtest.bin" ]; then
-    log "INFO" "Running CcspAdvSecurityDmlTest_gtest.bin"
-    ./source/test/CcspAdvSecurityDmlTest/CcspAdvSecurityDmlTest_gtest.bin
-    log "INFO" "Completed Test Execution"
-else
-    log "ERROR" "CcspAdvSecurityDmlTest_gtest.bin does not exist, cannot run tests"
-    exit 1
-fi
+# Generic function to build and run all gtest binaries under source/test and its subfolders
+run_all_gtests() {
+    local test_dirs
+    local make_dir
+    local bin_files
+    local bin_file
+
+    # Only include directories that contain a Makefile and do not contain makefile or GNUmakefile
+    test_dirs=( $(find source/test -type f -name 'Makefile' -exec dirname {} \; | sort -u) )
+
+    for make_dir in "${test_dirs[@]}"; do
+        log "INFO" "Running make in $make_dir..."
+        if make -C "$make_dir"; then
+            log "INFO" "Make operation completed successfully in $make_dir."
+        else
+            log "ERROR" "Make operation failed in $make_dir."
+            exit 1
+        fi
+    done
+
+    log "INFO" "Completed running all make operations."
+
+    # Find all .bin files under source/test and its subfolders
+    bin_files=( $(find source/test -type f -name "*.bin") )
+
+    if [[ ${#bin_files[@]} -eq 0 ]]; then
+        log "ERROR" "No .bin files found under source/test, cannot run tests"
+        exit 1
+    fi
+
+    for bin_file in "${bin_files[@]}"; do
+        if [[ -x "$bin_file" ]]; then
+            log "INFO" "Running $(basename "$bin_file")"
+            "$bin_file"
+            log "INFO" "Completed Test Execution for $(basename "$bin_file")"
+        else
+            log "ERROR" "$(basename "$bin_file") is not executable, skipping"
+        fi
+    done
+}
+
+# Call the generic function to build and run all gtest binaries
+run_all_gtests
+log "INFO" "Completed running all Gtest Binaries"
 
 log "INFO" "Starting Gcov for code coverage analysis"
 # Capture initial coverage data
