@@ -103,16 +103,6 @@ else
     log "INFO" "CPLUS_INCLUDE_PATH is set to: $CPLUS_INCLUDE_PATH"
 fi
 
-# Run make for specific target
-log "INFO" "Running make for CcspAdvSecurityDmlTest_gtest.bin..."
-if make -C source/test/CcspAdvSecurityDmlTest; then
-    log "INFO" "Make operation completed successfully."
-else
-    log "ERROR" "Make operation failed."
-    exit 1
-fi
-log "INFO" "Completed running UT script."
-
 log "INFO" "Preparing to run the Gtest Binary"
 # Generic function to build and run all gtest binaries under source/test and its subfolders
 run_all_gtests() {
@@ -158,14 +148,6 @@ run_all_gtests() {
 # Call the generic function to build and run all gtest binaries
 run_all_gtests
 log "INFO" "Completed running all Gtest Binaries"
-
-if [ -f coverage.info ]; then
-    log "INFO" "Removing existing coverage.info file"
-    rm coverage.info
-else
-    log "ERROR" "No existing coverage.info file found"
-    exit 1
-fi
 
 log "INFO" "Starting Gcov for code coverage analysis"
 # Capture initial coverage data
