@@ -2845,9 +2845,12 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     errno_t rc = -1;
     bool withUS = FALSE;
     bool wifidcl_inited = FALSE;
+    int levl_init_count = 0;
 
-    returnStatus = wifidcl_init_precheck();
-    if (returnStatus != RBUS_ERROR_SUCCESS)
+    int ret = 0;
+
+    ret = wifidcl_init_precheck();
+    if (ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("%s:%d WiFi webconfig init data RBUS get failed\n", __FUNCTION__, __LINE__));
         return ANSC_STATUS_FAILURE;
@@ -2868,10 +2871,17 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
         }
     }
 
-    if (Wifi_Get_Status(LEVL_DML) == FALSE)
+    while (Wifi_Get_Status(LEVL_DML) == FALSE)
     {
-        CcspTraceError(("%s:%d %s is false even after setting to true\n", __FUNCTION__, __LINE__, LEVL_DML));
-        return ANSC_STATUS_FAILURE;
+        CcspTraceInfo(("%s:%d Waiting for levl_init to complete\n", __FUNCTION__, __LINE__));
+        CcspTraceDebug(("%s:%d Levl_init wait time is %d seconds\n", __FUNCTION__, __LINE__,levl_init_count));
+        sleep(1);
+        levl_init_count++;
+
+        if(levl_init_count == 10) {
+            CcspTraceError(("%s:%d %s is false even after setting to true\n", __FUNCTION__, __LINE__, LEVL_DML));
+            return ANSC_STATUS_FAILURE;
+        }
     }
 
     // Enable Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecurityUserSpace.Enable if disabled
