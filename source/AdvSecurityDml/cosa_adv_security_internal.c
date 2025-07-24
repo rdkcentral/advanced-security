@@ -2845,6 +2845,8 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     errno_t rc = -1;
     bool withUS = FALSE;
     bool wifidcl_inited = FALSE;
+    int levl_init_count = 0;
+    PALAKSHA
 
     returnStatus = wifidcl_init_precheck();
     if (returnStatus != RBUS_ERROR_SUCCESS)
@@ -2854,8 +2856,9 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     }
 
     // Enable Device.WiFi.Levl if disabled
-    if (Wifi_Get_Status(LEVL_DML) == FALSE)
+    if(Wifi_Get_Status(LEVL_DML) == FALSE)
     {
+
         returnStatus = Wifi_SetParameterValue(LEVL_DML, TRUE);
         if (returnStatus != ANSC_STATUS_SUCCESS)
         {
@@ -2868,10 +2871,16 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
         }
     }
 
-    if (Wifi_Get_Status(LEVL_DML) == FALSE)
+    while (Wifi_Get_Status(LEVL_DML) == FALSE)
     {
-        CcspTraceError(("%s:%d %s is false even after setting to true\n", __FUNCTION__, __LINE__, LEVL_DML));
-        return ANSC_STATUS_FAILURE;
+        CcspTraceError(("%s:%d Waiting for levl_init to complete\n", __FUNCTION__, __LINE__));
+        sleep(1);
+        levl_init_count++;
+
+        if(levl_init_count == 10) {
+            CcspTraceError(("%s:%d %s is false even after setting to true\n", __FUNCTION__, __LINE__, LEVL_DML));
+            return ANSC_STATUS_FAILURE;
+        }
     }
 
     // Enable Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecurityUserSpace.Enable if disabled
