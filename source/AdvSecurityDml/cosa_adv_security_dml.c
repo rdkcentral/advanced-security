@@ -17,7 +17,6 @@
 */
    
 #include "cosa_adv_security_dml.h"
-
 #include "ansc_platform.h"
 #include "cosa_adv_security_internal.h"
 #include "cosa_adv_security_webconfig.h"
