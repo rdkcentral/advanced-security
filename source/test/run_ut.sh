@@ -16,7 +16,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 ####################################################################################
-
+#
 # Define the logging function
 log() {
     local level=$1
