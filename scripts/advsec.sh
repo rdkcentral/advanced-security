@@ -193,13 +193,13 @@ advsec_wait_for_agent()
         TIMEOUT=60
     fi
     sleep $TIMEOUT
-    ${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e "return"
+    ${RUNTIME_DIR}/bin/cujo-agent-status running
     EXIT_STATUS=$?
     RETRY_CNT=5
     while [ ${EXIT_STATUS} -ne 0 ] && [ ${RETRY_CNT} -gt 0 ]; do
         echo_t "${CUJO_AGENT_LOG} is not active...keep waiting...iteration=$RETRY_CNT"
         sleep 5s
-        ${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e "return"
+        ${RUNTIME_DIR}/bin/cujo-agent-status running
         EXIT_STATUS=$?
         RETRY_CNT=$(expr $RETRY_CNT - 1)
     done
@@ -628,9 +628,9 @@ advsec_get_agent_group_name()
 
 advsec_agent_loglevel()
 {
-      get_agentloglevel=`${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e 'return cujo.log:level()'`
+      get_agentloglevel=`${RUNTIME_DIR}/bin/cujo-agent-log | awk '{print $NF}'`
       if [ "$get_agentloglevel" != "$1" ]; then
-         set_agentloglevel="${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e cujo.log:level($1)"
+         set_agentloglevel="${RUNTIME_DIR}/bin/cujo-agent-log $1"
          ${set_agentloglevel}
          echo_t "${CUJO_AGENT} LogLevel changed from LogLevel-$get_agentloglevel to LogLevel-$1" >> ${ADVSEC_AGENT_LOG_PATH}
       fi
