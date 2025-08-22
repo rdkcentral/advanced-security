@@ -993,7 +993,7 @@ CosaSecurityInitialize
         CcspTraceError(("AdvSecurityEventConsumer: rbus_open failed: %d\n", ret));
         return ANSC_STATUS_FAILURE;
     }
-#if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_)
+#if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
 #if defined(_COSA_BCM_MIPS_)
     dpoe_mac_address_t tDpoe_Mac;
 #else
@@ -1010,7 +1010,7 @@ CosaSecurityInitialize
         CcspTraceError(("CcspAdvSecurity: Failed to initiate DB\n"));
     }
 
-#if !defined(_COSA_BCM_MIPS_) && !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_)
+#if !defined(_COSA_BCM_MIPS_) && !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
     if ( cm_hal_InitDB() == 0)
     {
         CcspTraceInfo(("CcspAdvSecurity: cm_hal DB initiated successfully\n"));
@@ -1121,7 +1121,7 @@ CosaSecurityInitialize
         }
         CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
     }
-    #if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_)
+    #if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
     else if (cm_hal_GetDHCPInfo(&dhcpinfo) == 0 )
     {
           rc = strcmp_s(dhcpinfo.MACAddress, sizeof(dhcpinfo.MACAddress), ADVSEC_DEFAULT_CM_MAC, &ind);
