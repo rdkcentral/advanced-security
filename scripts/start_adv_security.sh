@@ -311,13 +311,13 @@ stop_agent_services()
                 break
             fi
             sleep 1
-            retries=$((retries--))
+            ((retries--))
             raptr clear
         done
     else
         RETRY_CNT=5
         while [ ${RETRY_CNT} -gt 0 ]; do
-            RETRY_CNT=$(expr $RETRY_CNT - 1)
+            ((RETRY_CNT--))
             echo_t "${CUJO_AGENT_LOG} triggering firewall restart..." >> ${ADVSEC_AGENT_LOG_PATH}
             sysevent set firewall-restart
             sleep 10s
@@ -701,7 +701,7 @@ do_firewall_restart()
                 break
             else
                 usleep 100000
-                fw_retries=$((fw_retries--))
+                ((fw_retries--))
             fi
         done
 
@@ -712,7 +712,7 @@ do_firewall_restart()
                 break
             else
                 usleep 100000
-                fw_retries=$((fw_retries--))
+                ((fw_retries--))
             fi
         done
         if [ "${fw_stat}" = "started" ]; then
