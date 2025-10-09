@@ -213,13 +213,11 @@ advsec_agent_start_fp()
 
 advsec_agent_start_sb()
 {
-    ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature on "safebro.reputation" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
     touch ${SAFEBRO_ENABLE}
 }
 
 advsec_agent_start_sf()
 {
-    ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature on "tcptracker" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
     touch ${SOFTFLOWD_ENABLE}
     if [ ! -e ${ADVSEC_APPBLOCK_PATH} ]; then
         start_iot_blocker
@@ -242,7 +240,6 @@ advsec_agent_stop_fp()
 advsec_agent_stop_sb()
 {
     if [ -e ${SAFEBRO_ENABLE} ]; then
-        ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature off "safebro.reputation" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
         rm ${SAFEBRO_ENABLE}
     fi
 }
@@ -250,7 +247,6 @@ advsec_agent_stop_sb()
 advsec_agent_stop_sf()
 {
     if [ -e ${SOFTFLOWD_ENABLE} ]; then
-        ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature off "tcptracker" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
         rm ${SOFTFLOWD_ENABLE}
         if [ ! -e ${ADVSEC_APPBLOCK_PATH} ]; then
             stop_iot_blocker
