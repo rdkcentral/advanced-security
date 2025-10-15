@@ -207,7 +207,6 @@ advsec_wait_for_agent()
 
 advsec_agent_start_fp()
 {
-    ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature on "fingerprint" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
     touch ${ADVSEC_DF_ENABLED_PATH}
 }
 
@@ -232,7 +231,6 @@ advsec_stop_agent()
 advsec_agent_stop_fp()
 {
     if [ -e ${ADVSEC_DF_ENABLED_PATH} ]; then
-        ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature off "fingerprint" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
         rm ${ADVSEC_DF_ENABLED_PATH}
     fi
 }
@@ -260,7 +258,6 @@ start_adv_parental_control()
         sysctl -w net.netfilter.nf_conntrack_acct=1
     fi
 
-    ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature on "apptracker" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
     touch ${ADV_PARENTAL_CONTROL_PATH}
 }
 
@@ -270,28 +267,24 @@ stop_adv_parental_control()
         sysctl -w net.netfilter.nf_conntrack_acct=0
     fi
     if [ -e ${ADV_PARENTAL_CONTROL_PATH} ];then
-        ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature off "apptracker" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
         rm ${ADV_PARENTAL_CONTROL_PATH}
     fi
 }
 
 start_privacy_protection()
 {
-    ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature on "safebro.trackerblock" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
     touch ${PRIVACY_PROTECTION_PATH}
 }
 
 stop_privacy_protection()
 {
     if [ -e ${PRIVACY_PROTECTION_PATH} ];then
-        ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature off "safebro.trackerblock" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
         rm ${PRIVACY_PROTECTION_PATH}
     fi
 }
 
 start_app_blocker()
 {
-    ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature on "appblocker" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
     touch ${ADVSEC_APPBLOCK_PATH}
     if [ ! -e ${SOFTFLOWD_ENABLE} ]; then
         start_iot_blocker
@@ -301,7 +294,6 @@ start_app_blocker()
 stop_app_blocker()
 {
     if [ -e ${ADVSEC_APPBLOCK_PATH} ]; then
-        ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature off "appblocker" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
         rm ${ADVSEC_APPBLOCK_PATH}
         if [ ! -e ${SOFTFLOWD_ENABLE} ]; then
             stop_iot_blocker
@@ -311,12 +303,12 @@ stop_app_blocker()
 
 start_iot_blocker()
 {
-    ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature on "iotblocker" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
+    :
 }
 
 stop_iot_blocker()
 {
-    ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature off "iotblocker" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
+    :
 }
 
 advsec_module_load()
