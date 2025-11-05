@@ -33,3 +33,9 @@ libdmlasecurity_la_CPPFLAGS += -DDML_SUPPORT -DNON_PRIVILEGED -DWIFI_DATA_COLLEC
 libdmlasecurity_la_SOURCES += cujoagent_dcl_api.c
 libdmlasecurity_la_LDFLAGS += -lwifi_webconfig
 endif
+
+if NETWORK_INTELLIGENCE
+libdmlasecurity_la_CPPFLAGS += -DDML_SUPPORT -DNON_PRIVILEGED -DNETWORK_INTELLIGENCE
+libdmlasecurity_la_LDFLAGS += -lwifi_webconfig
+endif
+

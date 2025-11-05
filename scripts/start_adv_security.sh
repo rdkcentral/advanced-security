@@ -127,6 +127,12 @@ then
             disable_raptr
     fi
 
+    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
+            enable_networkintelligence
+    else
+            disable_networkintelligence
+    fi
+
     if [ "$ADVSEC_WIFIDATACOLLECTION_RFC_ENABLED" = "1" ]; then
             enable_wifidatacollection
     else
@@ -259,6 +265,8 @@ then
     if [ -f $ADVSEC_CUJOTRACER_ENABLED_PATH ]; then
         rm $ADVSEC_CUJOTRACER_ENABLED_PATH
     fi
+
+    rm -f ${ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH}
 
     if [ -f $ADVSEC_CUJOTELEMETRY_ENABLED_PATH ]; then
         rm $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
@@ -608,6 +616,36 @@ disable_cujotelemetry()
    fi
 }
 
+enable_networkintelligence()
+{
+    touch $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
+    echo_t ${ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    systemctl start cujo-ni
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentNetworkIntelligence_RFC_Enabled"
+    fi
+
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
+}
+
+disable_networkintelligence()
+{
+    rm -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
+    echo_t ${ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    systemctl stop cujo-ni
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentNetworkIntelligence_RFC_Disabled"
+    fi
+
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
+}
+
 enable_wifidatacollection()
 {
     if [ -f $ADVSEC_WIFIDCL_INIT_PATH ]; then
@@ -848,6 +886,14 @@ if [ "$1" = "-disableUS" ]; then
     # To unload / load required kernel modules during cujo-agent restart
     rm -f ${ADVSEC_NFLUA_LOADED}
     disable_userspace "RR" "FR"
+fi
+
+if [ "$1" = "-enableNI" ]; then
+    enable_networkintelligence "RR" "FR"
+fi
+
+if [ "$1" = "-disableNI" ]; then
+    disable_networkintelligence "RR" "FR"
 fi
 
 if [ "$1" = "-enableWifiDCL" ]; then
