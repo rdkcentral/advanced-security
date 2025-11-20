@@ -33,6 +33,7 @@
 #define MAX_RABID_DNSCACHE_SIZE 32768
 
 extern COSA_DATAMODEL_AGENT* g_pAdvSecAgent;
+extern pthread_mutex_t logMutex;
 
 #ifdef WIFI_DATA_COLLECTION
 static char *g_AdvWifiDataCollection = "Adv_WifiDataCollectionRFCEnable";
@@ -266,7 +267,9 @@ DeviceFingerPrint_GetParamUlongValue
     ERR_CHK(rc);
     if((rc == EOK) && (!ind))
     {
+        pthread_mutex_lock(&logMutex);
         *puLong = g_pAdvSecAgent->ulLoggingPeriod;
+        pthread_mutex_unlock(&logMutex);
         return TRUE;
     }
 
@@ -344,15 +347,19 @@ DeviceFingerPrint_SetParamUlongValue
             return FALSE;
         }
 
-        if(bValue == g_pAdvSecAgent->ulLoggingPeriod)
-                return TRUE;
+        pthread_mutex_lock(&logMutex);
+        if(bValue == g_pAdvSecAgent->ulLoggingPeriod) {
+            pthread_mutex_unlock(&logMutex);
+            return TRUE;
+        }
+        pthread_mutex_unlock(&logMutex);
 
         returnStatus = CosaAdvSecSetLoggingPeriod(bValue);
 
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -377,7 +384,7 @@ DeviceFingerPrint_SetParamUlongValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -524,7 +531,7 @@ DeviceFingerPrint_SetParamStringValue
             if ( returnStatus != ANSC_STATUS_SUCCESS )
             {
                 CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-                return  returnStatus;
+                return FALSE;
             }
             return TRUE;
         }
@@ -967,7 +974,7 @@ SafeBrowsing_GetParamUlongValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceError(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
