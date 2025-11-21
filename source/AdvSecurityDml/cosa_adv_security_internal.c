@@ -143,9 +143,8 @@ static char *g_AdvSecCujoTelemetryWiFiFPEnabled = "Adv_AdvSecCujoTelemetryWiFiFP
 static char *g_AdvSecCujoTracerEnabled = "Adv_AdvSecCujoTracerRFCEnable";
 static char *g_AdvSecCujoTelemetryEnabled = "Adv_AdvSecCujoTelemetryRFCEnable";
 
-pthread_mutex_t logMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t logMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t logCond = PTHREAD_COND_INITIALIZER;
-static BOOL logReady = FALSE;
 static char prevWanIfname[MAX_INTERFACE_SIZE] = {0};
 
 void advsec_handle_sysevent_async(void);
@@ -309,14 +308,8 @@ static BOOL advsec_read_from_file(char *fpath, char *str, int size)
         CcspTraceDebug(("%s: size: %d\n", __FUNCTION__, size));
         /* CID 162508: Calling risky function */
         char format[20] = {'\0'};
-        int count = 0;
         errno_t rc = -1;
-        count = snprintf(format,sizeof(format),"%%%ds", size-1);
-        if (count < 0 || count >= (int)sizeof(format)) {
-            CcspTraceError(("snprintf failed or output is truncated\n"));
-            fclose(file);
-            return 0;
-        }
+        snprintf(format,sizeof(format),"%%%ds", size-1);
         /* CID 162506: Unchecked return value from library */
         rc = fscanf(file, format, str);
         ERR_CHK(rc);
@@ -740,101 +733,9 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
     else
     {
         CcspTraceWarning(("SAFEBRO_CONFIG_FILE_PATH %s is empty\n", SAFEBRO_CONFIG_FILE_PATH));
-        free(data);
-        data = NULL;
         return ANSC_STATUS_FAILURE;
     }
     return ANSC_STATUS_SUCCESS;
-}
-
-VOID FreeCosaDmAgent(PCOSA_DATAMODEL_AGENT pMyObject)
-{
-    if (pMyObject)
-    {
-        if (pMyObject->pAdvSec)
-        {
-            if (pMyObject->pAdvSec->pSafeBrows) {
-                AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSec->pSafeBrows);
-                pMyObject->pAdvSec->pSafeBrows = NULL;
-            }
-            if (pMyObject->pAdvSec->pSoftFlowd) {
-                AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSec->pSoftFlowd);
-                pMyObject->pAdvSec->pSoftFlowd = NULL;
-            }
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSec);
-            pMyObject->pAdvSec = NULL;
-        }
-        if (pMyObject->pAdvPC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvPC);
-            pMyObject->pAdvPC = NULL;
-        }
-        if (pMyObject->pPrivProt) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pPrivProt);
-            pMyObject->pPrivProt = NULL;
-        }
-        if (pMyObject->pRabid) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pRabid);
-            pMyObject->pRabid = NULL;
-        }
-        if (pMyObject->pAdvPC_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvPC_RFC);
-            pMyObject->pAdvPC_RFC = NULL;
-        }
-        if (pMyObject->pPrivProt_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pPrivProt_RFC);
-            pMyObject->pPrivProt_RFC = NULL;
-        }
-        if (pMyObject->pDFIcmpv6_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pDFIcmpv6_RFC);
-            pMyObject->pDFIcmpv6_RFC = NULL;
-        }
-        if (pMyObject->pWSDiscoveryAnalysis_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pWSDiscoveryAnalysis_RFC);
-            pMyObject->pWSDiscoveryAnalysis_RFC = NULL;
-        }
-        if (pMyObject->pAdvSecOTM_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecOTM_RFC);
-            pMyObject->pAdvSecOTM_RFC = NULL;
-        }
-        if (pMyObject->pAdvSecUserSpace_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecUserSpace_RFC);
-            pMyObject->pAdvSecUserSpace_RFC = NULL;
-        }
-        if (pMyObject->pLevl_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pLevl_RFC);
-            pMyObject->pLevl_RFC = NULL;
-        }
-        if (pMyObject->pAdvSecAgent_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecAgent_RFC);
-            pMyObject->pAdvSecAgent_RFC = NULL;
-        }
-        if (pMyObject->pAdvSecSafeBrowsing_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecSafeBrowsing_RFC);
-            pMyObject->pAdvSecSafeBrowsing_RFC = NULL;
-        }
-        if (pMyObject->pAdvSecCujoTelemetryWiFiFP_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecCujoTelemetryWiFiFP_RFC);
-            pMyObject->pAdvSecCujoTelemetryWiFiFP_RFC = NULL;
-        }
-        if (pMyObject->pAdvSecCujoTracer_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecCujoTracer_RFC);
-            pMyObject->pAdvSecCujoTracer_RFC = NULL;
-        }
-        if (pMyObject->pAdvSecCujoTelemetry_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecCujoTelemetry_RFC);
-            pMyObject->pAdvSecCujoTelemetry_RFC = NULL;
-        }
-        if (pMyObject->pAdvWifiDataCollection_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvWifiDataCollection_RFC);
-            pMyObject->pAdvWifiDataCollection_RFC = NULL;
-        }
-        if (pMyObject->pRaptr_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pRaptr_RFC);
-            pMyObject->pRaptr_RFC = NULL;
-        }
-        AnscFreeMemory((ANSC_HANDLE)pMyObject);
-        pMyObject = NULL;
-    }
 }
 
 ANSC_HANDLE
@@ -850,147 +751,196 @@ CosaSecurityCreate
      * We create object by first allocating memory for holding the variables and member functions.
      */
     pMyObject = (PCOSA_DATAMODEL_AGENT)AnscAllocateMemory(sizeof(COSA_DATAMODEL_AGENT));
+
     if ( !pMyObject )
     {
-        goto mem_alloc_failure;
+    	CcspTraceError(("%s exit ERROR \n", __FUNCTION__));
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pAdvSec = (PCOSA_DATAMODEL_ADVSEC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSEC));
+
     if ( !pMyObject->pAdvSec )
     {
-        goto mem_alloc_failure;
+    	CcspTraceError(("%s exit ERROR \n", __FUNCTION__));
+    	AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pAdvSec->pSafeBrows = (PCOSA_DATAMODEL_SB)AnscAllocateMemory(sizeof(COSA_DATAMODEL_SB));
+
     if ( !pMyObject->pAdvSec->pSafeBrows )
     {
-        goto mem_alloc_failure;
+    	CcspTraceError(("%s exit ERROR \n", __FUNCTION__));
+    	AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pAdvSec->pSoftFlowd = (PCOSA_DATAMODEL_SOFTFLOWD)AnscAllocateMemory(sizeof(COSA_DATAMODEL_SOFTFLOWD));
     if ( !pMyObject->pAdvSec->pSoftFlowd )
     {
-        goto mem_alloc_failure;
+    	CcspTraceError(("%s exit ERROR \n", __FUNCTION__));
+    	AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pAdvPC = (PCOSA_DATAMODEL_ADVPARENTALCONTROL)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
     if ( !pMyObject->pAdvPC )
     {
-        goto mem_alloc_failure;
+        CcspTraceError(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pPrivProt = (PCOSA_DATAMODEL_PRIVACYPROTECTION)AnscAllocateMemory(sizeof(COSA_DATAMODEL_PRIVACYPROTECTION));
     if ( !pMyObject->pPrivProt )
     {
-        goto mem_alloc_failure;
+        CcspTraceError(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pRabid = (PCOSA_DATAMODEL_RABID)AnscAllocateMemory(sizeof(COSA_DATAMODEL_RABID));
     if ( !pMyObject->pRabid )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pAdvPC_RFC = (PCOSA_DATAMODEL_ADVPC_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVPC_RFC));
+
     if ( !pMyObject->pAdvPC_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pPrivProt_RFC = (PCOSA_DATAMODEL_PRIVACYPROTECTION_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_PRIVACYPROTECTION_RFC));
+
     if ( !pMyObject->pPrivProt_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
-    pMyObject->pDFIcmpv6_RFC = (PCOSA_DATAMODEL_DEVICEFINGERPRINTICMPv6_RFC)
-                                   AnscAllocateMemory(sizeof(COSA_DATAMODEL_DEVICEFINGERPRINTICMPv6_RFC));
+    pMyObject->pDFIcmpv6_RFC = (PCOSA_DATAMODEL_DEVICEFINGERPRINTICMPv6_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_DEVICEFINGERPRINTICMPv6_RFC));
+
     if ( !pMyObject->pDFIcmpv6_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
-    pMyObject->pWSDiscoveryAnalysis_RFC = (PCOSA_DATAMODEL_WSDISCOVERYANALYSIS_RFC)
-                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_WSDISCOVERYANALYSIS_RFC));
+    pMyObject->pWSDiscoveryAnalysis_RFC = (PCOSA_DATAMODEL_WSDISCOVERYANALYSIS_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_WSDISCOVERYANALYSIS_RFC));
+
     if ( !pMyObject->pWSDiscoveryAnalysis_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pAdvSecOTM_RFC = (PCOSA_DATAMODEL_ADVSECOTM_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECOTM_RFC));
+
     if ( !pMyObject->pAdvSecOTM_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pAdvSecUserSpace_RFC = (PCOSA_DATAMODEL_ADVSECUSERSPACE_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECUSERSPACE_RFC));
+
     if ( !pMyObject->pAdvSecUserSpace_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pLevl_RFC = (PCOSA_DATAMODEL_LEVL_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_LEVL_RFC));
+
     if ( !pMyObject->pLevl_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceError(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pAdvSecAgent_RFC = (PCOSA_DATAMODEL_ADVSECAGENT_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECAGENT_RFC));
+
     if ( !pMyObject->pAdvSecAgent_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
-    pMyObject->pAdvSecSafeBrowsing_RFC = (PCOSA_DATAMODEL_ADVSECSAFEBROWSING_RFC)
-                                             AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECSAFEBROWSING_RFC));
+    pMyObject->pAdvSecSafeBrowsing_RFC = (PCOSA_DATAMODEL_ADVSECSAFEBROWSING_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECSAFEBROWSING_RFC));
+
     if ( !pMyObject->pAdvSecSafeBrowsing_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
-    pMyObject->pAdvSecCujoTelemetryWiFiFP_RFC = (PCOSA_DATAMODEL_ADVSECCUJOTELEMETRYWIFIFP_RFC)
-                                                    AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECCUJOTELEMETRYWIFIFP_RFC));
+    pMyObject->pAdvSecCujoTelemetryWiFiFP_RFC = (PCOSA_DATAMODEL_ADVSECCUJOTELEMETRYWIFIFP_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECCUJOTELEMETRYWIFIFP_RFC));
+
     if ( !pMyObject->pAdvSecCujoTelemetryWiFiFP_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pAdvSecCujoTracer_RFC = (PCOSA_DATAMODEL_ADVSECCUJOTRACER_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECCUJOTRACER_RFC));
+
     if ( !pMyObject->pAdvSecCujoTracer_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
-    pMyObject->pAdvSecCujoTelemetry_RFC = (PCOSA_DATAMODEL_ADVSECCUJOTELEMETRY_RFC)
-                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECCUJOTELEMETRY_RFC));
+    pMyObject->pAdvSecCujoTelemetry_RFC = (PCOSA_DATAMODEL_ADVSECCUJOTELEMETRY_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECCUJOTELEMETRY_RFC));
+
     if ( !pMyObject->pAdvSecCujoTelemetry_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
-    pMyObject->pAdvWifiDataCollection_RFC = (PCOSA_DATAMODEL_ADVSECWIFIDATACOLLECTION_RFC)
-                                                AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECWIFIDATACOLLECTION_RFC));
+    pMyObject->pAdvWifiDataCollection_RFC = (PCOSA_DATAMODEL_ADVSECWIFIDATACOLLECTION_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECWIFIDATACOLLECTION_RFC));
+
     if ( !pMyObject->pAdvWifiDataCollection_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     pMyObject->pRaptr_RFC = (PCOSA_DATAMODEL_RAPTR_RFC)AnscAllocateMemory(sizeof(COSA_DATAMODEL_RAPTR_RFC));
+
     if ( !pMyObject->pRaptr_RFC )
     {
-        goto mem_alloc_failure;
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
     }
 
     if (syscfg_init() != 0) {
         CcspTraceError(("%s: syscfg_init error", __FUNCTION__));
+    	AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return (ANSC_HANDLE)NULL;
     }
 
     return  (ANSC_HANDLE)pMyObject;
-
-mem_alloc_failure:
-    CcspTraceError(("%s exit ERROR \n", __FUNCTION__));
-    FreeCosaDmAgent(pMyObject);
-    return (ANSC_HANDLE)NULL;
 }
 
 
@@ -1384,7 +1334,7 @@ CosaSecurityRemove
     PCOSA_DATAMODEL_AGENT            pMyObject    = (PCOSA_DATAMODEL_AGENT)hThisObject;
 
     /* Remove self */
-    FreeCosaDmAgent(pMyObject);
+    AnscFreeMemory((ANSC_HANDLE)pMyObject);
     rbus_close(rbus_handle);
     CcspTraceInfo(("%s EXIT \n", __FUNCTION__));
 
@@ -1629,9 +1579,7 @@ static void *advsec_logger_th(void *arg)
     UNREFERENCED_PARAMETER(arg);
     ULONG remaining_time;
     int ret = 0;
-    pthread_mutex_lock(&logMutex);
     remaining_time = g_pAdvSecAgent->ulLoggingPeriod;
-    pthread_mutex_unlock(&logMutex);
     while(1)
     {
         if ( WaitForLoggerTimeout(60 * ADVSEC_MIN_LOG_TIMEOUT) )
@@ -1646,17 +1594,13 @@ static void *advsec_logger_th(void *arg)
                 }
                 else
                 {
-                    pthread_mutex_lock(&logMutex);
                     remaining_time = g_pAdvSecAgent->ulLoggingPeriod;
-                    pthread_mutex_unlock(&logMutex);
                 }
             }
 
             if ( remaining_time == 0 )
             {
-                pthread_mutex_lock(&logMutex);
                 remaining_time = g_pAdvSecAgent->ulLoggingPeriod;
-                pthread_mutex_unlock(&logMutex);
             }
 
             ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/advsec_log_fp_status.sh check_status &");
@@ -1673,9 +1617,7 @@ static void *advsec_logger_th(void *arg)
         }
         else
         {
-            pthread_mutex_lock(&logMutex);
             remaining_time = g_pAdvSecAgent->ulLoggingPeriod;
-            pthread_mutex_unlock(&logMutex);
         }
     }
     return NULL;
@@ -2127,7 +2069,6 @@ ANSC_STATUS CosaAdvSecSetLoggingPeriod(ULONG value)
     {
         pthread_mutex_lock(&logMutex);
         g_pAdvSecAgent->ulLoggingPeriod = value;
-        logReady = TRUE;
         pthread_cond_signal(&logCond);
         pthread_mutex_unlock(&logMutex);
     }
@@ -2537,17 +2478,13 @@ static BOOL WaitForLoggerTimeout(ULONG period)
 
     clock_gettime(CLOCK_REALTIME, &_now);
     _ts.tv_sec = _now.tv_sec + period;
-    while (!logReady)
+    n = pthread_cond_timedwait(&logCond, &logMutex, &_ts);
+    if(n == ETIMEDOUT)
     {
-        n = pthread_cond_timedwait(&logCond, &logMutex, &_ts);
-        if(n == ETIMEDOUT) {
-            ret = TRUE;
-            break;
-        }
+        ret = TRUE;
     }
-    if (logReady)
+    else
     {
-        logReady = FALSE;
         ret = FALSE;
     }
 
