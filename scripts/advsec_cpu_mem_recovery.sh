@@ -61,6 +61,11 @@ fi
 get_agent_pid_list()
 {
 	AGENT_PROC=${CUJO_AGENT}
+	
+    if [ -f /tmp/advsec_networkintelligence_enabled ]; then
+        AGENT_PROC="${AGENT_PROC} ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}"
+    fi
+
 	for agent in ${AGENT_PROC}; do
 		PID=`pidof $agent`
 		if [ "$PID" != "" ]; then
