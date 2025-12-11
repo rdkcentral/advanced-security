@@ -33,7 +33,7 @@ MAX_CPU_THRESHOLD=45
 # soft and hard limits are in MB
 MAX_MEM_FIRST_SOFT_LIMIT=40
 MAX_MEM_SECOND_SOFT_LIMIT=45
-MAX_MEM_HARD_LIMIT=50
+MAX_MEM_HARD_LIMIT=70
 
 #syscfg contains value in MB.
 max_rss=`syscfg get Advsecurity_RabidMemoryLimit`
