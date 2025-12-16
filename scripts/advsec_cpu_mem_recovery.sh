@@ -66,6 +66,9 @@ get_agent_pid_list()
         AGENT_PROC="${AGENT_PROC} ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}"
     fi
 
+	# Print the list of agents before iterating
+    echo "Agent processes: ${AGENT_PROC}"
+
 	for agent in ${AGENT_PROC}; do
 		PID=`pidof $agent`
 		if [ "$PID" != "" ]; then
