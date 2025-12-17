@@ -569,6 +569,54 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
 
  APIs for Object:
 
+    X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecuritySATE.
+
+    *  AdvanceSecuritySATE_RFC_GetParamBoolValue
+    *  AdvanceSecuritySATE_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvanceSecuritySATE_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+AdvanceSecuritySATE_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecuritySATELO.
+
+    *  AdvanceSecuritySATELO_RFC_GetParamBoolValue
+    *  AdvanceSecuritySATELO_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvanceSecuritySATELO_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+AdvanceSecuritySATELO_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
     X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.
 
     *  WifiDataCollection_RFC_GetParamBoolValue

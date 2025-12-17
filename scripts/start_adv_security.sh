@@ -264,6 +264,14 @@ then
         rm $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
     fi
 
+    if [ -f $ADVSEC_SATE_ENABLED_PATH ]; then
+        rm $ADVSEC_SATE_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_SATELO_ENABLED_PATH ]; then
+        rm $ADVSEC_SATELO_ENABLED_PATH
+    fi
+
     if [ -f $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH ]; then
         rm $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH
     fi
@@ -608,6 +616,46 @@ disable_cujotelemetry()
    fi
 }
 
+enable_sate()
+{
+   touch $ADVSEC_SATE_ENABLED_PATH
+   echo_t ${ADV_SATE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+       advsec_restart_agent "AgentSATE_RFC_Enabled"
+   fi
+}
+
+disable_sate()
+{
+   rm -f $ADVSEC_SATE_ENABLED_PATH
+   echo_t ${ADV_SATE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+       advsec_restart_agent "AgentSATE_RFC_Disabled"
+   fi
+}
+
+enable_satelo()
+{
+   touch $ADVSEC_SATELO_ENABLED_PATH
+   echo_t ${ADV_SATELO_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+       advsec_restart_agent "AgentSATELO_RFC_Enabled"
+   fi
+}
+
+disable_satelo()
+{
+   rm -f $ADVSEC_SATELO_ENABLED_PATH
+   echo_t ${ADV_SATELO_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+       advsec_restart_agent "AgentSATELO_RFC_Disabled"
+   fi
+}
+
 enable_wifidatacollection()
 {
     if [ -f $ADVSEC_WIFIDCL_INIT_PATH ]; then
@@ -911,6 +959,22 @@ fi
 
 if [ "$1" = "-disableCTD" ]; then
     disable_cujotelemetry "RR"
+fi
+
+if [ "$1" = "-enableSATE" ]; then
+    enable_sate "RR"
+fi
+
+if [ "$1" = "-disableSATE" ]; then
+    disable_sate "RR"
+fi
+
+if [ "$1" = "-enableSATELO" ]; then
+    enable_satelo "RR"
+fi
+
+if [ "$1" = "-disableSATELO" ]; then
+    disable_satelo "RR"
 fi
 
 if [ "$1" = "-enableWSDiscovery" ]; then

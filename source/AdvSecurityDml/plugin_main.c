@@ -121,6 +121,12 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecurityCujoTelemetry_RFC_GetParamBoolValue", AdvanceSecurityCujoTelemetry_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue", AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue);
 
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecuritySATE_RFC_GetParamBoolValue", AdvanceSecuritySATE_RFC_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecuritySATE_RFC_SetParamBoolValue", AdvanceSecuritySATE_RFC_SetParamBoolValue);
+
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecuritySATELO_RFC_GetParamBoolValue", AdvanceSecuritySATELO_RFC_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecuritySATELO_RFC_SetParamBoolValue", AdvanceSecuritySATELO_RFC_SetParamBoolValue);
+
     /* Create Object for Settings */
     g_pAdvSecAgent = (PCOSA_DATAMODEL_AGENT)CosaSecurityCreate();
 
