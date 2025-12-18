@@ -123,7 +123,8 @@ log_agent_mem_statistics()
 	total_rss_mem=0
 	for pid in ${PID_LIST}; do
 		sfile=/proc/$pid/status
-		proc_name=`cat /proc/$pid/cmdline`
+		# Get process command line (replace NULLs with spaces)
+        proc_name=$(tr '\0' ' ' < /proc/$pid/cmdline | sed 's/[[:space:]]*$//')
 		if [ -e $sfile ]; then
                         rss=`cat $sfile | grep VmRSS | awk '{print $2}'`
 			echo_t "$pid:$proc_name : $rss kb" >> $ADVSEC_AGENT_LOG_PATH
