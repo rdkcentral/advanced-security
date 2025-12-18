@@ -3869,10 +3869,10 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
 
  APIs for Object:
 
-    X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecuritySATE.
+    X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecurityAtTheEdge.
 
-    *  AdvanceSecuritySATE_RFC_GetParamBoolValue
-    *  AdvanceSecuritySATE_RFC_SetParamBoolValue
+    *  AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue
+    *  AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
 
 ***********************************************************************/
 /**********************************************************************
@@ -3882,7 +3882,7 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
     prototype:
 
         BOOL
-        AdvanceSecuritySATE_RFC_GetParamBoolValue
+        AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue
             (
                 ANSC_HANDLE                 hInsContext,
                 char*                       ParamName,
@@ -3906,7 +3906,7 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
 
 ***********************************************************************/
 BOOL
-AdvanceSecuritySATE_RFC_GetParamBoolValue
+AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -3931,7 +3931,7 @@ AdvanceSecuritySATE_RFC_GetParamBoolValue
     prototype:
 
         BOOL
-        AdvanceSecuritySATE_RFC_SetParamBoolValue
+        AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
             (
                 ANSC_HANDLE                 hInsContext,
                 char*                       ParamName,
@@ -3955,7 +3955,7 @@ AdvanceSecuritySATE_RFC_GetParamBoolValue
 
 **********************************************************************/
 BOOL
-AdvanceSecuritySATE_RFC_SetParamBoolValue
+AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -3993,10 +3993,10 @@ AdvanceSecuritySATE_RFC_SetParamBoolValue
 
  APIs for Object:
 
-    X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecuritySATELO.
+    X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecurityAtTheEdgeListenOnly.
 
-    *  AdvanceSecuritySATELO_RFC_GetParamBoolValue
-    *  AdvanceSecuritySATELO_RFC_SetParamBoolValue
+    *  AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
+    *  AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue
 
 ***********************************************************************/
 
@@ -4007,7 +4007,7 @@ AdvanceSecuritySATE_RFC_SetParamBoolValue
     prototype:
 
         BOOL
-        AdvanceSecuritySATELO_RFC_GetParamBoolValue
+        AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
             (
                 ANSC_HANDLE                 hInsContext,
                 char*                       ParamName,
@@ -4031,7 +4031,7 @@ AdvanceSecuritySATE_RFC_SetParamBoolValue
 
 ***********************************************************************/
 BOOL
-AdvanceSecuritySATELO_RFC_GetParamBoolValue
+AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -4056,7 +4056,7 @@ AdvanceSecuritySATELO_RFC_GetParamBoolValue
     prototype:
 
         BOOL
-        AdvanceSecuritySATELO_RFC_SetParamBoolValue
+        AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue
             (
                 ANSC_HANDLE                 hInsContext,
                 char*                       ParamName,
@@ -4080,7 +4080,7 @@ AdvanceSecuritySATELO_RFC_GetParamBoolValue
 
 **********************************************************************/
 BOOL
-AdvanceSecuritySATELO_RFC_SetParamBoolValue
+AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,

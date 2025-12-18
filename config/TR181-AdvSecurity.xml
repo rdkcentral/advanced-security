@@ -395,11 +395,11 @@
                 </parameters>
             </object>
             <object>
-              <name>AdvanceSecuritySATE</name>
+              <name>AdvanceSecurityAtTheEdge</name>
               <objectType>object</objectType>
                 <functions>
-                  <func_GetParamBoolValue>AdvanceSecuritySATE_RFC_GetParamBoolValue</func_GetParamBoolValue>
-                  <func_SetParamBoolValue>AdvanceSecuritySATE_RFC_SetParamBoolValue</func_SetParamBoolValue>
+                  <func_GetParamBoolValue>AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue</func_GetParamBoolValue>
+                  <func_SetParamBoolValue>AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue</func_SetParamBoolValue>
                 </functions>
                 <parameters>
                   <parameter>
@@ -411,11 +411,11 @@
                 </parameters>
             </object>
             <object>
-              <name>AdvanceSecuritySATELO</name>
+              <name>AdvanceSecurityAtTheEdgeListenOnly</name>
               <objectType>object</objectType>
                 <functions>
-                  <func_GetParamBoolValue>AdvanceSecuritySATELO_RFC_GetParamBoolValue</func_GetParamBoolValue>
-                  <func_SetParamBoolValue>AdvanceSecuritySATELO_RFC_SetParamBoolValue</func_SetParamBoolValue>
+                  <func_GetParamBoolValue>AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue</func_GetParamBoolValue>
+                  <func_SetParamBoolValue>AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue</func_SetParamBoolValue>
                 </functions>
                 <parameters>
                   <parameter>
