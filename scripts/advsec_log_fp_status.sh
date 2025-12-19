@@ -130,10 +130,10 @@ check_status()
         print_telemetry_log ${ADV_SATE_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
-    if [ -e ${ADVSEC_SATELO_ENABLED_PATH} ]; then
-        print_telemetry_log ${ADV_SATELO_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    if [ -e ${ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH} ]; then
+        print_telemetry_log ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     else
-        print_telemetry_log ${ADV_SATELO_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+        print_telemetry_log ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
     if [ -e ${ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH} ]; then

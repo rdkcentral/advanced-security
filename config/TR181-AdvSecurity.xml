@@ -395,11 +395,11 @@
                 </parameters>
             </object>
             <object>
-              <name>AdvanceSecurityAtTheEdge</name>
+              <name>AdvSecSentryAtTheEdge</name>
               <objectType>object</objectType>
                 <functions>
-                  <func_GetParamBoolValue>AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue</func_GetParamBoolValue>
-                  <func_SetParamBoolValue>AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue</func_SetParamBoolValue>
+                  <func_GetParamBoolValue>AdvSecSentryAtTheEdge_RFC_GetParamBoolValue</func_GetParamBoolValue>
+                  <func_SetParamBoolValue>AdvSecSentryAtTheEdge_RFC_SetParamBoolValue</func_SetParamBoolValue>
                 </functions>
                 <parameters>
                   <parameter>
@@ -411,11 +411,11 @@
                 </parameters>
             </object>
             <object>
-              <name>AdvanceSecurityAtTheEdgeListenOnly</name>
+              <name>AdvSecTCPTrackerFilterDevices</name>
               <objectType>object</objectType>
                 <functions>
-                  <func_GetParamBoolValue>AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue</func_GetParamBoolValue>
-                  <func_SetParamBoolValue>AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue</func_SetParamBoolValue>
+                  <func_GetParamBoolValue>AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue</func_GetParamBoolValue>
+                  <func_SetParamBoolValue>AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue</func_SetParamBoolValue>
                 </functions>
                 <parameters>
                   <parameter>

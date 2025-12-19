@@ -569,21 +569,21 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
 
  APIs for Object:
 
-    X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecurityAtTheEdge.
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecSentryAtTheEdge.
 
-    *  AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue
-    *  AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
+    *  AdvSecSentryAtTheEdge_RFC_GetParamBoolValue
+    *  AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
 
 ***********************************************************************/
 BOOL
-AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue
+AdvSecSentryAtTheEdge_RFC_GetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
         BOOL*                       pBool
     );
 BOOL
-AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
+AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -593,21 +593,21 @@ AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
 
  APIs for Object:
 
-    X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecurityAtTheEdgeListenOnly.
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecTCPTrackerFilterDevices.
 
-    *  AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
-    *  AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue
+    *  AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
+    *  AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
 
 ***********************************************************************/
 BOOL
-AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
+AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
         BOOL*                       pBool
     );
 BOOL
-AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue
+AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,

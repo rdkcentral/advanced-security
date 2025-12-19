@@ -3869,10 +3869,10 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
 
  APIs for Object:
 
-    X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecurityAtTheEdge.
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecSentryAtTheEdge.
 
-    *  AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue
-    *  AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
+    *  AdvSecSentryAtTheEdge_RFC_GetParamBoolValue
+    *  AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
 
 ***********************************************************************/
 /**********************************************************************
@@ -3882,7 +3882,7 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
     prototype:
 
         BOOL
-        AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue
+        AdvSecSentryAtTheEdge_RFC_GetParamBoolValue
             (
                 ANSC_HANDLE                 hInsContext,
                 char*                       ParamName,
@@ -3906,7 +3906,7 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
 
 ***********************************************************************/
 BOOL
-AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue
+AdvSecSentryAtTheEdge_RFC_GetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -3931,7 +3931,7 @@ AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue
     prototype:
 
         BOOL
-        AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
+        AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
             (
                 ANSC_HANDLE                 hInsContext,
                 char*                       ParamName,
@@ -3955,7 +3955,7 @@ AdvanceSecurityAtTheEdge_RFC_GetParamBoolValue
 
 **********************************************************************/
 BOOL
-AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
+AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -3993,10 +3993,10 @@ AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
 
  APIs for Object:
 
-    X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecurityAtTheEdgeListenOnly.
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecTCPTrackerFilterDevices.
 
-    *  AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
-    *  AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue
+    *  AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
+    *  AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
 
 ***********************************************************************/
 
@@ -4007,7 +4007,7 @@ AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
     prototype:
 
         BOOL
-        AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
+        AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
             (
                 ANSC_HANDLE                 hInsContext,
                 char*                       ParamName,
@@ -4031,7 +4031,7 @@ AdvanceSecurityAtTheEdge_RFC_SetParamBoolValue
 
 ***********************************************************************/
 BOOL
-AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
+AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -4043,7 +4043,7 @@ AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
 
     if( AnscEqualString(ParamName, "Enable", TRUE))
     {
-        *pBool = g_pAdvSecAgent->pAdvSecSATELO_RFC->bEnable;
+        *pBool = g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC->bEnable;
         return TRUE;
     }
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
@@ -4056,7 +4056,7 @@ AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
     prototype:
 
         BOOL
-        AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue
+        AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
             (
                 ANSC_HANDLE                 hInsContext,
                 char*                       ParamName,
@@ -4080,7 +4080,7 @@ AdvanceSecurityAtTheEdgeListenOnly_RFC_GetParamBoolValue
 
 **********************************************************************/
 BOOL
-AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue
+AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -4094,12 +4094,12 @@ AdvanceSecurityAtTheEdgeListenOnly_RFC_SetParamBoolValue
 
     if( AnscEqualString(ParamName, "Enable", TRUE))
     {
-        if(bValue == g_pAdvSecAgent->pAdvSecSATELO_RFC->bEnable)
+        if(bValue == g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC->bEnable)
                 return TRUE;
         if( bValue )
-                returnStatus = CosaAdvSecSATELOInit(g_pAdvSecAgent->pAdvSecSATELO_RFC);
+                returnStatus = CosaAdvSecTCPTrackerFilterDevicesInit(g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC);
         else
-                returnStatus = CosaAdvSecSATELODeInit(g_pAdvSecAgent->pAdvSecSATELO_RFC);
+                returnStatus = CosaAdvSecTCPTrackerFilterDevicesDeInit(g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC);
 
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {

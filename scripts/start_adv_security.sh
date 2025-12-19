@@ -268,8 +268,8 @@ then
         rm $ADVSEC_SATE_ENABLED_PATH
     fi
 
-    if [ -f $ADVSEC_SATELO_ENABLED_PATH ]; then
-        rm $ADVSEC_SATELO_ENABLED_PATH
+    if [ -f $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH ]; then
+        rm $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
     fi
 
     if [ -f $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH ]; then
@@ -636,23 +636,23 @@ disable_sate()
    fi
 }
 
-enable_satelo()
+enable_tcptracker_filter_devices()
 {
-   touch $ADVSEC_SATELO_ENABLED_PATH
-   echo_t ${ADV_SATELO_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+   touch $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
+   echo_t ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSATELO_RFC_Enabled"
+       advsec_restart_agent "AgentTCPTrackerFilterDevices_RFC_Enabled"
    fi
 }
 
-disable_satelo()
+disable_tcptracker_filter_devices()
 {
-   rm -f $ADVSEC_SATELO_ENABLED_PATH
-   echo_t ${ADV_SATELO_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+   rm -f $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
+   echo_t ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSATELO_RFC_Disabled"
+       advsec_restart_agent "AgentTCPTrackerFilterDevices_RFC_Disabled"
    fi
 }
 
@@ -969,12 +969,12 @@ if [ "$1" = "-disableSATE" ]; then
     disable_sate "RR"
 fi
 
-if [ "$1" = "-enableSATELO" ]; then
-    enable_satelo "RR"
+if [ "$1" = "-enableTCPTrackerFilterDevices" ]; then
+    enable_tcptracker_filter_devices "RR"
 fi
 
-if [ "$1" = "-disableSATELO" ]; then
-    disable_satelo "RR"
+if [ "$1" = "-disableTCPTrackerFilterDevices" ]; then
+    disable_tcptracker_filter_devices "RR"
 fi
 
 if [ "$1" = "-enableWSDiscovery" ]; then
