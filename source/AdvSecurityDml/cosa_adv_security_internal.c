@@ -3377,7 +3377,7 @@ ANSC_STATUS CosaAdvSecSATEInit(ANSC_HANDLE hThisObject)
        CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
     }
 
-    CcspTraceWarning (("AdvSecSATE_RFCEnable:TRUE\n"));
+    CcspTraceWarning (("AdvSecSentryAtTheEdge_RFCEnable:TRUE\n"));
     return returnStatus;
 }
 
@@ -3402,7 +3402,7 @@ ANSC_STATUS CosaAdvSecSATEDeInit(ANSC_HANDLE hThisObject)
        CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
     }
 
-    CcspTraceWarning (("AdvSecSATE_RFCEnable:FALSE\n"));
+    CcspTraceWarning (("AdvSecSentryAtTheEdge_RFCEnable:FALSE\n"));
     return returnStatus;
 }
 
