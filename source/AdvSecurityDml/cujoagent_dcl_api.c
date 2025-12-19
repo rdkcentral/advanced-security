@@ -1,15 +1,124 @@
 #include "cujoagent_dcl_api.h"
 
+static gid_t cujoagent_get_group_id(const char *group_name) {
+  if (!group_name || *group_name == '\0') {
+    CcspTraceError(("Invalid group name\n"));
+    return (gid_t)-1;
+  }
+
+  ssize_t bufsize = sysconf(_SC_GETGR_R_SIZE_MAX);
+  if (bufsize == -1) {
+    bufsize = DEFAULT_GROUP_BUFFER_SIZE;
+  }
+
+  char *buf = malloc((size_t)bufsize);
+  if (buf == NULL) {
+    CcspTraceError(("Failed to allocate the buffer for group id\n"));
+    return (gid_t)-1;
+  }
+
+  struct group grp;
+  struct group *result = NULL;
+  int ret = getgrnam_r(group_name, &grp, buf, (size_t)bufsize, &result);
+  if (ret != 0 || result == NULL) {
+    CcspTraceError(
+        ("Failed to get group id for [%s]: [%d]\n", group_name, ret));
+    free(buf);
+    return (gid_t)-1;
+  }
+
+  gid_t group_id = grp.gr_gid;
+  free(buf);
+  return group_id;
+}
+
+static int cujoagent_dir_component(const char *path, mode_t mode,
+                                   gid_t group_id) {
+  if (!path || *path == '\0') {
+    CcspTraceError(("Invalid directory path component\n"));
+    return -1;
+  }
+
+  int r = mkdir(path, mode);
+  if (r == 0) {
+    CcspTraceDebug(
+        ("Changing the ownership of created directory [%s]\n", path));
+    if (chown(path, (gid_t)-1, group_id)) {
+      CcspTraceError(("Failed to change ownership of directory [%s]: [%d]\n",
+                      path, errno));
+      return -1;
+    }
+  } else if (errno != EEXIST) {
+    CcspTraceError(("Failed to create directory [%s]: [%d]\n", path, errno));
+    return -1;
+  }
+
+  return 0;
+}
+
+static int cujoagent_mkdir_parents(const char *path, mode_t mode,
+                                   gid_t group_id) {
+  if (!path || *path == '\0') {
+    CcspTraceError(("Invalid directory path\n"));
+    return -1;
+  }
+
+  char *subpath = strdup(path);
+  if (!subpath) {
+    CcspTraceError(("Subpath [%s] strdup failed\n", path));
+    return -1;
+  }
+
+  char *end = subpath + strlen(subpath) - 1;
+  if (end > subpath && *end == '/') {
+    *end = '\0';
+  }
+
+  mode_t orig_umask = umask(0);
+  char *p = subpath;
+  int result = 0;
+
+  while (*p != '\0') {
+    /* Skip the very first slash for absolute paths, so we don't accidentally
+     * change root's '/' ownership. */
+    if (*p == '/' && p != subpath) {
+      *p = '\0';
+      result = cujoagent_dir_component(subpath, mode, group_id);
+      if (result != 0) {
+        goto cleanup;
+      }
+      *p = '/';
+    }
+    p++;
+  }
+
+  result = cujoagent_dir_component(subpath, mode, group_id);
+
+cleanup:
+  free(subpath);
+  umask(orig_umask);
+  return result;
+}
+
 static int cujoagent_socket_init(cujoagent_wifi_consumer_t *consumer) {
   char *msg = NULL;
 
+  mode_t orig_umask = 0;
+  gid_t group_id = (gid_t)-1;
+
   char *socket_path = NULL;
-  int cmd = 0;
+  int socket_dir = 0;
 
   consumer->sock_fd = -1;
   int count = 0;
   struct sockaddr_un saddr = {.sun_family = AF_UNIX};
   size_t saddr_path_size = sizeof(saddr.sun_path);
+
+  group_id = cujoagent_get_group_id(CCSP_CUJOAGENT_GROUP);
+  if (group_id == (gid_t)-1) {
+    msg = "Failed to get group ID";
+    goto err;
+  }
 
   socket_path = strdup(CCSP_CUJOAGENT_SOCK_PATH);
   if (socket_path == NULL) {
@@ -17,10 +126,12 @@ static int cujoagent_socket_init(cujoagent_wifi_consumer_t *consumer) {
     goto err;
   }
 
-  cmd = v_secure_system("mkdir -p %s", dirname(socket_path));
+  /* drwxrwxr-x */
+  socket_dir = cujoagent_mkdir_parents(
+      dirname(socket_path), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH, group_id);
   free(socket_path);
 
-  if (cmd != 0) {
+  if (socket_dir != 0) {
     msg = "Failed to create parent directory for the socket path";
     goto err;
   }
@@ -42,9 +153,18 @@ static int cujoagent_socket_init(cujoagent_wifi_consumer_t *consumer) {
     goto err;
   }
 
+  /*  srw-rw---- */
+  orig_umask = umask(S_IRWXO | S_IXGRP | S_IXUSR);
   if (bind(consumer->sock_fd, (struct sockaddr *)&saddr,
            sizeof(struct sockaddr_un)) == -1) {
+    umask(orig_umask);
     msg = "Failed to bind to the socket";
+    goto err;
+  }
+  umask(orig_umask);
+
+  if (chown(CCSP_CUJOAGENT_SOCK_PATH, (uid_t)-1, group_id) == -1) {
+    msg = "Failed to change socket ownership";
     goto err;
   }
 
@@ -338,7 +458,6 @@ static int cujoagent_wait_for_event(int epoll_fd, cujoagent_notify_t notify,
   int efd = -1;
   uint32_t event = 0;
   uint64_t u = NOTIFY_NONE;
-  int nbytes;
 
   CcspTraceDebug(("Epoll wait: epoll fd [%d] notify to expect [%d]\n",
                   epoll_fd, notify));
@@ -359,13 +478,9 @@ static int cujoagent_wait_for_event(int epoll_fd, cujoagent_notify_t notify,
       return -1;
     }
 
-    nbytes = read(efd, &u, sizeof(u));
-    if (nbytes < 0) {
+    if (read(efd, &u, sizeof(u)) < 0) {
       CcspTraceError(("Failed to read event fd [%d]\n", efd));
       return -1;
-    }
-    else {
-      CcspTraceDebug(("Read event fd %d bytes\n", nbytes));
     }
 
     if (u != notify) {
@@ -605,7 +720,6 @@ static void *cujoagent_l1_collector(void *arg) {
   int collector_epoll = -1;
   struct epoll_event ev = {0};
   struct itimerspec ts = {0};
-  int nbytes;
 
   mac_addr_str_t collect_mac_str = {0};
   cujoagent_bytes_to_mac_str(l1_start_tlv->mac.ether_addr_octet,
@@ -732,13 +846,9 @@ static void *cujoagent_l1_collector(void *arg) {
       continue;
     }
 
-    nbytes = read(efd, &u, sizeof(u));
-    if (nbytes < 0) {
+    if (read(efd, &u, sizeof(u)) < 0) {
       CcspTraceError(("Failed to read event fd [%d]\n", efd));
       continue;
-    }
-    else {
-      CcspTraceDebug(("Read event fd %d bytes\n", nbytes));
     }
 
     if (efd == collector->timer) {
@@ -915,6 +1025,7 @@ cujoagent_start_l1_collection(struct cujo_fpc_l1_collection_start *l1_start_tlv,
   if (pthread_create(&thr, &attr, &cujoagent_l1_collector, collector) != 0) {
     CcspTraceError(("Failed to start L1 collector thread for mac [%s]\n",
                     collect_mac_str));
+    pthread_mutex_lock(&consumer->l1_lock);
     if (epoll_ctl(consumer->queue_epoll, EPOLL_CTL_DEL,
                   collector->notification_ack, NULL)) {
       CcspTraceError(("Failed to remove L1 collector stop_ack eventfd from the "
@@ -922,13 +1033,7 @@ cujoagent_start_l1_collection(struct cujo_fpc_l1_collection_start *l1_start_tlv,
     }
     consumer->l1_collections[slot] = NULL;
     pthread_attr_destroy(&attr);
-    if (collector) {
-      cujoagent_close_if_valid(&collector->notification_ack);
-      cujoagent_close_if_valid(&collector->notification);
-      cujoagent_close_if_valid(&collector->timer);
-      free(collector);
-    }
-    return -1;
+    goto err;
   }
   pthread_attr_destroy(&attr);
 
@@ -966,7 +1071,6 @@ static void *cujoagent_socket_loop(void *arg) {
 
   struct cujo_fpc_l1_collection_start *l1_start_tlv = NULL;
   mac_addr_str_t collect_mac_str = {0};
-  int nbytes;
 
   /* Blocking call, get a hello first and only then proceed further */
   if (cujoagent_tlv_handshake(consumer->sock_fd, &paddr, &addr_len,
@@ -1005,14 +1109,10 @@ static void *cujoagent_socket_loop(void *arg) {
       }
 
       if (efd == consumer->comms_notification) {
-        nbytes = read(efd, &u, sizeof(u));
-        if (nbytes == -1) {
+        if (read(efd, &u, sizeof(u)) == -1) {
           CcspTraceError(("Failed to read eventfd [%d]\n", efd));
           continue;
         }
-       else {
-         CcspTraceDebug(("Read eventfd %d bytes\n", nbytes));
-       }
 
         for (int j = 0; j < MAX_TO_CUJO_TLVS; j++) {
           if (u == consumer->tlv_notify_lut[j].notify_ready) {
@@ -1169,7 +1269,6 @@ static void *cujoagent_fifo_loop(void *arg) {
   size_t csi_label_len = sizeof(csi_label);
   size_t csi_expected_len = 0;
   unsigned int csi_data_len = 0;
-  int nbytes;
 
   fifo_buf = calloc(1, fifo_payload_size);
   if (fifo_buf == NULL) {
@@ -1254,14 +1353,10 @@ static void *cujoagent_fifo_loop(void *arg) {
           }
         }
       } else if (efd == consumer->fifo_notification) {
-        nbytes = read(efd, &u, sizeof(u));
-        if (nbytes < 0) {
+        if (read(efd, &u, sizeof(u)) < 0) {
           CcspTraceError(("Failed to read event fd [%d]\n", efd));
           continue;
         }
-       else {
-         CcspTraceDebug(("Read event fd %d bytes\n", nbytes));
-       }
 
         if (u == NOTIFY_FIFO_THREAD_STOP) {
           notify = NOTIFY_FIFO_THREAD_RETURN;
@@ -2941,7 +3036,7 @@ cujoagent_radio_temperature_handler(__attribute__((unused)) rbusHandle_t handle,
     return;
   }
 
-  unsigned int event_radio_idx = 1;
+  unsigned int event_radio_idx = 0;
   if (sscanf(subscription->eventName, DEV_WIFI_EVENTS_RADIO_TEMPERATURE,
              &event_radio_idx) != 1) {
     CcspTraceError(
