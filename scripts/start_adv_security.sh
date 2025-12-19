@@ -622,7 +622,7 @@ enable_sate()
    echo_t ${ADV_SATE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSATE_RFC_Enabled"
+       advsec_restart_agent "AgentSentryAtTheEdge_RFC_Enabled"
    fi
 }
 
@@ -632,7 +632,7 @@ disable_sate()
    echo_t ${ADV_SATE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSATE_RFC_Disabled"
+       advsec_restart_agent "AgentSentryAtTheEdge_RFC_Disabled"
    fi
 }
 
