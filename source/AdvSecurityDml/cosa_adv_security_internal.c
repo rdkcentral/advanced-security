@@ -986,8 +986,8 @@ CosaSecurityCreate
         goto mem_alloc_failure;
     }
 
-    pMyObject->pAdvSecTCPTrackerFilterDevices_RFC = (PCOSA_DATAMODEL_ADVSECTCPTrackerFilterDevices_RFC)
-                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECTCPTrackerFilterDevices_RFC));
+    pMyObject->pAdvSecTCPTrackerFilterDevices_RFC = (PCOSA_DATAMODEL_ADVSECTCPTRACKERFILTERDEVICES_RFC)
+                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECTCPTRACKERFILTERDEVICES_RFC));
     if ( !pMyObject->pAdvSecTCPTrackerFilterDevices_RFC )
     {
         goto mem_alloc_failure;
