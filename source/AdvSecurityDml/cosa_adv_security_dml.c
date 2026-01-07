@@ -3980,7 +3980,7 @@ AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
@@ -4104,7 +4104,7 @@ AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
