@@ -2542,19 +2542,20 @@ static void *advsec_sysevent_handler_th(void *arg)
  */
 void advsec_handle_sysevent_async(void)
 {
-    int err;
-    pthread_t event_handle_thread;
+    //int err;
+    //pthread_t event_handle_thread;
 
     if(AdvsecSysEventHandlerStarted)
         return;
     else
         AdvsecSysEventHandlerStarted = TRUE;
 
-    err = pthread_create(&event_handle_thread, NULL, advsec_sysevent_handler_th, NULL);
+	CcspTraceWarning(("removed sysevent_getnotification thread\n"));
+    /*err = pthread_create(&event_handle_thread, NULL, advsec_sysevent_handler_th, NULL);
     if(0 != err)
     {
         CcspTraceError(("%s: create the event handle thread error!\n", __FUNCTION__));
-    }
+    }*/
 }
 
 static BOOL WaitForLoggerTimeout(ULONG period)
