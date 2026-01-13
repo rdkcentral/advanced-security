@@ -2546,9 +2546,13 @@ void advsec_handle_sysevent_async(void)
     //pthread_t event_handle_thread;
 
     if(AdvsecSysEventHandlerStarted)
+	{
         return;
+	}
     else
+	{
         AdvsecSysEventHandlerStarted = TRUE;
+	}
 
 	CcspTraceWarning(("removed sysevent_getnotification thread\n"));
     /*err = pthread_create(&event_handle_thread, NULL, advsec_sysevent_handler_th, NULL);
