@@ -2490,53 +2490,6 @@ int advsec_check_sysevent_status(int fd, token_t token)
     return returnStatus;
 }
 
-
-/*
- * The sysevent handler thread.
- */
-/*static void *advsec_sysevent_handler_th(void *arg)
-{
-    UNREFERENCED_PARAMETER(arg);
-    int ret = SYS_EVENT_ERROR;
-
-    while(SYS_EVENT_ERROR == advsec_sysevent_init())
-    {
-        CcspTraceError(("%s: sysevent init failed!\n", __FUNCTION__));
-        sleep(1);
-    }
-
-    /*first check the events status*/
-    /* CID 161160: Useless call */
-    /*ANSC_STATUS ret_value  = advsec_check_sysevent_status(sysevent_fd, sysEtoken);
-    if(ret_value == ANSC_STATUS_FAILURE)
-    {
-        CcspTraceWarning(("advsec_check_sysevent_status() failed \n"));
-    }
-
-    while(1)
-    {
-        ret = advsec_sysvent_listener();
-        switch (ret)
-        {
-            case SYS_EVENT_RECEIVED:
-                break;
-            default :
-                CcspTraceError(("The received event status is not expected!\n"));
-                break;
-        }
-
-        if (SYS_EVENT_HANDLE_EXIT == ret) //end this event handling loop
-            break;
-
-        sleep(2);
-    }
-
-    advsec_sysvent_close();
-
-    return NULL;
-}
-*/
-
 /*
  * Create a thread to handle the sysevent asynchronously
  */
