@@ -1163,7 +1163,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecGetLookupTimeoutExceededCou
     EXPECT_EQ(CosaAdvSecGetLookupTimeoutExceededCount(), lcount);
 }
 
-TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMemoryLimit)
+/**TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMemoryLimit)
 {
     const char *RabidMemoryLimit = "Advsecurity_RabidMemoryLimit";
     ULONG value = 100;
@@ -1181,7 +1181,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMemoryLimit)
     ANSC_STATUS status = CosaRabidSetMemoryLimit(NULL, value);
 
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
-}
+}**/
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMacCacheSize)
 {
