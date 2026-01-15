@@ -2,6 +2,7 @@
 #define CUJOAGENT_DCL_API_H
 
 #include <endian.h>
+#include <grp.h>
 #include <inttypes.h>
 #include <libgen.h>
 #include <limits.h>
@@ -27,6 +28,12 @@
 #define VERSION_MINOR                   0
 
 #define RBUS_CONSUMER_NAME              "wifi-data-collection-consumer"
+
+/* The group name and socket path must match the one in the agent's
+ * configuration file. */
+#define CCSP_CUJOAGENT_GROUP            "_cujo"
+#define CCSP_CUJOAGENT_SOCK_PATH        "/tmp/cujo/wifi.sock"
+#define DEFAULT_GROUP_BUFFER_SIZE       1024
 
 #ifdef NON_PRIVILEGED
 #define CCSP_CUJOAGENT_SOCK_PATH        "/tmp/wifi.sock"

@@ -133,10 +133,16 @@ static char *g_WSDiscoveryAnalysisEnabled = "Adv_WSDisAnaRFCEnable";
 static char *g_AdvSecOTMEnabled = "Adv_AdvSecOTMRFCEnable";
 static char *g_AdvSecUserSpaceEnabled = "Adv_AdvSecUserSpaceRFCEnable";
 static char *g_RaptrEnabled = "Adv_RaptrRFCEnable";
+
+#ifdef NETWORK_INTELLIGENCE
+static char *g_AdvSecNetworkIntelligenceEnabled = "Adv_AdvSecNetworkIntelligenceRFCEnable";
+#endif
+
 #ifdef WIFI_DATA_COLLECTION
 static char *g_AdvWifiDataCollection = "Adv_WifiDataCollectionRFCEnable";
 static char *g_LevlEnabled = "Adv_LevlRFCEnable";
 #endif
+
 static char *g_AdvSecAgentEnabled = "Adv_AdvSecAgentRFCEnable";
 static char *g_AdvSecSafeBrowsingEnabled = "Adv_AdvSecSafeBrowsingRFCEnable";
 static char *g_AdvSecCujoTelemetryWiFiFPEnabled = "Adv_AdvSecCujoTelemetryWiFiFPRFCEnable";
@@ -979,6 +985,15 @@ CosaSecurityCreate
         goto mem_alloc_failure;
     }
 
+    pMyObject->pAdvNetworkIntelligence_RFC = (PCOSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC)
+                                              AnscAllocateMemory(sizeof(PCOSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC));
+    if ( !pMyObject->pAdvNetworkIntelligence_RFC )
+    {
+        CcspTraceInfo(("%s exit ERROR \n", __FUNCTION__));
+        AnscFreeMemory((ANSC_HANDLE)pMyObject);
+        return  (ANSC_HANDLE)NULL;
+    }
+
     pMyObject->pAdvSecSATE_RFC = (PCOSA_DATAMODEL_ADVSECSATE_RFC)
                                               AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECSATE_RFC));
     if ( !pMyObject->pAdvSecSATE_RFC )
@@ -1038,6 +1053,9 @@ CosaSecurityInitialize
     ULONG                   ValueWSA_RFC = 0;
     ULONG                   ValueASOTM_RFC = 0;
     ULONG                   ValueASUSERSPACE_RFC = 0;
+#ifdef NETWORK_INTELLIGENCE
+    ULONG                   ValueASNI_RFC = 0;
+#endif
 #ifdef WIFI_DATA_COLLECTION
     ULONG                   ValueASWIFIDCL_RFC = 0;
     ULONG                   ValueLEVL_RFC = 0;
@@ -1259,6 +1277,9 @@ CosaSecurityInitialize
     CosaGetSysCfgUlong(g_WSDiscoveryAnalysisEnabled, &ValueWSA_RFC);
     CosaGetSysCfgUlong(g_AdvSecOTMEnabled, &ValueASOTM_RFC);
     CosaGetSysCfgUlong(g_AdvSecUserSpaceEnabled, &ValueASUSERSPACE_RFC);
+#ifdef NETWORK_INTELLIGENCE
+    CosaGetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, &ValueASNI_RFC);
+#endif
 #ifdef WIFI_DATA_COLLECTION
     CosaGetSysCfgUlong(g_AdvWifiDataCollection, &ValueASWIFIDCL_RFC);
     CosaGetSysCfgUlong(g_LevlEnabled, &ValueLEVL_RFC);
@@ -1300,6 +1321,11 @@ CosaSecurityInitialize
     {
         g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = ValueASUSERSPACE_RFC;
     }
+#ifdef NETWORK_INTELLIGENCE
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = ValueASNI_RFC;
+#else
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = FALSE;
+#endif
 #ifdef WIFI_DATA_COLLECTION
     g_pAdvSecAgent->pLevl_RFC->bEnable = ValueLEVL_RFC;
 
@@ -1465,6 +1491,63 @@ ANSC_STATUS CosaSetSysCfgUlong(char* setting, ULONG value)
 
     return ret;
 }
+
+#ifdef NETWORK_INTELLIGENCE
+ANSC_STATUS CosaAdvSecNetworkIntelligenceInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    if (g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable == TRUE) {
+        returnStatus = CosaSetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, 1);
+        if (ANSC_STATUS_SUCCESS != returnStatus)
+        {
+            CcspTraceWarning(("%s: syscfg_set failure.", __FUNCTION__));
+            return returnStatus;
+        }
+
+        g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = TRUE;
+
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableNI &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+           CcspTraceError(("%s: -enableNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
+    }
+    else
+    {
+        CcspTraceWarning(("Userspace RFC not enabled\n"));
+        returnStatus = ANSC_STATUS_FAILURE;
+    }
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecNetworkIntelligenceDeInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, 0);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceWarning(("%s: syscfg_set failure.", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = FALSE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableNI &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: disableNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceWarning(("Adv_AdvSecNetworkIntelligenceRFCEnable:FALSE\n"));
+    return returnStatus;
+}
+#endif
 
 #ifdef WIFI_DATA_COLLECTION
 ANSC_STATUS CosaAdvWifiDataConsumerInit(void)

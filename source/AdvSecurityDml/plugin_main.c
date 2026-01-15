@@ -121,6 +121,9 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecurityCujoTelemetry_RFC_GetParamBoolValue", AdvanceSecurityCujoTelemetry_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue", AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue);
 
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecNetworkIntelligence_RFC_GetParamBoolValue", NetworkIntelligence_RFC_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecNetworkIntelligence_RFC_SetParamBoolValue", NetworkIntelligence_RFC_SetParamBoolValue);
+
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecSentryAtTheEdge_RFC_GetParamBoolValue", AdvSecSentryAtTheEdge_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecSentryAtTheEdge_RFC_SetParamBoolValue", AdvSecSentryAtTheEdge_RFC_SetParamBoolValue);
 

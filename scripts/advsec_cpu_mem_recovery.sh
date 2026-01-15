@@ -34,6 +34,7 @@ MAX_CPU_THRESHOLD=45
 MAX_MEM_FIRST_SOFT_LIMIT=40
 MAX_MEM_SECOND_SOFT_LIMIT=45
 MAX_MEM_HARD_LIMIT=50
+MAX_MEM_HARD_LIMIT=70
 
 #syscfg contains value in MB.
 max_rss=`syscfg get Advsecurity_RabidMemoryLimit`
@@ -61,6 +62,14 @@ fi
 get_agent_pid_list()
 {
 	AGENT_PROC=${CUJO_AGENT}
+
+    if [ -f /tmp/advsec_networkintelligence_enabled ]; then
+        AGENT_PROC="${AGENT_PROC} ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}"
+    fi
+
+	# Print the list of agents before iterating
+    echo "Agent processes: ${AGENT_PROC}"
+
 	for agent in ${AGENT_PROC}; do
 		PID=`pidof $agent`
 		if [ "$PID" != "" ]; then
@@ -116,6 +125,8 @@ log_agent_mem_statistics()
 	for pid in ${PID_LIST}; do
 		sfile=/proc/$pid/status
 		proc_name=`cat /proc/$pid/cmdline`
+		# Get process command line (replace NULLs with spaces)
+        proc_name=$(tr '\0' ' ' < /proc/$pid/cmdline | sed 's/[[:space:]]*$//')
 		if [ -e $sfile ]; then
                         rss=`cat $sfile | grep VmRSS | awk '{print $2}'`
 			echo_t "$pid:$proc_name : $rss kb" >> $ADVSEC_AGENT_LOG_PATH
