@@ -135,15 +135,18 @@ static int cujoagent_socket_init(cujoagent_wifi_consumer_t *consumer) {
     msg = "Failed to create parent directory for the socket path";
     goto err;
   }
+
   consumer->sock_fd = socket(AF_UNIX, SOCK_DGRAM, 0);
   if (consumer->sock_fd == -1) {
     msg = "Failed to open unix socket";
     goto err;
   }
+
   if (remove(CCSP_CUJOAGENT_SOCK_PATH) == -1 && errno != ENOENT) {
     msg = "Failed to remove socket filepath";
     goto err;
   }
+  
   count = snprintf(saddr.sun_path, saddr_path_size, "%s", CCSP_CUJOAGENT_SOCK_PATH);
   if (count < 0 || count >= (int)saddr_path_size) {
     msg = "Socket filepath doesn't fit into buffer";
