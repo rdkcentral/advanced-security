@@ -13,7 +13,16 @@
         "header_paths": [
           { "source": "source/cosa/include", "destination": "$HOME/usr/include/rdkb" },
           { "source": "source/cosa/include/linux", "destination": "$HOME/usr/include/rdkb/linux" },
-          { "source": "source/ccsp/custom", "destination": "$HOME/usr/include/rdkb" }
+          { "source": "source/cosa/include/linux", "destination": "$HOME/usr/include/rdkb/" },
+          { "source": "source/ccsp/custom", "destination": "$HOME/usr/include/rdkb" },
+          { "source": "source/ccsp/include", "destination": "$HOME/usr/include/rdkb" },
+          { "source": "source/debug_api/include", "destination": "$HOME/usr/include/rdkb" },
+          { "source": "source/util_api/http/include", "destination": "$HOME/usr/include/rdkb" },
+          { "source": "source/ccsp/components/include", "destination": "$HOME/usr/include/rdkb" },
+          { "source": "source/util_api/ansc/include", "destination": "$HOME/usr/include/rdkb" },
+          { "source": "source/dm_pack", "destination": "$HOME/usr/include/rdkb" },
+          { "source": "source/cosa/package/slap/include", "destination": "$HOME/usr/include/rdkb" },
+          { "source": "source/ccsp/components/common/MessageBusHelper/include", "destination": "$HOME/usr/include/rdkb" }
         ],
         "source_patches": [
           {
@@ -26,7 +35,11 @@
             "search": "typedef struct _CCSP_MESSAGE_BUS_CONNECTION",
             "replace": "typedef struct DBusLoop DBusLoop;\n\ntypedef struct _CCSP_MESSAGE_BUS_CONNECTION"
           }
-        ]
+        ],
+        "build": {
+          "type": "script",
+          "script": "cov_docker_script/common_external_build.sh"
+        }
       },
       {
         "name": "rdkb-halif-platform",
@@ -43,6 +56,39 @@
         "header_paths": [
           { "source": "include", "destination": "$HOME/usr/include/rdkb/ccsp" }
         ]
+      },
+      {
+        "name": "rbus",
+        "repo": "https://github.com/rdkcentral/rbus.git",
+        "branch": "v2.7.0",
+        "header_paths": [
+          { "source": "include", "destination": "$HOME/usr/include/rdkb/rbus" },
+          { "source": "src/rbus", "destination": "$HOME/usr/include/rdkb/rbus" }
+        ]
+      },
+      {
+        "name": "WebconfigFramework",
+        "repo": "https://github.com/rdkcentral/WebconfigFramework.git",
+        "branch": "develop",
+        "header_paths": [
+          { "source": "include", "destination": "$HOME/usr/include/rdkb" }
+        ],
+        "build": {
+          "type": "autotools",
+          "configure_flags": "CPPFLAGS=\"-I$HOME/usr/include/rdkb -I$HOME/usr/include/rdkb/rbus -I$HOME/usr/local/include -I$HOME/usr/include/rdkb/rtmessage\" LDFLAGS=\"-L$HOME/usr/local/lib -L$HOME/usr/lib\" LIBS=\"-lrbus -lrtMessage\""
+        }
+      },
+      {
+        "name": "Utopia",
+        "repo": "https://github.com/rdkcentral/utopia.git",
+        "branch": "feature/cov_native_build",
+        "header_paths": [
+          { "source": "source/include/syscfg", "destination": "$HOME/usr/include/rdkb/syscfg" }
+        ],
+        "build": {
+          "type": "script",
+          "script": "cov_docker_script/common_external_build.sh"
+        }
       }
     ]
   },
