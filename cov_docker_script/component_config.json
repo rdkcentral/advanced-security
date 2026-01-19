@@ -11,7 +11,8 @@
         "repo": "https://github.com/rdkcentral/common-library.git",
         "branch": "feature/native_build_for_coverity",
         "header_paths": [
-          { "source": "source/cosa/include", "destination": "$HOME/usr/include/rdkb" }
+          { "source": "source/cosa/include", "destination": "$HOME/usr/include/rdkb" },
+          { "source": "source/cosa/include/linux", "destination": "$HOME/usr/include/rdkb/linux" }
         ],
         "source_patches": [
           {
