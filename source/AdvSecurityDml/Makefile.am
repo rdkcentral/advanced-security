@@ -29,12 +29,12 @@ libdmlasecurity_la_SOURCES = plugin_main.c cosa_adv_security_internal.c cosa_adv
 libdmlasecurity_la_LDFLAGS = -lccsp_common -lsyscfg -lsysevent -lwebconfig_framework -lmsgpackc -ltrower-base64 -lsecure_wrapper -lrbus $(SSP_LDFLAGS)
 
 if WIFI_DATA_COLLECTION
-libdmlasecurity_la_CPPFLAGS += -DDML_SUPPORT -DNON_PRIVILEGED -DWIFI_DATA_COLLECTION
+libdmlasecurity_la_CPPFLAGS += -DDML_SUPPORT -DWIFI_DATA_COLLECTION
 libdmlasecurity_la_SOURCES += cujoagent_dcl_api.c
 libdmlasecurity_la_LDFLAGS += -lwifi_webconfig
 endif
 
 if NETWORK_INTELLIGENCE
-libdmlasecurity_la_CPPFLAGS += -DDML_SUPPORT -DNON_PRIVILEGED -DNETWORK_INTELLIGENCE
+libdmlasecurity_la_CPPFLAGS += -DDML_SUPPORT -DNETWORK_INTELLIGENCE
 libdmlasecurity_la_LDFLAGS += -lwifi_webconfig
 endif
