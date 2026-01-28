@@ -3932,10 +3932,10 @@ NetworkIntelligence_RFC_GetParamBoolValue
         *pBool = g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable;
         return TRUE;
     }
-    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
 #else
     UNREFERENCED_PARAMETER(pBool);
 #endif
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;
 }
 
