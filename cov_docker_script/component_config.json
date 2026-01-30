@@ -9,7 +9,7 @@
       {
         "name": "common-library",
         "repo": "https://github.com/rdkcentral/common-library.git",
-        "branch": "feature/native_build_for_coverity",
+        "branch": "develop",
         "header_paths": [
           { "source": "source/cosa/include", "destination": "$HOME/usr/include/rdkb" },
           { "source": "source/cosa/include/linux", "destination": "$HOME/usr/include/rdkb/linux" },
@@ -38,7 +38,7 @@
         ],
         "build": {
           "type": "script",
-          "script": "cov_docker_script/common_external_build.sh"
+          "script": "cov_docker_script/run_external_build.sh"
         }
       },
       {
@@ -81,13 +81,13 @@
       {
         "name": "Utopia",
         "repo": "https://github.com/rdkcentral/utopia.git",
-        "branch": "feature/cov_native_build",
+        "branch": "develop",
         "header_paths": [
           { "source": "source/include/syscfg", "destination": "$HOME/usr/include/rdkb/syscfg" }
         ],
         "build": {
           "type": "script",
-          "script": "cov_docker_script/common_external_build.sh"
+          "script": "cov_docker_script/run_external_build.sh"
         }
       }
     ]
