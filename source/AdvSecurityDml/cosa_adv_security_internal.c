@@ -1070,7 +1070,7 @@ CosaSecurityInitialize
         CcspTraceError(("AdvSecurityEventConsumer: rbus_open failed: %d\n", ret));
         return ANSC_STATUS_FAILURE;
     }
-#if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
+#if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_) && !defined (PON_GATEWAY)
 #if defined(_COSA_BCM_MIPS_)
     dpoe_mac_address_t tDpoe_Mac;
 #else
@@ -1087,7 +1087,7 @@ CosaSecurityInitialize
         CcspTraceError(("CcspAdvSecurity: Failed to initiate DB\n"));
     }
 
-#if !defined(_COSA_BCM_MIPS_) && !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
+#if !defined(_COSA_BCM_MIPS_) && !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_) && !defined (PON_GATEWAY)
     if ( cm_hal_InitDB() == 0)
     {
         CcspTraceInfo(("CcspAdvSecurity: cm_hal DB initiated successfully\n"));
@@ -1198,7 +1198,7 @@ CosaSecurityInitialize
         }
         CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
     }
-    #if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
+#if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_) && !defined(PON_GATEWAY)
     else if (cm_hal_GetDHCPInfo(&dhcpinfo) == 0 )
     {
           rc = strcmp_s(dhcpinfo.MACAddress, sizeof(dhcpinfo.MACAddress), ADVSEC_DEFAULT_CM_MAC, &ind);
@@ -1223,7 +1223,41 @@ CosaSecurityInitialize
               exit(0);
           }
     }
-    #endif
+#elif defined(PON_GATEWAY)
+    else
+    {
+        FILE *fp = popen("deviceinfo.sh -cmac", "r");
+        if (fp != NULL)
+        {
+            if (fgets(deviceMac, sizeof(deviceMac), fp) != NULL)
+            {
+                // Remove trailing newline if present
+                size_t len = strlen(deviceMac);
+                if (len > 0 && deviceMac[len-1] == '\n')
+                {
+                    deviceMac[len-1] = '\0';
+                }
+                CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
+            }
+            else
+            {
+                CcspTraceError(("CcspAdvSecurity: Failed to read MAC address from deviceinfo.sh\n"));
+                pclose(fp);
+                sysevent_close(fd, token);
+                sleep(30);
+                exit(0);
+            }
+            pclose(fp);
+        }
+        else
+        {
+            CcspTraceError(("CcspAdvSecurity: Failed to execute deviceinfo.sh\n"));
+            sysevent_close(fd, token);
+            sleep(30);
+            exit(0);
+        }
+    }
+#else
     else
     {
         CcspTraceWarning(("CcspAdvSecurity: Unable to get MACAdress or HAL not ready\n"));
@@ -1233,6 +1267,7 @@ CosaSecurityInitialize
     }
     /* close this session with syseventd */
     sysevent_close(fd, token);
+#endif
 #endif
 
     advsec_create_dir(ADVSEC_CONFIG_PARAMS_DIR_PATH);
