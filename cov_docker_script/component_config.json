@@ -62,7 +62,7 @@
         "repo": "https://github.com/rdkcentral/rbus.git",
         "branch": "v2.7.0",
         "header_paths": [
-          { "source": "include", "destination": "$HOME/usr/include/rdkb/rbus" },
+          { "source": "include", "destination": "$HOME/usr/include/rdkb" },
           { "source": "src/rbus", "destination": "$HOME/usr/include/rdkb/rbus" }
         ]
       },
@@ -89,6 +89,30 @@
           "type": "script",
           "script": "build_tools_workflows/cov_docker_script/common_external_build.sh"
         }
+      },
+      {
+        "name": "OneWifi",
+        "repo": "https://github.com/rdkcentral/OneWifi.git",
+        "branch": "develop",
+        "header_paths": [
+          { "source": "include", "destination": "$HOME/usr/include/rdkb/" }
+        ]
+      },
+      {
+        "name": "rdk-wifi-hal",
+        "repo": "https://github.com/rdkcentral/rdk-wifi-hal.git",
+        "branch": "develop",
+        "header_paths": [
+          { "source": "src", "destination": "$HOME/usr/include/rdkb" }
+        ]
+      },
+      {
+        "name": "rdkb-halif-wifi",
+        "repo": "https://github.com/rdkcentral/rdkb-halif-wifi.git",
+        "branch": "develop",
+        "header_paths": [
+          { "source": "include", "destination": "$HOME/usr/include/rdkb" }
+        ]
       }
     ]
   },
