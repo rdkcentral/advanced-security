@@ -1158,6 +1158,20 @@ CosaSecurityInitialize
         sleep(30);
         exit(0);
     }
+#elif defined(PON_GATEWAY)
+    // For PON gateway, always use HAL API
+    char deviceMACStr[32] = {0};
+    if (platform_hal_GetBaseMacAddress(deviceMACStr) == 0)
+    {
+        AnscMacToLower(deviceMac, deviceMACStr, sizeof(deviceMac));
+        CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
+    }
+    else
+    {
+        CcspTraceError(("CcspAdvSecurity: Failed to get BaseMacAddress from HAL API\n"));
+        sleep(30);
+        exit(0);
+    }
 #else
     char isEthEnabled[64]={'\0'};
     token_t  token;
@@ -1174,6 +1188,7 @@ CosaSecurityInitialize
 
     char deviceMACValue[32] = { '\0' };
     int found = 0;
+    
     if( 0 == syscfg_get( NULL, "eth_wan_enabled", isEthEnabled, sizeof(isEthEnabled)))
     {
         if(isEthEnabled[0] != '\0')
@@ -1198,7 +1213,7 @@ CosaSecurityInitialize
         }
         CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
     }
-#if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_) && !defined(PON_GATEWAY)
+#if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
     else if (cm_hal_GetDHCPInfo(&dhcpinfo) == 0 )
     {
           rc = strcmp_s(dhcpinfo.MACAddress, sizeof(dhcpinfo.MACAddress), ADVSEC_DEFAULT_CM_MAC, &ind);
@@ -1223,41 +1238,7 @@ CosaSecurityInitialize
               exit(0);
           }
     }
-#elif defined(PON_GATEWAY)
-    else
-    {
-        FILE *fp = popen("deviceinfo.sh -cmac", "r");
-        if (fp != NULL)
-        {
-            if (fgets(deviceMac, sizeof(deviceMac), fp) != NULL)
-            {
-                // Remove trailing newline if present
-                size_t len = strlen(deviceMac);
-                if (len > 0 && deviceMac[len-1] == '\n')
-                {
-                    deviceMac[len-1] = '\0';
-                }
-                CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
-            }
-            else
-            {
-                CcspTraceError(("CcspAdvSecurity: Failed to read MAC address from deviceinfo.sh\n"));
-                pclose(fp);
-                sysevent_close(fd, token);
-                sleep(30);
-                exit(0);
-            }
-            pclose(fp);
-        }
-        else
-        {
-            CcspTraceError(("CcspAdvSecurity: Failed to execute deviceinfo.sh\n"));
-            sysevent_close(fd, token);
-            sleep(30);
-            exit(0);
-        }
-    }
-#else
+#endif
     else
     {
         CcspTraceWarning(("CcspAdvSecurity: Unable to get MACAdress or HAL not ready\n"));
@@ -1267,7 +1248,6 @@ CosaSecurityInitialize
     }
     /* close this session with syseventd */
     sysevent_close(fd, token);
-#endif
 #endif
 
     advsec_create_dir(ADVSEC_CONFIG_PARAMS_DIR_PATH);
