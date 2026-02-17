@@ -77,30 +77,6 @@
           "type": "script",
           "script": "build_tools_workflows/cov_docker_script/common_external_build.sh"
         }
-      },
-      {
-        "name": "OneWifi",
-        "repo": "https://github.com/rdkcentral/OneWifi.git",
-        "branch": "develop",
-        "header_paths": [
-          { "source": "include", "destination": "$HOME/usr/include/rdkb/" }
-        ]
-      },
-      {
-        "name": "rdk-wifi-hal",
-        "repo": "https://github.com/rdkcentral/rdk-wifi-hal.git",
-        "branch": "develop",
-        "header_paths": [
-          { "source": "src", "destination": "$HOME/usr/include/rdkb" }
-        ]
-      },
-      {
-        "name": "rdkb-halif-wifi",
-        "repo": "https://github.com/rdkcentral/rdkb-halif-wifi.git",
-        "branch": "develop",
-        "header_paths": [
-          { "source": "include", "destination": "$HOME/usr/include/rdkb" }
-        ]
       }
     ]
   },
