@@ -24,18 +24,6 @@
           { "source": "source/cosa/package/slap/include", "destination": "$HOME/usr/include/rdkb" },
           { "source": "source/ccsp/components/common/MessageBusHelper/include", "destination": "$HOME/usr/include/rdkb" }
         ],
-        "source_patches": [
-          {
-            "file": "source/ccsp/include/ccsp_message_bus.h",
-            "search": "typedef struct _CCSP_MESSAGE_BUS_CONNECTION",
-            "replace": "typedef struct DBusLoop DBusLoop;\n\ntypedef struct _CCSP_MESSAGE_BUS_CONNECTION"
-          },
-          {
-            "file": "$HOME/usr/include/rdkb/ccsp_message_bus.h",
-            "search": "typedef struct _CCSP_MESSAGE_BUS_CONNECTION",
-            "replace": "typedef struct DBusLoop DBusLoop;\n\ntypedef struct _CCSP_MESSAGE_BUS_CONNECTION"
-          }
-        ],
         "build": {
           "type": "script",
           "script": "build_tools_workflows/cov_docker_script/common_external_build.sh"
