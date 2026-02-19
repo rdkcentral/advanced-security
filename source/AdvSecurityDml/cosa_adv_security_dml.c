@@ -3869,6 +3869,254 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
 
  APIs for Object:
 
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecSentryAtTheEdge.
+
+    *  AdvSecSentryAtTheEdge_RFC_GetParamBoolValue
+    *  AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
+
+***********************************************************************/
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        AdvSecSentryAtTheEdge_RFC_GetParamBoolValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                BOOL*                       pBool
+            );
+
+    description:
+
+        This function is called to retrieve Boolean parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL*                       pBool
+                The buffer of returned boolean value;
+
+    return:     TRUE if succeeded.
+
+***********************************************************************/
+BOOL
+AdvSecSentryAtTheEdge_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    if( AnscEqualString(ParamName, "Enable", TRUE))
+    {
+        *pBool = g_pAdvSecAgent->pAdvSecSATE_RFC->bEnable;
+        return TRUE;
+    }
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                BOOL                        bValue
+            );
+
+    description:
+
+        This function is called to set BOOL parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL                        bValue
+                The updated BOOL value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    )
+{
+
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+
+    if( AnscEqualString(ParamName, "Enable", TRUE))
+    {
+        if(bValue == g_pAdvSecAgent->pAdvSecSATE_RFC->bEnable)
+                return TRUE;
+        if( bValue )
+                returnStatus = CosaAdvSecSATEInit(g_pAdvSecAgent->pAdvSecSATE_RFC);
+        else
+                returnStatus = CosaAdvSecSATEDeInit(g_pAdvSecAgent->pAdvSecSATE_RFC);
+
+        if ( returnStatus != ANSC_STATUS_SUCCESS )
+        {
+            CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecTCPTrackerFilterDevices.
+
+    *  AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
+    *  AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
+
+***********************************************************************/
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                BOOL*                       pBool
+            );
+
+    description:
+
+        This function is called to retrieve Boolean parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL*                       pBool
+                The buffer of returned boolean value;
+
+    return:     TRUE if succeeded.
+
+***********************************************************************/
+BOOL
+AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    if( AnscEqualString(ParamName, "Enable", TRUE))
+    {
+        *pBool = g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC->bEnable;
+        return TRUE;
+    }
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                BOOL                        bValue
+            );
+
+    description:
+
+        This function is called to set BOOL parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL                        bValue
+                The updated BOOL value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+
+    if( AnscEqualString(ParamName, "Enable", TRUE))
+    {
+        if(bValue == g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC->bEnable)
+                return TRUE;
+        if( bValue )
+                returnStatus = CosaAdvSecTCPTrackerFilterDevicesInit(g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC);
+        else
+                returnStatus = CosaAdvSecTCPTrackerFilterDevicesDeInit(g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC);
+
+        if ( returnStatus != ANSC_STATUS_SUCCESS )
+        {
+            CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/***********************************************************************
+
+ APIs for Object:
+
     X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.
 
     *  WifiDataCollection_RFC_GetParamBoolValue

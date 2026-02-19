@@ -569,6 +569,54 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
 
  APIs for Object:
 
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecSentryAtTheEdge.
+
+    *  AdvSecSentryAtTheEdge_RFC_GetParamBoolValue
+    *  AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecSentryAtTheEdge_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+AdvSecSentryAtTheEdge_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecTCPTrackerFilterDevices.
+
+    *  AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
+    *  AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
     X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.
 
     *  WifiDataCollection_RFC_GetParamBoolValue
