@@ -1,10 +1,10 @@
 # Advanced Security Component Documentation
 
-The Advanced Security component (CcspAdvSecurity) provides comprehensive network security features for RDK-B devices, implementing device fingerprinting, safe browsing protection, network flow monitoring, and parental controls. This component serves as the middleware interface for advanced security services, integrating with external security agents (CuJo Agent/Rabid) to deliver real-time threat detection and network protection capabilities.
+The Advanced Security component (CcspAdvSecurity) provides TR-181 DML interface to manage network security features for RDK-B devices, controlling device fingerprinting, safe browsing protection, network flow monitoring, and parental controls implemented by external security agents (CuJo Agent/Rabid). This component acts as the middleware management layer, coordinating with external security agents to deliver real-time threat detection and network protection capabilities.
 
-The component operates as a critical security layer in the RDK-B middleware stack, providing TR-181 parameter management for various security features while coordinating with underlying security agents for actual threat detection and mitigation. It enables device identification, malicious website blocking, network traffic analysis, and advanced parental control functionalities through a unified management interface.
+The component operates as a critical security management layer in the RDK-B middleware stack, providing TR-181 parameter interface to enable, disable, and configure security features implemented by underlying security agents (CuJo Agent/Rabid) that perform actual threat detection and mitigation. The security agent enables device identification, malicious website blocking, network traffic analysis, and advanced parental control functionalities, all controlled through the unified TR-181 management interface provided by this component.
 
-At the module level, the Advanced Security component implements a plugin-based architecture with separate modules for Device Fingerprinting (network device identification and classification), Safe Browsing (malicious URL detection and blocking), Softflowd (network flow monitoring), and Advanced Parental Control (content filtering and access control). The component also provides WebConfig integration for remote configuration management and RFC (Remote Feature Control) support for enabling/disabling security features dynamically.
+At the module level, the Advanced Security component provides DML handlers for controlling Device Fingerprinting (network device identification and classification), Safe Browsing (malicious URL detection and blocking), Softflowd (network flow monitoring), and Advanced Parental Control (content filtering and access control) features that are implemented by the external security agent (CuJo Agent/Rabid). The component also provides WebConfig integration for remote configuration management and RFC (Remote Feature Control) support for enabling/disabling security features dynamically.
 
 ```mermaid
 graph LR
@@ -61,27 +61,29 @@ graph LR
 
 **Key Features & Responsibilities**: 
 
-- **Device Fingerprinting**: Provides network device identification and classification capabilities by analyzing network traffic patterns, enabling automatic device discovery and categorization for security policy enforcement
-- **Safe Browsing Protection**: Implements malicious website detection and blocking functionality through integration with security threat databases and real-time URL reputation services
-- **Network Flow Monitoring (Softflowd)**: Enables network traffic analysis and flow monitoring capabilities for detecting suspicious network behavior and generating security telemetry data
-- **Advanced Parental Controls**: Delivers content filtering and access control features allowing parents to manage and restrict network access for specific devices or users based on time, content categories, or specific websites
-- **RFC Feature Management**: Provides Remote Feature Control capabilities for dynamically enabling/disabling security features through centralized configuration management without requiring device restarts
+The component provides TR-181 DML interface for managing security features implemented by external agents (CuJo Agent/Rabid):
+
+- **Device Fingerprinting Management**: Controls device identification and classification through network traffic pattern analysis, enabling automatic device discovery and categorization for security policy enforcement
+- **Safe Browsing Protection**: Manages malicious website detection and blocking functionality through integration with security threat databases and real-time URL reputation services
+- **Network Flow Monitoring (Softflowd)**: Enables configuration of network traffic analysis and flow monitoring for detecting suspicious network behavior and generating security telemetry data
+- **Advanced Parental Controls**: Configures content filtering and access control features allowing parents to manage and restrict network access for specific devices or users based on time, content categories, or specific websites
+- **RFC Feature Management**: Provides Remote Feature Control capabilities for dynamically enabling/disabling security agent features through centralized configuration management without requiring device restarts
 - **WebConfig Integration**: Supports remote configuration management through WebConfig framework, enabling cloud-based security policy updates and configuration synchronization
-- **TR-181 Data Model Interface**: Implements comprehensive TR-181 parameter support for security feature management, providing standardized access to security configuration and status information
-- **Security Agent Integration**: Coordinates with external security agents (CuJo Agent/Rabid) for actual threat detection, policy enforcement, and security event generation
+- **TR-181 Data Model Implementation**: Implements comprehensive TR-181 parameter support for security feature management, providing standardized access to security configuration and status information
+- **Security Agent Coordination**: Manages lifecycle and communicates with external security agents that perform actual threat detection, policy enforcement, and security event generation
 
 
 ## Design
 
-The Advanced Security component follows a layered modular design that separates policy management from enforcement mechanisms. The core design principle centers around providing a standardized TR-181 interface for security feature configuration while delegating actual security processing to specialized external agents. This separation allows for flexible deployment of different security backends while maintaining consistent management interfaces across various RDK-B device types.
+The Advanced Security component follows a layered modular design that separates policy management from enforcement mechanisms. The core design principle centers around providing a standardized TR-181 interface for security feature configuration while delegating actual security processing to external agents. This separation allows flexible deployment of different security backends while maintaining consistent management interfaces across RDK-B device types.
 
-The component implements a plugin-based architecture where each security feature (Device Fingerprinting, Safe Browsing, Softflowd, Parental Controls) is handled by dedicated modules with well-defined interfaces. The design ensures loose coupling between components while providing centralized configuration management and event coordination. The architecture supports both synchronous parameter operations (get/set) and asynchronous event-driven processing for real-time security responses.
+The component implements a plugin-based architecture where each security feature (Device Fingerprinting, Safe Browsing, Softflowd, Parental Controls) is handled by dedicated modules. Components are loosely coupled with centralized configuration management and event coordination. The architecture supports both synchronous parameter operations (get/set) and asynchronous event-driven processing for real-time security responses.
 
 North-bound interactions are handled through RBus/DBus messaging for integration with other RDK-B components, WebConfig framework for cloud-based configuration management, and direct TR-181 parameter access for management systems. South-bound interactions utilize IPC mechanisms (sockets, shared memory) for communication with security agents, system calls for kernel module management, and file-based configuration for persistent settings.
 
-IPC mechanisms are designed based on platform capabilities, with RBus being the preferred method for component-to-component communication on newer platforms, while maintaining DBUS compatibility for legacy systems. The design includes fail-safe mechanisms ensuring that security features degrade gracefully when agents are unavailable, and configuration changes are validated before commitment to prevent system instability.
+IPC mechanisms are designed based on platform capabilities, with RBus being the preferred method for component-to-component communication on newer platforms, while maintaining DBUS compatibility for legacy systems. Security features degrade gracefully when agents are unavailable, and configuration changes are validated before applying to prevent system instability.
 
-Data persistence is achieved through a combination of syscfg for persistent configuration storage, temporary files for runtime state management, and WebConfig framework for cloud-synchronized settings. The component manages configuration versioning and provides rollback capabilities for failed configuration updates.
+Data persistence uses syscfg for persistent configuration storage, temporary files for runtime state management, and WebConfig framework for cloud-synchronized settings. The component manages configuration versioning and rollback capabilities for failed configuration updates.
 
 ```mermaid
 graph LR
@@ -161,7 +163,7 @@ graph LR
 - **Hardware Requirements**: Minimum 256MB RAM for agent operation, netfilter kernel support, network interface access capabilities
 - **Message Bus**: RBus registration for "eRT.com.cisco.spvtg.ccsp.advsecurity" namespace (newer platforms) or DBUS com.cisco.spvtg.ccsp.advsecurity (legacy platforms)
 - **TR-181 Data Model**: Device.DeviceInfo.X_RDKCENTRAL-COM_DeviceFingerPrint.* and Device.DeviceInfo.X_RDKCENTRAL-COM_AdvancedSecurity.* parameter support
-- **Configuration Files**: /usr/ccsp/advsecurity/TR181-AdvSecurity.xml data model definition, /etc/cujo-agent configuration directory
+- **Configuration Files**: /usr/ccsp/advsecurity/TR181-AdvSecurity.xml data model definition, /tmp/advsec/ runtime configuration directories
 - **Startup Order**: Must initialize after PSM, CR, and WebConfig components; starts CuJo Agent/Rabid after component initialization
 
 **Threading Model:** 
@@ -267,7 +269,7 @@ sequenceDiagram
 
 ### Supported TR-181 Parameters
 
-The Advanced Security component implements vendor-specific TR-181 parameters under the Device.DeviceInfo.X_RDKCENTRAL-COM namespace, providing comprehensive management interfaces for advanced security features. The implementation follows BBF TR-181 specification guidelines for parameter structure, access controls, and data validation while extending functionality for RDK-B specific security requirements.
+The Advanced Security component implements vendor-specific TR-181 parameters under the Device.DeviceInfo.X_RDKCENTRAL-COM namespace, providing management interfaces for advanced security features. The implementation follows BBF TR-181 specification guidelines for parameter structure, access controls, and data validation while extending functionality for RDK-B specific security requirements.
 
 ### Object Hierarchy
 
@@ -339,7 +341,7 @@ Device.
 
 ## Internal Modules
 
-The Advanced Security component consists of several specialized modules that handle different aspects of security functionality. Each module operates independently while sharing common infrastructure for configuration management and agent communication. The DML (Data Model Library) modules handle TR-181 parameter operations, while the SSP (Service Support Provider) module manages component lifecycle and IPC communications.
+The Advanced Security component consists of several modules that handle different aspects of security functionality. Each module has specific responsibilities for configuration management and agent communication. The DML (Data Model Library) modules handle TR-181 parameter operations, while the SSP (Service Support Provider) module manages component lifecycle and IPC communications.
 
 | Module/Class | Description | Key Files |
 |-------------|------------|-----------|
@@ -352,7 +354,7 @@ The Advanced Security component consists of several specialized modules that han
 
 ## Component Interactions
 
-The Advanced Security component maintains extensive interactions with both RDK-B middleware components and system-level services. It serves as a bridge between high-level security policy management and low-level security enforcement, coordinating with external security agents while providing standardized TR-181 interfaces for management systems.
+The Advanced Security component interacts with both RDK-B middleware components and system-level services. It connects high-level security policy management with low-level security enforcement, coordinating with external security agents while providing standardized TR-181 interfaces for management systems.
 
 ### Interaction Matrix
 
@@ -436,12 +438,12 @@ The Advanced Security component primarily operates at the middleware layer and d
      - Event queue management using pthread condition variables for asynchronous processing
      - Asynchronous event processing through dedicated worker threads for non-blocking operation
 
-- **Error Handling Strategy**: Comprehensive error handling ensures system stability even when security agents fail or become unresponsive.
+- **Error Handling Strategy**: Error handling maintains system stability when security agents fail or become unresponsive.
      - Agent failure detection through periodic health checks and IPC timeout mechanisms
      - Recovery mechanisms include automatic agent restart and graceful feature degradation
      - Timeout handling and retry logic with exponential backoff for agent communication failures
 
-- **Logging & Debugging**: Multi-level logging system provides detailed information for troubleshooting security feature issues.
+- **Logging & Debugging**: Multi-level logging for troubleshooting security feature issues.
      - Security feature state transition logging with configurable verbosity levels
      - Agent communication tracing for debugging IPC interaction issues
      - Debug hooks for runtime troubleshooting including memory usage monitoring and performance metrics
@@ -451,6 +453,7 @@ The Advanced Security component primarily operates at the middleware layer and d
 | Configuration File | Purpose | Override Mechanisms |
 |--------------------|---------|--------------------|
 | `/usr/ccsp/advsecurity/TR181-AdvSecurity.xml` | TR-181 data model definition and parameter registration | Version-controlled through build system, no runtime override |
-| `/etc/cujo-agent/config` | Security agent configuration directory | Environment variables, syscfg overrides |
+| `/tmp/advsec/config` | Runtime configuration directory for security agent coordination | Dynamically created, managed by component scripts |
+| `/tmp/advsec_config_params/` | Device parameter configuration files (MODEL, MANUFACTURER, FWVER, HWVER, CMMAC) | Populated during component initialization from device info |
 | `/tmp/advsec_*` | Runtime state files for feature status | Managed by component logic, cleared on restart |
 | `/etc/systemd/system/CcspAdvSecurity.service` | systemd service definition | systemd override files in `/etc/systemd/system/CcspAdvSecurity.service.d/` |
