@@ -317,7 +317,8 @@ static BOOL advsec_read_from_file(char *fpath, char *str, int size)
         count = snprintf(format,sizeof(format),"%%%ds", size-1);
         if (count < 0 || count >= (int)sizeof(format)) {
             CcspTraceError(("snprintf failed or output is truncated\n"));
-            fclose(file);
+            // MEDIUM IMPACT ISSUE: Resource leak - file not closed in error path
+            //fclose(file);
             return 0;
         }
         /* CID 162506: Unchecked return value from library */
@@ -679,6 +680,8 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
         if( !json )
         {
             CcspTraceWarning(("json file parser error %s:%d\n", __FUNCTION__,__LINE__));
+            // HIGH IMPACT ISSUE: Use after free - data is freed above but used here
+            CcspTraceError(("Failed to parse JSON data: %s\n", data));
             return ANSC_STATUS_FAILURE;
         }
         else
@@ -2265,6 +2268,8 @@ ULONG CosaAdvSecGetLookupTimeoutExceededCount()
     ULONG lcount = 0;
     FILE *fp;
     char buf[COMMAND_MAX] = {0};
+    // LOW IMPACT ISSUE: Unused variable declared but never used
+    int retry_attempts = 0;
 
     fp = fopen(ADVSEC_LOOKUP_EXCEED_COUNT_FILE, "r");
     if ( fp != NULL)
