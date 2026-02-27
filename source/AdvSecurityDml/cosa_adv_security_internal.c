@@ -1088,7 +1088,7 @@ CosaSecurityInitialize
         CcspTraceError(("AdvSecurityEventConsumer: rbus_open failed: %d\n", ret));
         return ANSC_STATUS_FAILURE;
     }
-#if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
+#if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_) && !defined (PON_GATEWAY)
 #if defined(_COSA_BCM_MIPS_)
     dpoe_mac_address_t tDpoe_Mac;
 #else
@@ -1105,7 +1105,7 @@ CosaSecurityInitialize
         CcspTraceError(("CcspAdvSecurity: Failed to initiate DB\n"));
     }
 
-#if !defined(_COSA_BCM_MIPS_) && !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
+#if !defined(_COSA_BCM_MIPS_) && !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_) && !defined (PON_GATEWAY)
     if ( cm_hal_InitDB() == 0)
     {
         CcspTraceInfo(("CcspAdvSecurity: cm_hal DB initiated successfully\n"));
@@ -1176,6 +1176,20 @@ CosaSecurityInitialize
         sleep(30);
         exit(0);
     }
+#elif defined(PON_GATEWAY)
+    // For PON gateway, always use HAL API
+    char deviceMACStr[32] = {0};
+    if (platform_hal_GetBaseMacAddress(deviceMACStr) == 0)
+    {
+        AnscMacToLower(deviceMac, deviceMACStr, sizeof(deviceMac));
+        CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
+    }
+    else
+    {
+        CcspTraceError(("CcspAdvSecurity: Failed to get BaseMacAddress from HAL API\n"));
+        sleep(30);
+        exit(0);
+    }
 #else
     char isEthEnabled[64]={'\0'};
     token_t  token;
@@ -1192,6 +1206,7 @@ CosaSecurityInitialize
 
     char deviceMACValue[32] = { '\0' };
     int found = 0;
+    
     if( 0 == syscfg_get( NULL, "eth_wan_enabled", isEthEnabled, sizeof(isEthEnabled)))
     {
         if(isEthEnabled[0] != '\0')
@@ -1216,7 +1231,7 @@ CosaSecurityInitialize
         }
         CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
     }
-    #if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
+#if !defined(_XER5_PRODUCT_REQ_) && !defined(_SCER11BEL_PRODUCT_REQ_) && !defined(_PLATFORM_BANANAPI_R4_)
     else if (cm_hal_GetDHCPInfo(&dhcpinfo) == 0 )
     {
           rc = strcmp_s(dhcpinfo.MACAddress, sizeof(dhcpinfo.MACAddress), ADVSEC_DEFAULT_CM_MAC, &ind);
@@ -1241,7 +1256,7 @@ CosaSecurityInitialize
               exit(0);
           }
     }
-    #endif
+#endif
     else
     {
         CcspTraceWarning(("CcspAdvSecurity: Unable to get MACAdress or HAL not ready\n"));
