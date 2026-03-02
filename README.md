@@ -1,10 +1,10 @@
 # Advanced Security Component Documentation
 
-The Advanced Security component (CcspAdvSecurity) provides TR-181 DML interface to manage network security features for RDK-B devices, controlling device fingerprinting, safe browsing protection, network flow monitoring, and parental controls implemented by external security agents (CuJo Agent/Rabid). This component acts as the middleware management layer, coordinating with external security agents to deliver real-time threat detection and network protection capabilities.
+The Advanced Security component (CcspAdvSecurity) provides TR-181 parameter management interface for network security features on RDK-B devices. The component serves as the middleware interface for advanced security services, coordinating with the advanced security agent that implements device fingerprinting, safe browsing protection, network flow monitoring, and parental controls to deliver real-time threat detection and network protection capabilities.
 
-The component operates as a critical security management layer in the RDK-B middleware stack, providing TR-181 parameter interface to enable, disable, and configure security features implemented by underlying security agents (CuJo Agent/Rabid) that perform actual threat detection and mitigation. The security agent enables device identification, malicious website blocking, network traffic analysis, and advanced parental control functionalities, all controlled through the unified TR-181 management interface provided by this component.
+The component operates as a critical security layer in the RDK-B middleware stack, providing TR-181 parameter management for various security features while the advanced security agent handles actual threat detection and mitigation. The component enables management and configuration of device identification, malicious website blocking, network traffic analysis, and advanced parental control functionalities through a unified TR-181 interface.
 
-At the module level, the Advanced Security component provides DML handlers for controlling Device Fingerprinting (network device identification and classification), Safe Browsing (malicious URL detection and blocking), Softflowd (network flow monitoring), and Advanced Parental Control (content filtering and access control) features that are implemented by the external security agent (CuJo Agent/Rabid). The component also provides WebConfig integration for remote configuration management and RFC (Remote Feature Control) support for enabling/disabling security features dynamically.
+At the module level, the Advanced Security component implements a plugin-based architecture with separate DML modules providing TR-181 parameter support for Device Fingerprinting (network device identification and classification), Safe Browsing (malicious URL detection and blocking), Softflowd (network flow monitoring), and Advanced Parental Control (content filtering and access control). The actual implementation of these security features is performed by the advanced security agent. The component also provides WebConfig integration for remote configuration management and RFC (Remote Feature Control) support for enabling/disabling security features dynamically.
 
 ```mermaid
 graph LR
@@ -27,7 +27,7 @@ graph LR
             DeviceMgr["Device Manager"]
         end
         
-        SecurityAgent["CuJo Agent/Rabid<br/>(Security Enforcement)"]
+        SecurityAgent["Advanced Security Agent<br/>(Security Enforcement)"]
         
         subgraph "System Layer"
             Netfilter["Netfilter/iptables"]
@@ -61,34 +61,32 @@ graph LR
 
 **Key Features & Responsibilities**: 
 
-The component provides TR-181 DML interface for managing security features implemented by external agents (CuJo Agent/Rabid):
-
-- **Device Fingerprinting Management**: Controls device identification and classification through network traffic pattern analysis, enabling automatic device discovery and categorization for security policy enforcement
-- **Safe Browsing Protection**: Manages malicious website detection and blocking functionality through integration with security threat databases and real-time URL reputation services
-- **Network Flow Monitoring (Softflowd)**: Enables configuration of network traffic analysis and flow monitoring for detecting suspicious network behavior and generating security telemetry data
-- **Advanced Parental Controls**: Configures content filtering and access control features allowing parents to manage and restrict network access for specific devices or users based on time, content categories, or specific websites
-- **RFC Feature Management**: Provides Remote Feature Control capabilities for dynamically enabling/disabling security agent features through centralized configuration management without requiring device restarts
+- **Device Fingerprinting Interface**: Provides TR-181 parameter interface to control network device identification and classification capabilities implemented by the advanced security agent
+- **Safe Browsing Protection Interface**: Provides TR-181 parameter interface to control malicious website detection and blocking functionality implemented by the advanced security agent
+- **Network Flow Monitoring (Softflowd) Interface**: Provides TR-181 parameter interface to enable/disable network traffic analysis and flow monitoring capabilities implemented by the advanced security agent
+- **Advanced Parental Controls Interface**: Provides TR-181 parameter interface to control content filtering and access control features implemented by the advanced security agent
+- **RFC Feature Management**: Provides Remote Feature Control capabilities for dynamically enabling/disabling security features through centralized configuration management without requiring device restarts
 - **WebConfig Integration**: Supports remote configuration management through WebConfig framework, enabling cloud-based security policy updates and configuration synchronization
-- **TR-181 Data Model Implementation**: Implements comprehensive TR-181 parameter support for security feature management, providing standardized access to security configuration and status information
-- **Security Agent Coordination**: Manages lifecycle and communicates with external security agents that perform actual threat detection, policy enforcement, and security event generation
+- **TR-181 Data Model Interface**: Implements comprehensive TR-181 parameter support for security feature management, providing standardized access to security configuration and status information
+- **Security Agent Coordination**: Coordinates with the advanced security agent for configuration changes, status monitoring, and feature control through IPC mechanisms
 
 
 ## Design
 
-The Advanced Security component follows a layered modular design that separates policy management from enforcement mechanisms. The core design principle centers around providing a standardized TR-181 interface for security feature configuration while delegating actual security processing to external agents. This separation allows flexible deployment of different security backends while maintaining consistent management interfaces across RDK-B device types.
+The Advanced Security component follows a layered modular design that separates policy management from enforcement mechanisms. The core design principle centers around providing a standardized TR-181 interface for security feature configuration while the advanced security agent handles actual security processing and enforcement. This separation allows for flexible deployment while maintaining consistent management interfaces across various RDK-B device types.
 
-The component implements a plugin-based architecture where each security feature (Device Fingerprinting, Safe Browsing, Softflowd, Parental Controls) is handled by dedicated modules. Components are loosely coupled with centralized configuration management and event coordination. The architecture supports both synchronous parameter operations (get/set) and asynchronous event-driven processing for real-time security responses.
+The component implements a plugin-based architecture where each security feature (Device Fingerprinting, Safe Browsing, Softflowd, Parental Controls) is handled by dedicated DML modules with well-defined TR-181 parameter interfaces. The design ensures loose coupling between components while providing centralized configuration management and event coordination. The architecture supports both synchronous parameter operations (get/set) and asynchronous event-driven processing for real-time security responses.
 
-North-bound interactions are handled through RBus/DBus messaging for integration with other RDK-B components, WebConfig framework for cloud-based configuration management, and direct TR-181 parameter access for management systems. South-bound interactions utilize IPC mechanisms (sockets, shared memory) for communication with security agents, system calls for kernel module management, and file-based configuration for persistent settings.
+North-bound interactions are handled through RBus/DBus messaging for integration with other RDK-B components, WebConfig framework for cloud-based configuration management, and direct TR-181 parameter access for management systems. South-bound interactions utilize IPC mechanisms (sockets, shared memory) for communication with the advanced security agent, system calls for kernel module management, and file-based configuration for persistent settings.
 
-IPC mechanisms are designed based on platform capabilities, with RBus being the preferred method for component-to-component communication on newer platforms, while maintaining DBUS compatibility for legacy systems. Security features degrade gracefully when agents are unavailable, and configuration changes are validated before applying to prevent system instability.
+IPC mechanisms are designed based on platform capabilities, with RBus being the preferred method for component-to-component communication on newer platforms, while maintaining DBUS compatibility for legacy systems. The design includes fail-safe mechanisms ensuring that security features degrade gracefully when the advanced security agent is unavailable, and configuration changes are validated before commitment to prevent system instability.
 
-Data persistence uses syscfg for persistent configuration storage, temporary files for runtime state management, and WebConfig framework for cloud-synchronized settings. The component manages configuration versioning and rollback capabilities for failed configuration updates.
+Data persistence is achieved through a combination of syscfg for persistent configuration storage, temporary files for runtime state management, and WebConfig framework for cloud-synchronized settings. The component manages configuration versioning and provides rollback capabilities for failed configuration updates.
 
 ```mermaid
 graph LR
     subgraph "External Systems"
-        SecurityAgent["CuJo Agent/Rabid<br/>(Security Enforcement)"]
+        SecurityAgent["Advanced Security Agent<br/>(Security Enforcement)"]
     end
 
     subgraph "CcspAdvSecurity"
@@ -146,12 +144,9 @@ graph LR
 | Configure Option | DISTRO Feature | Build Flag | Purpose | Default |
 |------------------|----------------|------------|---------|---------|  
 | `--enable-unitTestDockerSupport` | N/A | `UNIT_TEST_DOCKER_SUPPORT` | Enable Docker support for unit testing | Disabled |
-| `--with-ccsp-arch=arm` | N/A | ARM architecture support | Configure for ARM-based platforms | Required |
-| N/A | `safec` | `SAFEC_DUMMY_API` (when disabled) | Safe C library integration for secure string operations | Enabled |
-| N/A | `rdk-b` | Core RDK-B platform support | Essential RDK-B middleware integration | Required |
-| N/A | `advanced-security` | Advanced security features | Enable advanced security component | Required |
-| N/A | `cujo-agent` | CuJo security agent support | Enable CuJo/Rabid agent integration | Required |
-| N/A | `kirkstone` | `python3native` vs `pythonnative` | Python version selection for build tools | python3native (newer), pythonnative (legacy) |
+| `--with-ccsp-arch={arm,atom,pc,mips}` | N/A | `CCSP_ARCH` | Specify the CCSP board CPU platform | None (must be specified) |
+| `--enable-wifidcl` | N/A | `WIFI_DATA_COLLECTION` | Enable WiFi data collection for advanced security agent | Disabled |
+| `--enable-downloadmodule` | N/A | `DOWNLOADMODULE` | Enable downloadable module support | Disabled |
 
 <br>
 
@@ -163,8 +158,8 @@ graph LR
 - **Hardware Requirements**: Minimum 256MB RAM for agent operation, netfilter kernel support, network interface access capabilities
 - **Message Bus**: RBus registration for "eRT.com.cisco.spvtg.ccsp.advsecurity" namespace (newer platforms) or DBUS com.cisco.spvtg.ccsp.advsecurity (legacy platforms)
 - **TR-181 Data Model**: Device.DeviceInfo.X_RDKCENTRAL-COM_DeviceFingerPrint.* and Device.DeviceInfo.X_RDKCENTRAL-COM_AdvancedSecurity.* parameter support
-- **Configuration Files**: /usr/ccsp/advsecurity/TR181-AdvSecurity.xml data model definition, /tmp/advsec/ runtime configuration directories
-- **Startup Order**: Must initialize after PSM, CR, and WebConfig components; starts CuJo Agent/Rabid after component initialization
+- **Configuration Files**: /usr/ccsp/advsec/TR181-AdvSecurity.xml data model definition, /tmp/advsec/ runtime configuration directories
+- **Startup Order**: Must initialize after PSM, CR, and WebConfig components; coordinates with advanced security agent after component initialization
 
 **Threading Model:** 
 
@@ -181,14 +176,14 @@ The Advanced Security component implements a lightweight multi-threaded architec
 
 **Initialization to Active State**
 
-The Advanced Security component follows a structured initialization sequence ensuring proper dependency resolution and secure agent startup. The component validates system prerequisites, loads configuration from persistent storage, establishes IPC connections, and coordinates security agent lifecycle management before transitioning to active operational state.
+The Advanced Security component follows a structured initialization sequence ensuring proper dependency resolution and secure agent coordination. The component validates system prerequisites, loads configuration from persistent storage, establishes IPC connections, and coordinates with the advanced security agent lifecycle management before transitioning to active operational state.
 
 ```mermaid
 sequenceDiagram
     participant System
     participant AdvSec as Advanced Security
     participant PSM as PSM Storage
-    participant Agent as Security Agent
+    participant Agent as Advanced Security Agent
 
     System->>AdvSec: Start Component
     AdvSec->>AdvSec: Initialize Logging & Resources
@@ -197,7 +192,7 @@ sequenceDiagram
     AdvSec->>AdvSec: Register TR-181 Parameters
     AdvSec->>System: Connect to RBus/DBUS
     System-->>AdvSec: IPC Established
-    AdvSec->>Agent: Start Security Agent
+    AdvSec->>Agent: Coordinate with Agent
     Agent-->>AdvSec: Agent Ready
     AdvSec->>System: Initialization Complete
     
@@ -210,20 +205,20 @@ sequenceDiagram
 
 **Runtime State Changes and Context Switching**
 
-The component supports dynamic feature activation/deactivation based on RFC (Remote Feature Control) settings and user configuration changes. State transitions occur when security features are enabled/disabled, when the security agent requires restart due to configuration changes, or when the system enters/exits bridge mode.
+The component supports dynamic feature activation/deactivation based on RFC (Remote Feature Control) settings and user configuration changes. State transitions occur when security features are enabled/disabled, when the advanced security agent requires restart due to configuration changes, or when the system enters/exits bridge mode.
 
 **State Change Triggers:**
 
 - RFC parameter changes requiring agent reconfiguration (triggers agent restart with new settings)
 - Bridge mode activation/deactivation (disables/enables security features as network topology changes)
-- Security agent crashes or becomes unresponsive (triggers automatic restart procedures)
+- Advanced security agent crashes or becomes unresponsive (triggers automatic restart procedures)
 - WebConfig updates from cloud services (triggers validation and application of new security policies)
 - Memory pressure conditions (triggers agent hibernation to preserve system resources)
 
 **Context Switching Scenarios:**
 
 - **Bridge Mode Context**: Component disables all security features when device operates in bridge mode, preserving configuration for later restoration
-- **Agent Recovery Context**: When security agent fails, component maintains TR-181 parameter access while attempting agent restart in background
+- **Agent Recovery Context**: When advanced security agent fails, component maintains TR-181 parameter access while attempting agent restart in background
 - **Configuration Update Context**: During WebConfig updates, component validates new configuration before committing changes and restarting affected services
 
 ### Call Flow
@@ -240,7 +235,7 @@ sequenceDiagram
     AdvSec->>AdvSec: Load Configuration
     AdvSec->>Deps: Register TR-181 & Connect
     Deps-->>AdvSec: Ready
-    AdvSec->>Deps: Start Security Agent
+    AdvSec->>Deps: Coordinate with Agent
     Deps-->>AdvSec: Agent Active
     AdvSec->>Init: Component Active
 ```
@@ -253,7 +248,7 @@ The most critical flow involves TR-181 parameter operations that trigger securit
 sequenceDiagram
     participant Client as Management Client
     participant AdvSec as Advanced Security
-    participant Agent as Security Agent
+    participant Agent as Advanced Security Agent
 
     Client->>AdvSec: Set Parameter (SafeBrowsing.Enable)
     AdvSec->>AdvSec: Validate Parameter
@@ -269,7 +264,7 @@ sequenceDiagram
 
 ### Supported TR-181 Parameters
 
-The Advanced Security component implements vendor-specific TR-181 parameters under the Device.DeviceInfo.X_RDKCENTRAL-COM namespace, providing management interfaces for advanced security features. The implementation follows BBF TR-181 specification guidelines for parameter structure, access controls, and data validation while extending functionality for RDK-B specific security requirements.
+The Advanced Security component implements vendor-specific TR-181 parameters under the Device.DeviceInfo.X_RDKCENTRAL-COM namespace, providing comprehensive management interfaces for advanced security features. The implementation follows BBF TR-181 specification guidelines for parameter structure, access controls, and data validation while extending functionality for RDK-B specific security requirements.
 
 ### Object Hierarchy
 
@@ -341,7 +336,7 @@ Device.
 
 ## Internal Modules
 
-The Advanced Security component consists of several modules that handle different aspects of security functionality. Each module has specific responsibilities for configuration management and agent communication. The DML (Data Model Library) modules handle TR-181 parameter operations, while the SSP (Service Support Provider) module manages component lifecycle and IPC communications.
+The Advanced Security component consists of several specialized modules that handle different aspects of security functionality. Each module operates independently while sharing common infrastructure for configuration management and agent communication. The DML (Data Model Library) modules handle TR-181 parameter operations, while the SSP (Service Support Provider) module manages component lifecycle and IPC communications.
 
 | Module/Class | Description | Key Files |
 |-------------|------------|-----------|
@@ -350,11 +345,11 @@ The Advanced Security component consists of several modules that handle differen
 | WebConfigModule | WebConfig framework integration for cloud-based configuration management. Handles remote configuration updates, version management, and configuration validation for security features. | `cosa_adv_security_webconfig.c`, `cosa_adv_security_webconfig.h` |
 | InternalHelpers | Utility functions for security operations including parameter validation, URL checking, security agent communication, and system state management. | `cosa_adv_security_internal.c`, `cosa_adv_security_internal.h`, `advsecurity_helpers.c` |
 | PluginMain | Plugin initialization and function registration interface. Registers all DML callback functions with the COSA framework and manages plugin lifecycle. | `plugin_main.c`, `plugin_main.h` |
-| AgentInterface | Interface module for communication with external security agents (CuJo Agent/Rabid). Handles command sending, status monitoring, and agent lifecycle management. | `cujoagent_dcl_api.c`, `cujoagent_dcl_api.h` |
+| AgentInterface | Interface module for communication with the advanced security agent. Handles command sending, status monitoring, and agent lifecycle management. | `cujoagent_dcl_api.c`, `cujoagent_dcl_api.h` |
 
 ## Component Interactions
 
-The Advanced Security component interacts with both RDK-B middleware components and system-level services. It connects high-level security policy management with low-level security enforcement, coordinating with external security agents while providing standardized TR-181 interfaces for management systems.
+The Advanced Security component maintains extensive interactions with both RDK-B middleware components and system-level services. It serves as a bridge between high-level security policy management and low-level security enforcement, coordinating with the advanced security agent while providing standardized TR-181 interfaces for management systems.
 
 ### Interaction Matrix
 
@@ -366,7 +361,7 @@ The Advanced Security component interacts with both RDK-B middleware components 
 | WebConfig Framework | Remote configuration management, cloud policy updates | `webconfig_subdoc_register()`, `webconfig_apply_config()` |
 | Device Manager | Device information queries, TR-069 parameter forwarding | RBus method calls: `Device.DeviceInfo.*` |
 | **System & HAL Layers** |
-| CuJo Agent/Rabid Agent | Security enforcement, threat detection, policy application | IPC sockets: `/tmp/cujo-agent.sock`, agent control commands |
+| Advanced Security Agent | Security enforcement, threat detection, policy application | IPC sockets: `/var/run/cujo/wifi.sock` or `/tmp/wifi.sock`, agent control commands |
 | syscfg Configuration | Persistent configuration storage and system settings | `syscfg_get()`, `syscfg_set()`, `syscfg_commit()` |
 | systemd Services | Service lifecycle management, dependency control | `systemctl start/stop/restart CcspAdvSecurity` |
 
@@ -388,7 +383,7 @@ sequenceDiagram
     participant Client as Management Client
     participant AdvSec as Advanced Security
     participant PSM as PSM Storage
-    participant Agent as Security Agent
+    participant Agent as Advanced Security Agent
 
     Client->>AdvSec: SetParameterValues (RBus)
     AdvSec->>AdvSec: Validate & Access Control
@@ -403,7 +398,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant Agent as Security Agent
+    participant Agent as Advanced Security Agent
     participant AdvSec as Advanced Security
     participant Subs as Subscribers
 
@@ -433,17 +428,17 @@ The Advanced Security component primarily operates at the middleware layer and d
      - Main implementation in `cosa_adv_security_dml.c` where DML handlers manage feature state transitions
      - State transition handlers in `cosa_adv_security_internal.c` for coordinating between multiple security features
   
-- **Event Processing**: Hardware events are processed through the security agent interface, which monitors network traffic and system events to detect security threats and policy violations.
-     - Security agent communication through IPC sockets for real-time event processing
+- **Event Processing**: Events are processed through the advanced security agent interface, which monitors network traffic and system events to detect security threats and policy violations.
+     - Advanced security agent communication through IPC sockets for real-time event processing
      - Event queue management using pthread condition variables for asynchronous processing
      - Asynchronous event processing through dedicated worker threads for non-blocking operation
 
-- **Error Handling Strategy**: Error handling maintains system stability when security agents fail or become unresponsive.
+- **Error Handling Strategy**: Comprehensive error handling ensures system stability even when the advanced security agent fails or becomes unresponsive.
      - Agent failure detection through periodic health checks and IPC timeout mechanisms
      - Recovery mechanisms include automatic agent restart and graceful feature degradation
      - Timeout handling and retry logic with exponential backoff for agent communication failures
 
-- **Logging & Debugging**: Multi-level logging for troubleshooting security feature issues.
+- **Logging & Debugging**: Multi-level logging system provides detailed information for troubleshooting security feature issues.
      - Security feature state transition logging with configurable verbosity levels
      - Agent communication tracing for debugging IPC interaction issues
      - Debug hooks for runtime troubleshooting including memory usage monitoring and performance metrics
@@ -452,8 +447,8 @@ The Advanced Security component primarily operates at the middleware layer and d
 
 | Configuration File | Purpose | Override Mechanisms |
 |--------------------|---------|--------------------|
-| `/usr/ccsp/advsecurity/TR181-AdvSecurity.xml` | TR-181 data model definition and parameter registration | Version-controlled through build system, no runtime override |
-| `/tmp/advsec/config` | Runtime configuration directory for security agent coordination | Dynamically created, managed by component scripts |
-| `/tmp/advsec_config_params/` | Device parameter configuration files (MODEL, MANUFACTURER, FWVER, HWVER, CMMAC) | Populated during component initialization from device info |
-| `/tmp/advsec_*` | Runtime state files for feature status | Managed by component logic, cleared on restart |
+| `/usr/ccsp/advsec/TR181-AdvSecurity.xml` | TR-181 data model definition and parameter registration | Version-controlled through build system, no runtime override |
+| `/tmp/advsec/` | Runtime configuration and state files directory | Managed by component logic, cleared on restart |
+| `/tmp/advsec_config_params/` | Device configuration parameters (MODEL, MANUFACTURER, FWVER, etc.) | Populated during initialization from device properties |
+| `/tmp/safebro.json` | Safe browsing configuration file | Generated by start_adv_security.sh script |
 | `/etc/systemd/system/CcspAdvSecurity.service` | systemd service definition | systemd override files in `/etc/systemd/system/CcspAdvSecurity.service.d/` |
