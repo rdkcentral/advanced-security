@@ -42,7 +42,7 @@
 #define ADVSEC_AGENT_PROC_NAME "cujo-agent"
 #define ADVSEC_AGENT_LOG_FILE "/rdklogs/logs/agent.txt"
 #define ADVSEC_AGENT_LOG_MAX_SIZE (4 * 1024 * 1024)  /* 4MB */
-#define ADVSEC_AGENT_LOGROTATE_CONF "/tmp/advsec-agent-logrotate.conf"
+#define ADVSEC_AGENT_LOGROTATE_CONF "/etc/logrotate.d/advsec-agent"
 #define LOGROTATE_BINARY "/usr/sbin/logrotate"
 #define NUM_SUBSYSTEM_TYPES (sizeof(gSubsystem_type_table)/sizeof(gSubsystem_type_table[0]))
 
