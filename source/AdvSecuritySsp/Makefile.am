@@ -30,4 +30,4 @@ hardware_platform = i686-linux-gnu
 bin_PROGRAMS = CcspAdvSecuritySsp
 CcspAdvSecuritySsp_CPPFLAGS = -I$(top_srcdir)/include -I$(top_srcdir)/source/AdvSecurityDml -I$(top_srcdir)/source/AdvSecuritySsp $(CPPFLAGS)
 CcspAdvSecuritySsp_SOURCES = ssp_messagebus_interface.c ssp_main.c ssp_action.c ssp_messagebus_interface_priv.c dm_pack_datamodel.c
-CcspAdvSecuritySsp_LDFLAGS = -lccsp_common -ldl -lsyscfg -rdynamic -lwebconfig_framework $(SSP_LDFLAGS)
+CcspAdvSecuritySsp_LDFLAGS = -lccsp_common -ldl -lsyscfg -rdynamic -lwebconfig_framework -lpthread -lev $(SSP_LDFLAGS)
