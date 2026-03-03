@@ -41,7 +41,7 @@
 #define BLOCKLIST_FILE "/opt/secure/Blocklist_file.txt"
 #define ADVSEC_AGENT_PROC_NAME "cujo-agent"
 #define ADVSEC_AGENT_LOG_FILE "/rdklogs/logs/agent.txt"
-#define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 4MB */
+#define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 2MB - for testing, change to 4MB for production */
 #define ADVSEC_AGENT_LOGROTATE_CONF "/etc/logrotate.d/advsec-agent"
 #define LOGROTATE_BINARY "/usr/sbin/logrotate"
 #define NUM_SUBSYSTEM_TYPES (sizeof(gSubsystem_type_table)/sizeof(gSubsystem_type_table[0]))
@@ -408,7 +408,7 @@ void create_logrotate_config(void)
     }
 
     fprintf(fp, "%s {\n", ADVSEC_AGENT_LOG_FILE);
-    fprintf(fp, "    size 4M\n");      // logrotate decides threshold
+    fprintf(fp, "    size 2M\n");      // Match C code threshold for testing
     fprintf(fp, "    rotate 2\n");
     fprintf(fp, "    start 0\n");
     fprintf(fp, "    nodateext\n");
@@ -431,9 +431,9 @@ void rotate_agent_log(void)
     errno_t rc;
     int result;
 
-    CcspTraceInfo(("Triggering logrotate check for agent log...\n"));
-
-    rc = sprintf_s(cmd, sizeof(cmd), "%s %s", LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
+    /* Call logrotate - it will check size directive in config and only rotate if needed */
+    rc = sprintf_s(cmd, sizeof(cmd), "%s -s /tmp/logrotate-advsec.status %s", 
+                   LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
 
     if (rc < EOK)
     {
@@ -443,11 +443,7 @@ void rotate_agent_log(void)
 
     result = system(cmd);
 
-    if (result == 0)
-    {
-        CcspTraceInfo(("Logrotate executed successfully\n"));
-    }
-    else
+    if (result != 0)
     {
         CcspTraceError(("Logrotate execution failed (exit code: %d)\n", result));
     }
