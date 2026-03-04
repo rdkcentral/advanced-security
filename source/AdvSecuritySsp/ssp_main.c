@@ -427,12 +427,27 @@ void create_logrotate_config(void)
 /* Log rotation function for agent.txt using logrotate binary */
 void rotate_agent_log(void)
 {
-    char cmd[256];
+    struct stat st;
+    char cmd[512];
     errno_t rc;
     int result;
 
-    /* Call logrotate - it will check size directive in config and only rotate if needed */
-    rc = sprintf_s(cmd, sizeof(cmd), "%s -s /tmp/logrotate-advsec.status %s", 
+    /* Check if file exists and get its size */
+    if (stat(ADVSEC_AGENT_LOG_FILE, &st) != 0)
+    {
+        return;  /* File doesn't exist */
+    }
+
+    /* Only call logrotate if file is >= 2MB to avoid excessive calls */
+    if (st.st_size < ADVSEC_AGENT_LOG_MAX_SIZE)
+    {
+        return;  /* File too small, skip */
+    }
+
+    CcspTraceInfo(("Agent log reached %ld bytes, calling logrotate...\n", st.st_size));
+
+    /* Call logrotate with verbose flag to capture errors */
+    rc = sprintf_s(cmd, sizeof(cmd), "%s -v -s /tmp/logrotate-advsec.status %s 2>&1 | logger -t ADVSEC_LOGROTATE", 
                    LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
 
     if (rc < EOK)
@@ -443,9 +458,13 @@ void rotate_agent_log(void)
 
     result = system(cmd);
 
-    if (result != 0)
+    if (result == 0)
     {
-        CcspTraceError(("Logrotate execution failed (exit code: %d)\n", result));
+        CcspTraceInfo(("Logrotate completed successfully\n"));
+    }
+    else
+    {
+        CcspTraceError(("Logrotate failed (exit: %d)\n", result));
     }
 }
 
