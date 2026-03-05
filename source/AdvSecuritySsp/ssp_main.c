@@ -41,7 +41,7 @@
 #define BLOCKLIST_FILE "/opt/secure/Blocklist_file.txt"
 #define ADVSEC_AGENT_PROC_NAME "cujo-agent"
 #define ADVSEC_AGENT_LOG_FILE "/rdklogs/logs/agent.txt"
-#define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 2MB - for testing, change to 4MB for production */
+#define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 2MB - for testing */
 #define ADVSEC_AGENT_LOGROTATE_CONF "/nvram/advsec-agent-logrotate.conf"
 #define LOGROTATE_BINARY "/usr/sbin/logrotate"
 #define NUM_SUBSYSTEM_TYPES (sizeof(gSubsystem_type_table)/sizeof(gSubsystem_type_table[0]))
