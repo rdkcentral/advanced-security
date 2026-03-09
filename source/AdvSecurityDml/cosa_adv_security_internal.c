@@ -1001,7 +1001,7 @@ CosaSecurityCreate
     }
 
     pMyObject->pAdvNetworkIntelligence_RFC = (PCOSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC)
-                                                AnscAllocateMemory(sizeof(PCOSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC));
+                                                AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC));
 
     if ( !pMyObject->pAdvNetworkIntelligence_RFC )
     {
