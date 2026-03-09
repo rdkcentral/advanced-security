@@ -103,6 +103,9 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecurityUserSpace_RFC_GetParamBoolValue", AdvanceSecurityUserSpace_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecurityUserSpace_RFC_SetParamBoolValue", AdvanceSecurityUserSpace_RFC_SetParamBoolValue);
 
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecNetworkIntelligence_RFC_GetParamBoolValue", NetworkIntelligence_RFC_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecNetworkIntelligence_RFC_SetParamBoolValue", NetworkIntelligence_RFC_SetParamBoolValue);
+
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WifiDataCollection_RFC_GetParamBoolValue", WifiDataCollection_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WifiDataCollection_RFC_SetParamBoolValue", WifiDataCollection_RFC_SetParamBoolValue);
 
