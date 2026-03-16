@@ -628,7 +628,10 @@ enable_networkintelligence()
 {
     touch $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    systemctl start cujo-ni
+    # NI feature is supported only on XB8
+    if [ "$MODEL_NUM" = "CGM4981COM" ]; then
+        systemctl start cujo-ni
+    fi
 
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "AgentNetworkIntelligence_RFC_Enabled"
@@ -643,7 +646,10 @@ disable_networkintelligence()
 {
     rm -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    systemctl stop cujo-ni
+    # NI feature is supported only on XB8
+    if [ "$MODEL_NUM" = "CGM4981COM" ]; then
+        systemctl stop cujo-ni
+    fi
 
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "AgentNetworkIntelligence_RFC_Disabled"
