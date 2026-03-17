@@ -22,12 +22,6 @@ source /etc/utopia/service.d/log_capture_path.sh
 
 export RUNTIME_BIN_DIR="$(dirname $(realpath ${0}))"
 
-# Network Intelligence feature support based on model number
-NI_SUPPORTED="false"
-if [ "$MODEL_NUM" = "CGM4981COM" ]; then
-    NI_SUPPORTED="true"
-fi
-
 start_device_services()
 {
 
@@ -133,10 +127,12 @@ then
             disable_raptr
     fi
 
-    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
-            enable_networkintelligence
-    else
-            disable_networkintelligence
+    if [ "$NI_SUPPORTED" = "true" ]; then
+        if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
+                enable_networkintelligence
+        else
+                disable_networkintelligence
+        fi
     fi
 
     if [ "$ADVSEC_WIFIDATACOLLECTION_RFC_ENABLED" = "1" ]; then
@@ -634,10 +630,7 @@ enable_networkintelligence()
 {
     touch $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    # Start NI service only on supported platforms
-    if [ "$NI_SUPPORTED" = "true" ]; then
-        systemctl start cujo-ni
-    fi
+    systemctl start cujo-ni
 
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "AgentNetworkIntelligence_RFC_Enabled"
@@ -652,10 +645,7 @@ disable_networkintelligence()
 {
     rm -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    # Stop NI service only on supported platforms
-    if [ "$NI_SUPPORTED" = "true" ]; then
-        systemctl stop cujo-ni
-    fi
+    systemctl stop cujo-ni
 
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "AgentNetworkIntelligence_RFC_Disabled"
