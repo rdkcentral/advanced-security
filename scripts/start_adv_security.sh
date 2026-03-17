@@ -22,6 +22,12 @@ source /etc/utopia/service.d/log_capture_path.sh
 
 export RUNTIME_BIN_DIR="$(dirname $(realpath ${0}))"
 
+# Network Intelligence feature support based on model number
+NI_SUPPORTED="false"
+if [ "$MODEL_NUM" = "CGM4981COM" ]; then
+    NI_SUPPORTED="true"
+fi
+
 start_device_services()
 {
 
@@ -628,8 +634,8 @@ enable_networkintelligence()
 {
     touch $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    # NI feature is supported only on XB8
-    if [ "$MODEL_NUM" = "CGM4981COM" ]; then
+    # Start NI service only on supported platforms
+    if [ "$NI_SUPPORTED" = "true" ]; then
         systemctl start cujo-ni
     fi
 
@@ -646,8 +652,8 @@ disable_networkintelligence()
 {
     rm -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    # NI feature is supported only on XB8
-    if [ "$MODEL_NUM" = "CGM4981COM" ]; then
+    # Stop NI service only on supported platforms
+    if [ "$NI_SUPPORTED" = "true" ]; then
         systemctl stop cujo-ni
     fi
 
