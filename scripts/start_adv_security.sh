@@ -127,10 +127,12 @@ then
             disable_raptr
     fi
 
-    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
-            enable_networkintelligence
-    else
-            disable_networkintelligence
+    if [ "$NI_SUPPORTED" = "true" ]; then
+        if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
+                enable_networkintelligence
+        else
+                disable_networkintelligence
+        fi
     fi
 
     if [ "$ADVSEC_WIFIDATACOLLECTION_RFC_ENABLED" = "1" ]; then

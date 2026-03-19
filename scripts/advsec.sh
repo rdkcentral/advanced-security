@@ -178,6 +178,13 @@ if [ "$MODEL_NUM" = "TG1682G" ] || [ "$MODEL_NUM" = "DPC3941" ] || [ "$MODEL_NUM
     export CC_PLATFORM_TYPE="PUMA"
 fi
 
+#NI check is added for XB8
+if [ "$MODEL_NUM" = "CGM4981COM" ]; then
+    export NI_SUPPORTED="true"
+else
+    export NI_SUPPORTED="false"
+fi
+
 advsec_is_agent_installed()
 {
     if [ -e ${RUNTIME_DIR}/bin/launch-${CUJO_AGENT} ]; then
