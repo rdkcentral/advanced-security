@@ -171,6 +171,8 @@ static pthread_mutex_t g_log_rotation_mutex = PTHREAD_MUTEX_INITIALIZER;
 void advsec_handle_sysevent_async(void);
 static void advsec_start_logger_thread(void);
 static BOOL WaitForLoggerTimeout(ULONG period);
+static void init_log_rotation_monitoring(void);
+static void cleanup_log_rotation_monitoring(void);
 enum advSysEvent_e{
     SYSEVENT_BRIDGE_MODE_EVENT,
     SYSEVENT_CLOUD_HOST_IP,
