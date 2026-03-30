@@ -40,6 +40,9 @@
 #include <ccsp/platform_hal.h>
 #include <syscfg/syscfg.h>
 #include <sys/sysinfo.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <ev.h>
 #include "safec_lib_common.h"
 #include "secure_wrapper.h"
 #include <rbus/rbus.h>
@@ -90,6 +93,13 @@
 #define ADVSEC_DEFAULT_CM_MAC "00:1A:2B:11:22:33"
 #define SAFEBRO_CONFIG_FILE_PATH "/tmp/safebro.json"
 #define ADVSEC_PRIMARY_WAN_IF_NAME "erouter0"
+
+/* Log rotation definitions */
+#define ADVSEC_AGENT_LOG_PATH "/rdklogs/logs/agent.txt"
+#define ADVSEC_LOG_SIZE_LIMIT 2097152  /* 2MB */
+#define ADVSEC_LOGLEVEL_DEBUG 4        /* Debug mode */
+#define ADVSEC_SYSCFG_LOGLEVEL "Advsecurity_LogLevel"
+#define ADVSEC_LOG_CHECK_INTERVAL 5.0  
 
 #ifdef CONFIG_CISCO
 #define CONFIG_VENDOR_NAME  "Cisco"
@@ -150,6 +160,13 @@ pthread_mutex_t logMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t logCond = PTHREAD_COND_INITIALIZER;
 static BOOL logReady = FALSE;
 static char prevWanIfname[MAX_INTERFACE_SIZE] = {0};
+
+/* Global libev loop and thread for log rotation monitoring */
+static struct ev_loop *g_log_rotation_ev_loop = NULL;
+static ev_stat g_log_rotation_stat;
+static pthread_t g_log_rotation_thread;
+static int g_log_rotation_thread_running = 0;
+static pthread_mutex_t g_log_rotation_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void advsec_handle_sysevent_async(void);
 static void advsec_start_logger_thread(void);
@@ -1665,9 +1682,190 @@ ANSC_STATUS CosaAdvSecDeInit()
     }
 
     g_pAdvSecAgent->bEnable = FALSE;
+    
+    /* Cleanup log rotation monitoring */
+    cleanup_log_rotation_monitoring();
 
     returnStatus = CosaSetSysCfgUlong(g_DeviceFingerPrintEnabled, 0);
     return returnStatus;
+}
+
+/**
+ * @brief Check if debug logging is enabled for cujo-agent
+ * @return 1 if debug logging is enabled, 0 otherwise
+ */
+static int is_debug_logging_enabled(void)
+{
+    char log_level_str[32] = {0};
+    int log_level = 0;
+    
+    if (syscfg_get(NULL, ADVSEC_SYSCFG_LOGLEVEL, log_level_str, sizeof(log_level_str)) == 0)
+    {
+        log_level = atoi(log_level_str);
+        /* DEBUG (4) means debug logging is enabled */
+        if (log_level >= ADVSEC_LOGLEVEL_DEBUG)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/**
+ * @brief Check agent.txt size and truncate if file >= 2MB in debug mode
+ * This prevents log flooding when debug mode is enabled
+ * @param file_size Current size of the file
+ */
+static void rotate_agent_log_if_needed(off_t file_size)
+{
+    FILE *fp = NULL;
+    
+    if (file_size < ADVSEC_LOG_SIZE_LIMIT)
+    {
+        return;
+    }
+    
+    if (!is_debug_logging_enabled())
+    {
+        return;
+    }
+    
+    CcspTraceInfo(("agent.txt size exceeded 2MB (%ld bytes) in debug mode, truncating...\n", (long)file_size));
+    
+    fp = fopen(ADVSEC_AGENT_LOG_PATH, "w");
+    if (fp)
+    {
+        fprintf(fp, "[%s] Log rotated - debug mode enabled, file exceeded 2MB\n", __FUNCTION__);
+        fclose(fp);
+        CcspTraceInfo(("agent.txt successfully truncated\n"));
+    }
+    else
+    {
+        CcspTraceError(("Failed to truncate agent.txt: %s\n", strerror(errno)));
+    }
+}
+
+/**
+ * @brief libev stat callback triggered when agent.txt file changes
+ * @param loop The event loop
+ * @param w The stat watcher
+ * @param revents Event flags
+ */
+static void log_rotation_stat_cb(struct ev_loop *loop, ev_stat *w, int revents)
+{
+    (void)loop;    
+    (void)revents;
+    
+    if (w->attr.st_nlink > 0)
+    {
+        rotate_agent_log_if_needed(w->attr.st_size);
+    }
+}
+
+/**
+ * @brief Thread function for log rotation monitoring
+ * Runs its own libev event loop in a separate thread
+ */
+static void* log_rotation_thread_func(void *arg)
+{
+    (void)arg; 
+    
+    g_log_rotation_ev_loop = ev_loop_new(0);
+    if (!g_log_rotation_ev_loop)
+    {
+        CcspTraceError(("Failed to create log rotation event loop\n"));
+        pthread_mutex_lock(&g_log_rotation_mutex);
+        g_log_rotation_thread_running = 0;
+        pthread_mutex_unlock(&g_log_rotation_mutex);
+        return NULL;
+    }
+    
+    ev_stat_init(&g_log_rotation_stat, log_rotation_stat_cb, ADVSEC_AGENT_LOG_PATH, ADVSEC_LOG_CHECK_INTERVAL);
+    
+    ev_stat_start(g_log_rotation_ev_loop, &g_log_rotation_stat);
+    
+    CcspTraceInfo(("Log rotation monitoring thread started (using ev_stat on %s)\n", 
+                   ADVSEC_AGENT_LOG_PATH));
+    
+    ev_run(g_log_rotation_ev_loop, 0);
+    
+    /* Cleanup before thread exits */
+    ev_stat_stop(g_log_rotation_ev_loop, &g_log_rotation_stat);
+    ev_loop_destroy(g_log_rotation_ev_loop);
+    
+    pthread_mutex_lock(&g_log_rotation_mutex);
+    g_log_rotation_ev_loop = NULL;
+    g_log_rotation_thread_running = 0;
+    pthread_mutex_unlock(&g_log_rotation_mutex);
+    
+    CcspTraceInfo(("Log rotation monitoring thread exiting\n"));
+    return NULL;
+}
+
+/**
+ * @brief Initialize log rotation monitoring thread
+ */
+static void init_log_rotation_monitoring(void)
+{
+    int err;
+    
+    if (!is_debug_logging_enabled())
+    {
+        CcspTraceInfo(("Log rotation monitoring not started - debug logging disabled\n"));
+        return;
+    }
+    
+    pthread_mutex_lock(&g_log_rotation_mutex);
+    
+    if (g_log_rotation_thread_running)
+    {
+        pthread_mutex_unlock(&g_log_rotation_mutex);
+        CcspTraceWarning(("Log rotation thread already running\n"));
+        return;
+    }
+    
+    g_log_rotation_thread_running = 1;
+    pthread_mutex_unlock(&g_log_rotation_mutex);
+    
+    err = pthread_create(&g_log_rotation_thread, NULL, log_rotation_thread_func, NULL);
+    if (err != 0)
+    {
+        CcspTraceError(("Failed to create log rotation thread: %d\n", err));
+        pthread_mutex_lock(&g_log_rotation_mutex);
+        g_log_rotation_thread_running = 0;
+        pthread_mutex_unlock(&g_log_rotation_mutex);
+    }
+    else
+    {
+        pthread_detach(g_log_rotation_thread);
+        CcspTraceInfo(("Log rotation monitoring thread created successfully\n"));
+    }
+}
+
+/**
+ * @brief Cleanup libev resources and stop thread
+ */
+static void cleanup_log_rotation_monitoring(void)
+{
+    pthread_mutex_lock(&g_log_rotation_mutex);
+    
+    if (!g_log_rotation_thread_running)
+    {
+        pthread_mutex_unlock(&g_log_rotation_mutex);
+        return;
+    }
+    
+    if (g_log_rotation_ev_loop)
+    {
+        ev_break(g_log_rotation_ev_loop, EVBREAK_ALL);
+        CcspTraceInfo(("Log rotation monitoring stop signal sent\n"));
+    }
+    
+    pthread_mutex_unlock(&g_log_rotation_mutex);
+    
+    usleep(100000); /* 100ms */
+    
+    CcspTraceInfo(("Log rotation monitoring cleanup complete\n"));
 }
 
 static void *advsec_logger_th(void *arg)
@@ -1744,6 +1942,9 @@ static void advsec_start_logger_thread(void)
       {
           CcspTraceError(("%s: create logger thread error!\n", __FUNCTION__));
       }
+      
+      /* Initialize log rotation monitoring if debug logging is enabled */
+      init_log_rotation_monitoring();
     }
 }
 
