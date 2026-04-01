@@ -1720,7 +1720,7 @@ static int is_debug_logging_enabled(void)
  */
 static void rotate_agent_log_if_needed(off_t file_size)
 {
-    FILE *fp = NULL;
+    int ret = 0;
     
     if (file_size < ADVSEC_LOG_SIZE_LIMIT)
     {
@@ -1734,11 +1734,9 @@ static void rotate_agent_log_if_needed(off_t file_size)
     
     CcspTraceInfo(("agent.txt size exceeded 2MB (%ld bytes) in debug mode, truncating...\n", (long)file_size));
     
-    fp = fopen(ADVSEC_AGENT_LOG_PATH, "w");
-    if (fp)
+    ret = truncate(ADVSEC_AGENT_LOG_PATH, 0);
+    if (ret == 0)
     {
-        fprintf(fp, "[%s] Log rotated - debug mode enabled, file exceeded 2MB\n", __FUNCTION__);
-        fclose(fp);
         CcspTraceInfo(("agent.txt successfully truncated\n"));
     }
     else
