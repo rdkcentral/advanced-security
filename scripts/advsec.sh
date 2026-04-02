@@ -30,6 +30,9 @@ CUJO_AGENT_SH="cujo-agent --ctl"
 CUJO_AGENT_LOG="CujoAgent"
 CUJO_AGENT_USER_NAME="_cujo-agent"
 CUJO_AGENT_STATUS="cujo-agent-status"
+CUJO_AGENT_QOSD="cujo-qosd"
+CUJO_AGENT_FPING="cujo-fpingdq"
+CUJO_TWAMP_LIGHT="twamp-light-client"
 
 if [ "$BOX_TYPE" = "XB3" ] || [ "$BOX_TYPE" = "XF3" ]; then
     CUJO_AGENT="rabid"
@@ -85,6 +88,7 @@ export ADVSEC_RAPTR_ENABLED_PATH=/tmp/advsec_raptr_enabled
 export ADVSEC_USERSPACE_ENABLED_PATH=/tmp/advsec_userspace_enabled
 export ADVSEC_CUJOTRACER_ENABLED_PATH=/tmp/advsec_cujotracer_enabled
 export ADVSEC_CUJOTELEMETRY_ENABLED_PATH=/tmp/advsec_cujotelemetry_enabled
+export ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH=/tmp/advsec_networkintelligence_enabled
 export ADVSEC_SATE_ENABLED_PATH=/tmp/advsec_sate_enabled
 export ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH=/tmp/advsec_tcptracker_filter_devices_enabled
 export ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH=/tmp/advsec_wifidatacollection_enabled
@@ -113,6 +117,7 @@ export ADVSEC_RAPTR_RFC_ENABLED=`syscfg get Adv_RaptrRFCEnable`
 export ADVSEC_USERSPACE_RFC_ENABLED=`syscfg get Adv_AdvSecUserSpaceRFCEnable`
 export ADVSEC_CUJOTRACER_RFC_ENABLED=`syscfg get Adv_AdvSecCujoTracerRFCEnable`
 export ADVSEC_CUJOTELEMETRY_RFC_ENABLED=`syscfg get Adv_AdvSecCujoTelemetryRFCEnable`
+export ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED=`syscfg get Adv_AdvSecNetworkIntelligenceRFCEnable`
 export ADVSEC_SATE_RFC_ENABLED=`syscfg get Adv_SATERFCEnable`
 export ADVSEC_TCPTRACKER_FILTER_DEVICES_RFC_ENABLED=`syscfg get Adv_TCPTrackerFilterDevicesRFCEnable`
 export ADVSEC_WIFIDATACOLLECTION_RFC_ENABLED=`syscfg get Adv_WifiDataCollectionRFCEnable`
@@ -146,6 +151,8 @@ export ADV_RAPTR_RFC_ENABLE_LOG=ADVANCE_SECURITY_RAPTR_ENABLED
 export ADV_RAPTR_RFC_DISABLE_LOG=ADVANCE_SECURITY_RAPTR_DISABLED
 export ADV_USERSPACE_RFC_ENABLE_LOG=ADVANCE_SECURITY_USERSPACE_ENABLED
 export ADV_USERSPACE_RFC_DISABLE_LOG=ADVANCE_SECURITY_USERSPACE_DISABLED
+export ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG=ADVANCE_SECURITY_NETWORKINTELLIGENCE_ENABLED
+export ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG=ADVANCE_SECURITY_NETWORKINTELLIGENCE_DISABLED
 export ADV_WIFIDATACOLLECTION_RFC_ENABLE_LOG=ADVANCE_SECURITY_WIFIDATACOLLECTION_ENABLED
 export ADV_WIFIDATACOLLECTION_RFC_DISABLE_LOG=ADVANCE_SECURITY_WIFIDATACOLLECTION_DISABLED
 export ADV_LEVL_RFC_ENABLE_LOG=ADVANCE_SECURITY_LEVL_ENABLED
@@ -169,6 +176,13 @@ export ADVSEC_SAFEBRO_SETTING="${RW_DIR}/safebro.json"
 
 if [ "$MODEL_NUM" = "TG1682G" ] || [ "$MODEL_NUM" = "DPC3941" ] || [ "$MODEL_NUM" = "TG3482G" ] || [ "$MODEL_NUM" = "TG4482A" ]; then
     export CC_PLATFORM_TYPE="PUMA"
+fi
+
+#NI check is added for XB8
+if [ "$MODEL_NUM" = "CGM4981COM" ]; then
+    export NI_SUPPORTED="true"
+else
+    export NI_SUPPORTED="false"
 fi
 
 advsec_is_agent_installed()
