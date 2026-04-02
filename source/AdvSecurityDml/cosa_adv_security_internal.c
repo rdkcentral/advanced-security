@@ -99,7 +99,8 @@
 #define ADVSEC_LOG_SIZE_LIMIT 2097152  /* 2MB */
 #define ADVSEC_LOGLEVEL_DEBUG 4        /* Debug mode */
 #define ADVSEC_SYSCFG_LOGLEVEL "Advsecurity_LogLevel"
-#define ADVSEC_LOG_CHECK_INTERVAL 5.0  
+#define ADVSEC_LOG_CHECK_INTERVAL 5.0
+#define ADVSEC_DEBUG_ENABLED_FLAG "/tmp/advsec_debug_log_enabled"  
 
 #ifdef CONFIG_CISCO
 #define CONFIG_VENDOR_NAME  "Cisco"
@@ -1694,23 +1695,12 @@ ANSC_STATUS CosaAdvSecDeInit()
 
 /**
  * @brief Check if debug logging is enabled for cujo-agent
+ * Checks for existence of flag file instead of doing syscfg_get to avoid repeated expensive calls
  * @return 1 if debug logging is enabled, 0 otherwise
  */
 static int is_debug_logging_enabled(void)
 {
-    char log_level_str[32] = {0};
-    int log_level = 0;
-    
-    if (syscfg_get(NULL, ADVSEC_SYSCFG_LOGLEVEL, log_level_str, sizeof(log_level_str)) == 0)
-    {
-        log_level = atoi(log_level_str);
-        /* DEBUG (4) means debug logging is enabled */
-        if (log_level >= ADVSEC_LOGLEVEL_DEBUG)
-        {
-            return 1;
-        }
-    }
-    return 0;
+    return (access(ADVSEC_DEBUG_ENABLED_FLAG, F_OK) == 0);
 }
 
 /**
@@ -1732,7 +1722,7 @@ static void rotate_agent_log_if_needed(off_t file_size)
         return;
     }
     
-    CcspTraceInfo(("agent.txt size exceeded 2MB (%ld bytes) in debug mode, truncating...\n", (long)file_size));
+    CcspTraceInfo(("agent.txt reached %ld MB with debug/trace level logging, truncating\n", (long)(file_size / 1048576)));
     
     ret = truncate(ADVSEC_AGENT_LOG_PATH, 0);
     if (ret == 0)
@@ -2387,6 +2377,24 @@ ANSC_STATUS CosaAdvSecGetLogLevel()
     ULONG value = ADVSEC_LogLevel_WARN;
     returnStatus = CosaGetSysCfgUlong(g_DeviceFingerPrintLogLevel, &value);
     g_pAdvSecAgent->ulLogLevel = value;
+    
+    /* Initialize debug flag file based on current log level */
+    if (value >= ADVSEC_LOGLEVEL_DEBUG)
+    {
+        FILE *fp = fopen(ADVSEC_DEBUG_ENABLED_FLAG, "w");
+        if (fp)
+        {
+            fclose(fp);
+        }
+    }
+    else
+    {
+        if (access(ADVSEC_DEBUG_ENABLED_FLAG, F_OK) == 0)
+        {
+            unlink(ADVSEC_DEBUG_ENABLED_FLAG);
+        }
+    }
+    
     return returnStatus;
 }
 
@@ -2404,6 +2412,27 @@ ANSC_STATUS CosaAdvSecSetLogLevel(ULONG value)
         {
             CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
         }
+        
+        /* Manage debug flag file for log rotation */
+        if (value >= ADVSEC_LOGLEVEL_DEBUG)
+        {
+            FILE *fp = fopen(ADVSEC_DEBUG_ENABLED_FLAG, "w");
+            if (fp)
+            {
+                fclose(fp);
+                CcspTraceInfo(("Debug logging enabled - created flag file for log rotation\n"));
+            }
+        }
+        else
+        {
+            /* Remove flag file when debug logging is disabled */
+            if (access(ADVSEC_DEBUG_ENABLED_FLAG, F_OK) == 0)
+            {
+                unlink(ADVSEC_DEBUG_ENABLED_FLAG);
+                CcspTraceInfo(("Debug logging disabled - removed flag file\n"));
+            }
+        }
+        
         CcspTraceInfo(("CosaAdvSecSetLogLevel: success\n"));
     }
     else
