@@ -294,7 +294,7 @@ static BOOL advsec_write_to_file(char *fpath, char *str)
 
     if ((file = fopen(fpath, "w")))
     {
-        fprintf(file,"%s",str);
+        fprintf(file,"%s%s",str);
         fclose(file);
         return 1;
     }
