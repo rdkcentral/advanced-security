@@ -41,6 +41,7 @@
 #include <syscfg/syscfg.h>
 #include <sys/sysinfo.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <ev.h>
 #include "safec_lib_common.h"
@@ -99,8 +100,7 @@
 #define ADVSEC_LOG_SIZE_LIMIT 2097152  /* 2MB */
 #define ADVSEC_LOGLEVEL_DEBUG 4        /* Debug mode */
 #define ADVSEC_SYSCFG_LOGLEVEL "Advsecurity_LogLevel"
-#define ADVSEC_LOG_CHECK_INTERVAL 5.0
-#define ADVSEC_DEBUG_ENABLED_FLAG "/tmp/advsec_debug_log_enabled"  
+#define ADVSEC_LOG_CHECK_INTERVAL 5.0  
 
 #ifdef CONFIG_CISCO
 #define CONFIG_VENDOR_NAME  "Cisco"
@@ -1694,35 +1694,84 @@ ANSC_STATUS CosaAdvSecDeInit()
 }
 
 /**
- * @brief Check if debug logging is enabled for cujo-agent
- * Checks for existence of flag file instead of doing syscfg_get to avoid repeated expensive calls
- * @return 1 if debug logging is enabled, 0 otherwise
- */
-static int is_debug_logging_enabled(void)
-{
-    return (access(ADVSEC_DEBUG_ENABLED_FLAG, F_OK) == 0);
-}
-
-/**
- * @brief Check agent.txt size and truncate if file >= 2MB in debug mode
- * This prevents log flooding when debug mode is enabled
+ * @brief Check agent.txt size and truncate if file >= 2MB in debug/trace mode
+ * This prevents log flooding when debug/trace logging is enabled
+ * Reads actual runtime log level from cujo-agent to handle all log level change methods
+ * Uses file size delta check and selective log level caching to minimize popen() calls
+ * Includes 1-second timeout using 'timeout' command to prevent blocking
  * @param file_size Current size of the file
  */
 static void rotate_agent_log_if_needed(off_t file_size)
 {
+    static off_t last_size = 0;          /* Track previous file size */
+    static int cached_log_level = -1;    /* Cache log level result (only when >= 4) */
+    static int log_level_checked = 0;    /* Flag: 1 = cached and ready to rotate */
+    FILE *fp = NULL;
+    char output[32] = {0};
+    int log_level = 0;
     int ret = 0;
     
     if (file_size < ADVSEC_LOG_SIZE_LIMIT)
     {
+        last_size = file_size;
+        cached_log_level = -1;
+        log_level_checked = 0;
         return;
     }
     
-    if (!is_debug_logging_enabled())
+    if (file_size == last_size)
     {
+        return;  
+    }
+    
+    last_size = file_size;
+    
+    if (log_level_checked)
+    {
+        goto do_rotation;
+    }
+    
+    /* Need to check log level - call cujo-agent-log with 1-second timeout */
+    fp = popen("timeout 1 /usr/bin/cujo-agent-log 2>/dev/null", "r");
+    if (!fp)
+    {
+        CcspTraceError(("Failed to execute cujo-agent-log\n"));
         return;
     }
     
-    CcspTraceInfo(("agent.txt reached %ld MB with debug/trace level logging, truncating\n", (long)(file_size / 1048576)));
+    if (fgets(output, sizeof(output), fp) != NULL)
+    {
+        char *last_space = strrchr(output, ' ');
+        if (last_space)
+        {
+            log_level = atoi(last_space + 1);
+        }
+    }
+    
+    ret = pclose(fp);
+    if (WIFEXITED(ret) && WEXITSTATUS(ret) == 124)
+    {
+        /* Timeout - command killed after 1 second (timeout returns 124) */
+        CcspTraceError(("cujo-agent-log timed out after 1 second\n"));
+        return;
+    }
+    
+    /* Only cache if debug/trace mode - allows detection of level changes when < 4 */
+    if (log_level >= ADVSEC_LOGLEVEL_DEBUG)
+    {
+        cached_log_level = log_level;
+        log_level_checked = 1;
+        CcspTraceInfo(("Log rotation: cujo-agent log level = %d (cache enabled)\n", cached_log_level));
+    }
+    else
+    {
+        CcspTraceInfo(("agent.txt >= 2MB but log level=%d (not debug/trace), no rotation\n", log_level));
+        return;
+    }
+    
+do_rotation:
+    CcspTraceInfo(("agent.txt reached %ld MB with debug/trace level logging (level=%d), truncating\n", 
+                   (long)(file_size / 1048576), cached_log_level));
     
     ret = truncate(ADVSEC_AGENT_LOG_PATH, 0);
     if (ret == 0)
@@ -1798,12 +1847,6 @@ static void* log_rotation_thread_func(void *arg)
 static void init_log_rotation_monitoring(void)
 {
     int err;
-    
-    if (!is_debug_logging_enabled())
-    {
-        CcspTraceInfo(("Log rotation monitoring not started - debug logging disabled\n"));
-        return;
-    }
     
     pthread_mutex_lock(&g_log_rotation_mutex);
     
@@ -2377,24 +2420,6 @@ ANSC_STATUS CosaAdvSecGetLogLevel()
     ULONG value = ADVSEC_LogLevel_WARN;
     returnStatus = CosaGetSysCfgUlong(g_DeviceFingerPrintLogLevel, &value);
     g_pAdvSecAgent->ulLogLevel = value;
-    
-    /* Initialize debug flag file based on current log level */
-    if (value >= ADVSEC_LOGLEVEL_DEBUG)
-    {
-        FILE *fp = fopen(ADVSEC_DEBUG_ENABLED_FLAG, "w");
-        if (fp)
-        {
-            fclose(fp);
-        }
-    }
-    else
-    {
-        if (access(ADVSEC_DEBUG_ENABLED_FLAG, F_OK) == 0)
-        {
-            unlink(ADVSEC_DEBUG_ENABLED_FLAG);
-        }
-    }
-    
     return returnStatus;
 }
 
@@ -2412,27 +2437,6 @@ ANSC_STATUS CosaAdvSecSetLogLevel(ULONG value)
         {
             CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
         }
-        
-        /* Manage debug flag file for log rotation */
-        if (value >= ADVSEC_LOGLEVEL_DEBUG)
-        {
-            FILE *fp = fopen(ADVSEC_DEBUG_ENABLED_FLAG, "w");
-            if (fp)
-            {
-                fclose(fp);
-                CcspTraceInfo(("Debug logging enabled - created flag file for log rotation\n"));
-            }
-        }
-        else
-        {
-            /* Remove flag file when debug logging is disabled */
-            if (access(ADVSEC_DEBUG_ENABLED_FLAG, F_OK) == 0)
-            {
-                unlink(ADVSEC_DEBUG_ENABLED_FLAG);
-                CcspTraceInfo(("Debug logging disabled - removed flag file\n"));
-            }
-        }
-        
         CcspTraceInfo(("CosaAdvSecSetLogLevel: success\n"));
     }
     else
