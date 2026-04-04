@@ -43,6 +43,9 @@
 #include "safec_lib_common.h"
 #include "secure_wrapper.h"
 #include <rbus/rbus.h>
+#include <sys/stat.h>
+#include <ev.h>
+#include <pthread.h>
 #if defined(_COSA_BCM_MIPS_)
 #include <ccsp/dpoe_hal.h>
 #else
@@ -90,6 +93,12 @@
 #define ADVSEC_DEFAULT_CM_MAC "00:1A:2B:11:22:33"
 #define SAFEBRO_CONFIG_FILE_PATH "/tmp/safebro.json"
 #define ADVSEC_PRIMARY_WAN_IF_NAME "erouter0"
+
+/* Logrotate configuration for agent.txt */
+#define ADVSEC_AGENT_LOG_FILE "/rdklogs/logs/agent.txt"
+#define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 2MB - for testing, change to 4MB for production */
+#define ADVSEC_AGENT_LOGROTATE_CONF "/etc/logrotate.d/advsec-agent"
+#define LOGROTATE_BINARY "/usr/sbin/logrotate"
 
 #ifdef CONFIG_CISCO
 #define CONFIG_VENDOR_NAME  "Cisco"
@@ -153,6 +162,7 @@ static char prevWanIfname[MAX_INTERFACE_SIZE] = {0};
 
 void advsec_handle_sysevent_async(void);
 static void advsec_start_logger_thread(void);
+static void* agent_log_monitor_thread(void* arg);
 static BOOL WaitForLoggerTimeout(ULONG period);
 enum advSysEvent_e{
     SYSEVENT_BRIDGE_MODE_EVENT,
@@ -1398,6 +1408,19 @@ CosaSecurityInitialize
     rc = strcpy_s(prevWanIfname, sizeof(prevWanIfname), ADVSEC_PRIMARY_WAN_IF_NAME);
     ERR_CHK(rc);
     advsec_start_logger_thread();
+
+    /* Start the agent log monitor thread */
+    pthread_t log_monitor_tid;
+    if (pthread_create(&log_monitor_tid, NULL, agent_log_monitor_thread, NULL) != 0)
+    {
+        CcspTraceError(("Failed to create agent log monitor thread\n"));
+    }
+    else
+    {
+        pthread_detach(log_monitor_tid);
+        CcspTraceInfo(("Agent log monitor thread created successfully\n"));
+    }
+
     advsec_handle_sysevent_async();
 
 #ifdef WAN_FAILOVER_SUPPORTED
@@ -2551,6 +2574,92 @@ static void *advsec_sysevent_handler_th(void *arg)
     return NULL;
 }
 
+
+/* Log rotation function for agent.txt using logrotate binary */
+void rotate_agent_log(void)
+{
+    struct stat st;
+    char cmd[512];
+    errno_t rc;
+    int result;
+
+    /* Check if file exists and get its size */
+    if (stat(ADVSEC_AGENT_LOG_FILE, &st) != 0)
+    {
+        return;  /* File doesn't exist */
+    }
+
+    /* Only call logrotate if file is >= 2MB to avoid excessive calls */
+    if (st.st_size < ADVSEC_AGENT_LOG_MAX_SIZE)
+    {
+        return;  /* File too small, skip */
+    }
+
+    CcspTraceInfo(("Agent log reached %ld bytes, calling logrotate...\n", st.st_size));
+
+    /* Call logrotate with verbose flag to capture errors */
+    rc = sprintf_s(cmd, sizeof(cmd), "%s -v -s /tmp/logrotate-advsec.status %s 2>&1 | logger -t ADVSEC_LOGROTATE", 
+                   LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
+
+    if (rc < EOK)
+    {
+        ERR_CHK(rc);
+        return;
+    }
+
+    result = system(cmd);
+
+    if (result == 0)
+    {
+        CcspTraceInfo(("Logrotate completed successfully\n"));
+    }
+    else
+    {
+        CcspTraceError(("Logrotate failed (exit: %d)\n", result));
+    }
+}
+
+/* Callback function for libev stat watcher */
+void agent_log_stat_cb(EV_P_ ev_stat *w, int revents)
+{
+    (void)loop;
+    (void)revents;
+
+    if (w->attr.st_nlink)
+    {
+        rotate_agent_log();
+    }
+}
+
+/* Thread function to run libev event loop for log monitoring */
+void* agent_log_monitor_thread(void* arg)
+{
+    (void)arg;
+
+    struct ev_loop *loop = NULL;
+    static ev_stat stat_watcher;
+
+    CcspTraceInfo(("Starting agent log monitor thread\n"));
+
+    /* Create dedicated event loop for this thread */
+    /* Note: Logrotate config is installed at build time in /etc/logrotate.d/advsec-agent */
+    loop = ev_loop_new(0);
+    if (!loop)
+    {
+        CcspTraceError(("Failed to create libev event loop\n"));
+        return NULL;
+    }
+
+    ev_stat_init(&stat_watcher, agent_log_stat_cb, ADVSEC_AGENT_LOG_FILE, 5.0);
+
+    ev_stat_start(loop, &stat_watcher);
+
+    CcspTraceInfo(("Agent log monitoring started on %s\n", ADVSEC_AGENT_LOG_FILE));
+
+    ev_run(loop, 0);
+    ev_loop_destroy(loop);
+    return NULL;
+}
 
 /*
  * Create a thread to handle the sysevent asynchronously

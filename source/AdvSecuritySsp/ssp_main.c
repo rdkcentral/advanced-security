@@ -32,18 +32,12 @@
 #include "webconfig_framework.h"
 #include "safec_lib_common.h"
 #include <sys/stat.h>
-#include <ev.h>
-#include <pthread.h>
 #define MAX_SUBSYSTEM_SIZE 32
 
 #define ADVSEC_CCSP_INIT_FILE_BOOTUP "/tmp/advsec_ccsp_initialized_bootup"
 #define ADVSEC_CUJO_AGENT_ROOT_PRIV "/tmp/advsec_cujo_agent_root_priv"
 #define BLOCKLIST_FILE "/opt/secure/Blocklist_file.txt"
 #define ADVSEC_AGENT_PROC_NAME "cujo-agent"
-#define ADVSEC_AGENT_LOG_FILE "/rdklogs/logs/agent.txt"
-#define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 2MB - for testing */
-#define ADVSEC_AGENT_LOGROTATE_CONF "/nvram/advsec-agent-logrotate.conf"
-#define LOGROTATE_BINARY "/usr/sbin/logrotate"
 #define NUM_SUBSYSTEM_TYPES (sizeof(gSubsystem_type_table)/sizeof(gSubsystem_type_table[0]))
 
 PDSLH_CPE_CONTROLLER_OBJECT     pDslhCpeController      = NULL;
@@ -397,120 +391,6 @@ void drop_root(void)
     }
 }
 
-/* Create logrotate configuration file for agent.txt */
-void create_logrotate_config(void)
-{
-    FILE *fp = fopen(ADVSEC_AGENT_LOGROTATE_CONF, "w");
-    if (!fp)
-    {
-        CcspTraceError(("Failed to create logrotate config file: %s\n", ADVSEC_AGENT_LOGROTATE_CONF));
-        return;
-    }
-
-    fprintf(fp, "%s {\n", ADVSEC_AGENT_LOG_FILE);
-    fprintf(fp, "    size 2M\n");      // Match C code threshold for testing
-    fprintf(fp, "    rotate 2\n");
-    fprintf(fp, "    start 0\n");
-    fprintf(fp, "    nodateext\n");
-    fprintf(fp, "    copytruncate\n");
-    fprintf(fp, "    missingok\n");
-    fprintf(fp, "    notifempty\n");
-    fprintf(fp, "    nocompress\n");
-    fprintf(fp, "}\n");
-
-    fclose(fp);
-
-    CcspTraceInfo(("Logrotate config file created: %s\n",
-                    ADVSEC_AGENT_LOGROTATE_CONF));
-}
-
-/* Log rotation function for agent.txt using logrotate binary */
-void rotate_agent_log(void)
-{
-    struct stat st;
-    char cmd[512];
-    errno_t rc;
-    int result;
-
-    /* Check if file exists and get its size */
-    if (stat(ADVSEC_AGENT_LOG_FILE, &st) != 0)
-    {
-        return;  /* File doesn't exist */
-    }
-
-    /* Only call logrotate if file is >= 2MB to avoid excessive calls */
-    if (st.st_size < ADVSEC_AGENT_LOG_MAX_SIZE)
-    {
-        return;  /* File too small, skip */
-    }
-
-    CcspTraceInfo(("Agent log reached %ld bytes, calling logrotate...\n", st.st_size));
-
-    /* Call logrotate with verbose flag to capture errors */
-    rc = sprintf_s(cmd, sizeof(cmd), "%s -v -s /tmp/logrotate-advsec.status %s 2>&1 | logger -t ADVSEC_LOGROTATE", 
-                   LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
-
-    if (rc < EOK)
-    {
-        ERR_CHK(rc);
-        return;
-    }
-
-    result = system(cmd);
-
-    if (result == 0)
-    {
-        CcspTraceInfo(("Logrotate completed successfully\n"));
-    }
-    else
-    {
-        CcspTraceError(("Logrotate failed (exit: %d)\n", result));
-    }
-}
-
-/* Callback function for libev stat watcher */
-void agent_log_stat_cb(EV_P_ ev_stat *w, int revents)
-{
-    (void)loop;
-    (void)revents;
-
-    if (w->attr.st_nlink)
-    {
-        rotate_agent_log();
-    }
-}
-
-/* Thread function to run libev event loop for log monitoring */
-void* agent_log_monitor_thread(void* arg)
-{
-    (void)arg;
-
-    struct ev_loop *loop = NULL;
-    static ev_stat stat_watcher;
-
-    CcspTraceInfo(("Starting agent log monitor thread\n"));
-
-    /* Create logrotate configuration file */
-    create_logrotate_config();
-
-    /* Create dedicated event loop for this thread */
-    loop = ev_loop_new(0);
-    if (!loop)
-    {
-        CcspTraceError(("Failed to create libev event loop\n"));
-        return NULL;
-    }
-
-    ev_stat_init(&stat_watcher, agent_log_stat_cb, ADVSEC_AGENT_LOG_FILE, 5.0);
-
-    ev_stat_start(loop, &stat_watcher);
-
-    CcspTraceInfo(("Agent log monitoring started on %s\n", ADVSEC_AGENT_LOG_FILE));
-
-    ev_run(loop, 0);
-    ev_loop_destroy(loop);
-    return NULL;
-}
 int main(int argc, char* argv[])
 {
     ANSC_STATUS                     returnStatus       = ANSC_STATUS_SUCCESS;
@@ -656,17 +536,6 @@ int main(int argc, char* argv[])
     {
         CcspTraceError(("Exit error - Error in copying init_file  %s:%d\n", __FUNCTION__, __LINE__));
         exit(0);
-    }
-
-    /* Start the agent log monitor thread */
-    pthread_t log_monitor_tid;
-    if (pthread_create(&log_monitor_tid, NULL, agent_log_monitor_thread, NULL) != 0)
-    {
-        CcspTraceError(("Failed to create agent log monitor thread\n"));
-    }
-    else
-    {
-        CcspTraceInfo(("Agent log monitor thread created successfully\n"));
     }
 
     if ( bRunAsDaemon )
