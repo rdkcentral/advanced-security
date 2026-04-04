@@ -2579,8 +2579,6 @@ static void *advsec_sysevent_handler_th(void *arg)
 void rotate_agent_log(void)
 {
     struct stat st;
-    char cmd[512];
-    errno_t rc;
     int result;
 
     /* Check if file exists and get its size */
@@ -2598,16 +2596,8 @@ void rotate_agent_log(void)
     CcspTraceInfo(("Agent log reached %ld bytes, calling logrotate...\n", st.st_size));
 
     /* Call logrotate with verbose flag to capture errors */
-    rc = sprintf_s(cmd, sizeof(cmd), "%s -v -s /tmp/logrotate-advsec.status %s 2>&1 | logger -t ADVSEC_LOGROTATE", 
-                   LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
-
-    if (rc < EOK)
-    {
-        ERR_CHK(rc);
-        return;
-    }
-
-    result = v_secure_system(cmd);
+    result = v_secure_system("%s -v -s /tmp/logrotate-advsec.status %s 2>&1 | logger -t ADVSEC_LOGROTATE",
+                             LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
     if (result != 0)
     {
         CcspTraceError(("Logrotate failed with return code: %d\n", result));
