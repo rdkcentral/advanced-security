@@ -2607,15 +2607,14 @@ void rotate_agent_log(void)
         return;
     }
 
-    result = system(cmd);
-
-    if (result == 0)
+    result = v_secure_system(cmd);
+    if (result != 0)
     {
-        CcspTraceInfo(("Logrotate completed successfully\n"));
+        CcspTraceError(("Logrotate failed with return code: %d\n", result));
     }
     else
     {
-        CcspTraceError(("Logrotate failed (exit: %d)\n", result));
+        CcspTraceInfo(("Logrotate completed successfully\n"));
     }
 }
 
