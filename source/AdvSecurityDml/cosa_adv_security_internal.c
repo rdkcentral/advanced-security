@@ -2581,22 +2581,19 @@ void rotate_agent_log(void)
     struct stat st;
     int result;
 
-    /* Check if file exists and get its size */
     if (stat(ADVSEC_AGENT_LOG_FILE, &st) != 0)
     {
-        return;  /* File doesn't exist */
+        return;
     }
 
-    /* Only call logrotate if file is >= 2MB to avoid excessive calls */
     if (st.st_size < ADVSEC_AGENT_LOG_MAX_SIZE)
     {
-        return;  /* File too small, skip */
+        return;
     }
 
     CcspTraceInfo(("Agent log reached %ld bytes, calling logrotate...\n", st.st_size));
 
-    /* Call logrotate with verbose flag to capture errors */
-    result = v_secure_system("%s -v -s /tmp/logrotate-advsec.status %s 2>&1 | logger -t ADVSEC_LOGROTATE",
+    result = v_secure_system("%s -s /tmp/logrotate-advsec.status %s 2>&1 | logger -t ADVSEC_LOGROTATE",
                              LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
     if (result != 0)
     {
@@ -2630,8 +2627,6 @@ void* agent_log_monitor_thread(void* arg)
 
     CcspTraceInfo(("Starting agent log monitor thread\n"));
 
-    /* Create dedicated event loop for this thread */
-    /* Note: Logrotate config is installed at build time in /etc/logrotate.d/advsec-agent */
     loop = ev_loop_new(0);
     if (!loop)
     {
