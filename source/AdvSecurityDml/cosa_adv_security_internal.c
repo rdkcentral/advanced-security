@@ -2308,7 +2308,7 @@ static async_id_t async_id[4];
 enum {SYS_EVENT_ERROR=-1, SYS_EVENT_OK, SYS_EVENT_TIMEOUT, SYS_EVENT_HANDLE_EXIT, SYS_EVENT_RECEIVED=0x10};
 
 /*
- * Initialize sysevnt
+ * Initialize sysevent
  *   return 0 if success and -1 if failure.
  */
 int advsec_sysevent_init(void)
@@ -2593,8 +2593,8 @@ void rotate_agent_log(void)
 
     CcspTraceInfo(("Agent log reached %ld bytes, calling logrotate...\n", st.st_size));
 
-    result = v_secure_system("%s /tmp/logrotate-advsec.status %s",
-                             LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
+    result = v_secure_system("%s %s",
+                         LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
     if (result != 0)
     {
         CcspTraceError(("Logrotate failed with return code: %d\n", result));
