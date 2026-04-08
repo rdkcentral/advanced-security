@@ -2308,7 +2308,7 @@ static async_id_t async_id[4];
 enum {SYS_EVENT_ERROR=-1, SYS_EVENT_OK, SYS_EVENT_TIMEOUT, SYS_EVENT_HANDLE_EXIT, SYS_EVENT_RECEIVED=0x10};
 
 /*
- * Initialize sysevent
+ * Initialize sysevnt
  *   return 0 if success and -1 if failure.
  */
 int advsec_sysevent_init(void)
