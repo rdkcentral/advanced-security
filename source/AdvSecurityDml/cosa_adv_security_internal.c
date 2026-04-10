@@ -96,7 +96,8 @@
 
 /* Logrotate configuration for agent.txt */
 #define ADVSEC_AGENT_LOG_FILE "/rdklogs/logs/agent.txt"
-#define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)
+#define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 2MB */
+#define ADVSEC_AGENT_LOG_INTERVAL 5.0
 #define ADVSEC_AGENT_LOGROTATE_CONF "/etc/logrotate.d/advsec-agent"
 #define LOGROTATE_BINARY "/usr/sbin/logrotate"
 
@@ -163,6 +164,7 @@ static char prevWanIfname[MAX_INTERFACE_SIZE] = {0};
 void advsec_handle_sysevent_async(void);
 static void advsec_start_logger_thread(void);
 static void* agent_log_monitor_thread(void* arg);
+static void advsec_start_log_monitor_thread(void);
 static BOOL WaitForLoggerTimeout(ULONG period);
 enum advSysEvent_e{
     SYSEVENT_BRIDGE_MODE_EVENT,
@@ -1408,19 +1410,7 @@ CosaSecurityInitialize
     rc = strcpy_s(prevWanIfname, sizeof(prevWanIfname), ADVSEC_PRIMARY_WAN_IF_NAME);
     ERR_CHK(rc);
     advsec_start_logger_thread();
-
-    /* Start the agent log monitor thread */
-    pthread_t log_monitor_tid;
-    if (pthread_create(&log_monitor_tid, NULL, agent_log_monitor_thread, NULL) != 0)
-    {
-        CcspTraceError(("Failed to create agent log monitor thread\n"));
-    }
-    else
-    {
-        pthread_detach(log_monitor_tid);
-        CcspTraceInfo(("Agent log monitor thread created successfully\n"));
-    }
-
+    advsec_start_log_monitor_thread();
     advsec_handle_sysevent_async();
 
 #ifdef WAN_FAILOVER_SUPPORTED
@@ -1767,6 +1757,93 @@ static void advsec_start_logger_thread(void)
       {
           CcspTraceError(("%s: create logger thread error!\n", __FUNCTION__));
       }
+    }
+}
+
+/* Log rotation function for agent.txt using logrotate binary */
+void rotate_agent_log(void)
+{
+    struct stat st;
+    int result;
+
+    if (stat(ADVSEC_AGENT_LOG_FILE, &st) != 0)
+    {
+        return;
+    }
+
+    if (st.st_size < ADVSEC_AGENT_LOG_MAX_SIZE)
+    {
+        return;
+    }
+
+    CcspTraceInfo(("Agent log reached %ld bytes, calling logrotate...\n", st.st_size));
+
+    result = v_secure_system("%s /tmp/logrotate-advsec.status %s",
+                             LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
+    if (result != 0)
+    {
+        CcspTraceError(("Logrotate failed with return code: %d\n", result));
+    }
+    else
+    {
+        CcspTraceInfo(("Logrotate completed successfully\n"));
+    }
+}
+
+/* Callback function for libev stat watcher */
+void agent_log_stat_cb(EV_P_ ev_stat *w, int revents)
+{
+    (void)loop;
+    (void)revents;
+
+    if (w->attr.st_nlink)
+    {
+        rotate_agent_log();
+    }
+}
+
+/* Thread function to run libev event loop for log monitoring */
+void* agent_log_monitor_thread(void* arg)
+{
+    (void)arg;
+
+    struct ev_loop *loop = NULL;
+    static ev_stat stat_watcher;
+
+    CcspTraceDebug(("Starting agent log monitor thread\n"));
+
+    loop = ev_loop_new(0);
+    if (!loop)
+    {
+        CcspTraceError(("Failed to create libev event loop\n"));
+        return NULL;
+    }
+
+    ev_stat_init(&stat_watcher, agent_log_stat_cb, ADVSEC_AGENT_LOG_FILE, ADVSEC_AGENT_LOG_INTERVAL);
+
+    ev_stat_start(loop, &stat_watcher);
+
+    CcspTraceDebug(("Agent log monitoring started on %s\n", ADVSEC_AGENT_LOG_FILE));
+
+    ev_run(loop, 0);
+    ev_loop_destroy(loop);
+    return NULL;
+}
+
+static void advsec_start_log_monitor_thread(void)
+{
+    int err;
+    pthread_t log_monitor_tid;
+
+    err = pthread_create(&log_monitor_tid, NULL, agent_log_monitor_thread, NULL);
+    if (err != 0)
+    {
+        CcspTraceError(("%s: Failed to create agent log monitor thread\n", __FUNCTION__));
+    }
+    else
+    {
+        pthread_detach(log_monitor_tid);
+        CcspTraceDebug(("%s: Agent log monitor thread created successfully\n", __FUNCTION__));
     }
 }
 
@@ -2574,76 +2651,6 @@ static void *advsec_sysevent_handler_th(void *arg)
     return NULL;
 }
 
-
-/* Log rotation function for agent.txt using logrotate binary */
-void rotate_agent_log(void)
-{
-    struct stat st;
-    int result;
-
-    if (stat(ADVSEC_AGENT_LOG_FILE, &st) != 0)
-    {
-        return;
-    }
-
-    if (st.st_size < ADVSEC_AGENT_LOG_MAX_SIZE)
-    {
-        return;
-    }
-
-    CcspTraceInfo(("Agent log reached %ld bytes, calling logrotate...\n", st.st_size));
-
-    result = v_secure_system("%s %s",
-                         LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
-    if (result != 0)
-    {
-        CcspTraceError(("Logrotate failed with return code: %d\n", result));
-    }
-    else
-    {
-        CcspTraceInfo(("Logrotate completed successfully\n"));
-    }
-}
-
-/* Callback function for libev stat watcher */
-void agent_log_stat_cb(EV_P_ ev_stat *w, int revents)
-{
-    (void)loop;
-    (void)revents;
-
-    if (w->attr.st_nlink)
-    {
-        rotate_agent_log();
-    }
-}
-
-/* Thread function to run libev event loop for log monitoring */
-void* agent_log_monitor_thread(void* arg)
-{
-    (void)arg;
-
-    struct ev_loop *loop = NULL;
-    static ev_stat stat_watcher;
-
-    CcspTraceInfo(("Starting agent log monitor thread\n"));
-
-    loop = ev_loop_new(0);
-    if (!loop)
-    {
-        CcspTraceError(("Failed to create libev event loop\n"));
-        return NULL;
-    }
-
-    ev_stat_init(&stat_watcher, agent_log_stat_cb, ADVSEC_AGENT_LOG_FILE, 5.0);
-
-    ev_stat_start(loop, &stat_watcher);
-
-    CcspTraceInfo(("Agent log monitoring started on %s\n", ADVSEC_AGENT_LOG_FILE));
-
-    ev_run(loop, 0);
-    ev_loop_destroy(loop);
-    return NULL;
-}
 
 /*
  * Create a thread to handle the sysevent asynchronously
