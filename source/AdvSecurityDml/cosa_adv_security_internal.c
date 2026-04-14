@@ -98,7 +98,6 @@
 #define ADVSEC_AGENT_LOG_FILE "/rdklogs/logs/agent.txt"
 #define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 2MB */
 #define ADVSEC_AGENT_LOG_INTERVAL 5.0
-#define ADVSEC_AGENT_LOGROTATE_CONF "/etc/logrotate.d/advsec-agent"
 #define LOGROTATE_BINARY "/usr/sbin/logrotate"
 
 #ifdef CONFIG_CISCO
