@@ -120,7 +120,9 @@ log_agent_cpu_statistics()
 
 advsec_agent_multiple_processes_recovery()
 {
-    AGENT_PS_COUNT=$(echo "$PID_LIST" | wc -w)
+    # Count only the main cujo-agent process instances, not helper processes
+    # Helper processes (cujo-qosd, cujo-fpingdq, twamp-light-client) are legitimate when NI is enabled
+    AGENT_PS_COUNT=$(pidof ${CUJO_AGENT} | wc -w)
     if [ "$AGENT_PS_COUNT" -gt "$AGENT_PS_COUNT_THRESHOLD" ]; then
         echo_t "Advsec Agent multiple processes detected, count=$AGENT_PS_COUNT" >> $ADVSEC_AGENT_LOG_PATH
         advsec_restart_agent "MultipleProcesses"
