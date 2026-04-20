@@ -4329,6 +4329,70 @@ AdvSecDoHBlocking_RFC_SetParamBoolValue
 
  APIs for Object:
 
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecDNSECHBlocking.
+
+    *  AdvSecDNSECHBlocking_RFC_GetParamBoolValue
+    *  AdvSecDNSECHBlocking_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecDNSECHBlocking_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    if( AnscEqualString(ParamName, "Enable", TRUE))
+    {
+        *pBool = g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC->bEnable;
+        return TRUE;
+    }
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+BOOL
+AdvSecDNSECHBlocking_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+
+    if( AnscEqualString(ParamName, "Enable", TRUE))
+    {
+        if(bValue == g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC->bEnable)
+                return TRUE;
+        if( bValue )
+                returnStatus = CosaAdvSecDNSECHBlockingInit(g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC);
+        else
+                returnStatus = CosaAdvSecDNSECHBlockingDeInit(g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC);
+
+        if ( returnStatus != ANSC_STATUS_SUCCESS )
+        {
+            CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/***********************************************************************
+
+ APIs for Object:
+
     X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.
 
     *  WifiDataCollection_RFC_GetParamBoolValue

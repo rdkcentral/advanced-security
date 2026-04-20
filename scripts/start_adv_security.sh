@@ -286,6 +286,10 @@ then
         rm $ADVSEC_DOH_BLOCKING_ENABLED_PATH
     fi
 
+    if [ -f $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH ]; then
+        rm $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH
+    fi
+
     if [ -f $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH ]; then
         rm $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH
     fi
@@ -484,150 +488,150 @@ disable_wsdiscovery()
 
 enable_otm()
 {
-   echo_t ${ADV_OTM_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-   if [ "$1" = "RR" ]; then
-       advsec_restart_agent "OTM_RFC_Enabled"
-   fi
+    echo_t ${ADV_OTM_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "OTM_RFC_Enabled"
+    fi
 }
 
 disable_otm()
 {
-   echo_t ${ADV_OTM_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-   if [ "$1" = "RR" ]; then
-       advsec_restart_agent "OTM_RFC_Disabled"
-   fi
+    echo_t ${ADV_OTM_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "OTM_RFC_Disabled"
+    fi
 }
 
 enable_userspace()
 {
-   touch $ADVSEC_USERSPACE_ENABLED_PATH
-   echo_t ${ADV_USERSPACE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_USERSPACE_ENABLED_PATH
+    echo_t ${ADV_USERSPACE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
-   if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentUserSpace_RFC_Enabled"
-   fi
-   if [ "$2" = "FR" ]; then
-       do_firewall_restart
-   fi
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentUserSpace_RFC_Enabled"
+    fi
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
 }
 
 disable_userspace()
 {
-   rm -f $ADVSEC_USERSPACE_ENABLED_PATH
-   echo_t ${ADV_USERSPACE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_USERSPACE_ENABLED_PATH
+    echo_t ${ADV_USERSPACE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentUserSpace_RFC_Disabled"
+        advsec_restart_agent "AgentUserSpace_RFC_Disabled"
     fi
     if [ "$2" = "FR" ]; then
-       do_firewall_restart
+        do_firewall_restart
     fi
 }
 
 enable_agent()
 {
-   touch $ADVSEC_AGENT_ENABLED_PATH
-   echo_t ${ADV_AGENT_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_AGENT_ENABLED_PATH
+    echo_t ${ADV_AGENT_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AdvSecAgent_RFC_Enabled"
-   fi
+        advsec_restart_agent "AdvSecAgent_RFC_Enabled"
+    fi
 }
 
 disable_agent()
 {
-   rm -f $ADVSEC_AGENT_ENABLED_PATH
-   echo_t ${ADV_AGENT_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_AGENT_ENABLED_PATH
+    echo_t ${ADV_AGENT_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AdvSecAgent_RFC_Disabled"
-   fi
+        advsec_restart_agent "AdvSecAgent_RFC_Disabled"
+    fi
 }
 
 enable_safebro_iprules()
 {
-   touch $ADVSEC_SAFEBROWSING_ENABLED_PATH
-   echo_t ${ADV_SAFEBROWSING_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_SAFEBROWSING_ENABLED_PATH
+    echo_t ${ADV_SAFEBROWSING_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSafeBrowsing_RFC_Enabled"
-   fi
-   if [ "$2" = "FR" ]; then
-       do_firewall_restart
-   fi
+        advsec_restart_agent "AgentSafeBrowsing_RFC_Enabled"
+    fi
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
 }
 
 disable_safebro_iprules()
 {
-   rm -f $ADVSEC_SAFEBROWSING_ENABLED_PATH
-   echo_t ${ADV_SAFEBROWSING_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_SAFEBROWSING_ENABLED_PATH
+    echo_t ${ADV_SAFEBROWSING_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSafeBrowsing_RFC_Disabled"
-   fi
-   if [ "$2" = "FR" ]; then
-       do_firewall_restart
-   fi
+        advsec_restart_agent "AgentSafeBrowsing_RFC_Disabled"
+    fi
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
 }
 
 enable_cujotelemetrywififp()
 {
-   touch $ADVSEC_CUJOTELEMETRYWIFIFP_ENABLED_PATH
-   echo_t ${ADV_CUJOTELEMETRYWIFIFP_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_CUJOTELEMETRYWIFIFP_ENABLED_PATH
+    echo_t ${ADV_CUJOTELEMETRYWIFIFP_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTelemetryWiFiFP_RFC_Enabled"
-   fi
+        advsec_restart_agent "AgentCujoTelemetryWiFiFP_RFC_Enabled"
+    fi
 }
 
 disable_cujotelemetrywififp()
 {
-   rm -f $ADVSEC_CUJOTELEMETRYWIFIFP_ENABLED_PATH
-   echo_t ${ADV_CUJOTELEMETRYWIFIFP_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_CUJOTELEMETRYWIFIFP_ENABLED_PATH
+    echo_t ${ADV_CUJOTELEMETRYWIFIFP_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTelemetryWiFiFP_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentCujoTelemetryWiFiFP_RFC_Disabled"
+    fi
 }
 
 enable_cujotracer()
 {
-   touch $ADVSEC_CUJOTRACER_ENABLED_PATH
-   echo_t ${ADV_CUJOTRACER_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_CUJOTRACER_ENABLED_PATH
+    echo_t ${ADV_CUJOTRACER_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTracer_RFC_Enabled"
-   fi
+        advsec_restart_agent "AgentCujoTracer_RFC_Enabled"
+    fi
 }
 
 disable_cujotracer()
 {
-   rm -f $ADVSEC_CUJOTRACER_ENABLED_PATH
-   echo_t ${ADV_CUJOTRACER_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_CUJOTRACER_ENABLED_PATH
+    echo_t ${ADV_CUJOTRACER_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTracer_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentCujoTracer_RFC_Disabled"
+    fi
 }
 
 enable_cujotelemetry()
 {
-   touch $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
-   echo_t ${ADV_CUJOTELEMETRY_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
+    echo_t ${ADV_CUJOTELEMETRY_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTelemetry_RFC_Enabled"
-   fi
+        advsec_restart_agent "AgentCujoTelemetry_RFC_Enabled"
+    fi
 }
 
 disable_cujotelemetry()
 {
-   rm -f $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
-   echo_t ${ADV_CUJOTELEMETRY_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
+    echo_t ${ADV_CUJOTELEMETRY_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTelemetry_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentCujoTelemetry_RFC_Disabled"
+    fi
 }
 
 enable_networkintelligence()
@@ -662,42 +666,42 @@ disable_networkintelligence()
 
 enable_sate()
 {
-   touch $ADVSEC_SATE_ENABLED_PATH
-   echo_t ${ADV_SATE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_SATE_ENABLED_PATH
+    echo_t ${ADV_SATE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSentryAtTheEdge_RFC_Enabled"
-   fi
+        advsec_restart_agent "AgentSentryAtTheEdge_RFC_Enabled"
+    fi
 }
 
 disable_sate()
 {
-   rm -f $ADVSEC_SATE_ENABLED_PATH
-   echo_t ${ADV_SATE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_SATE_ENABLED_PATH
+    echo_t ${ADV_SATE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSentryAtTheEdge_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentSentryAtTheEdge_RFC_Disabled"
+    fi
 }
 
 enable_tcptracker_filter_devices()
 {
-   touch $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
-   echo_t ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
+    echo_t ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentTCPTrackerFilterDevices_RFC_Enabled"
-   fi
+        advsec_restart_agent "AgentTCPTrackerFilterDevices_RFC_Enabled"
+    fi
 }
 
 disable_tcptracker_filter_devices()
 {
-   rm -f $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
-   echo_t ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
+    echo_t ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentTCPTrackerFilterDevices_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentTCPTrackerFilterDevices_RFC_Disabled"
+    fi
 }
 
 enable_doh_blocking()
@@ -705,8 +709,8 @@ enable_doh_blocking()
     touch $ADVSEC_DOH_BLOCKING_ENABLED_PATH
     echo_t ${ADV_DOH_BLOCKING_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
-     if [ "$1" = "RR" ]; then
-         advsec_restart_agent "AgentDoHBlocking_RFC_Enabled"
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDoHBlocking_RFC_Enabled"
     fi
 }
 
@@ -715,8 +719,28 @@ disable_doh_blocking()
     rm -f $ADVSEC_DOH_BLOCKING_ENABLED_PATH
     echo_t ${ADV_DOH_BLOCKING_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
-     if [ "$1" = "RR" ]; then
-         advsec_restart_agent "AgentDoHBlocking_RFC_Disabled"
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDoHBlocking_RFC_Disabled"
+    fi
+}
+
+enable_dns_ech_blocking()
+{
+    touch $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH
+    echo_t ${ADV_DNS_ECH_BLOCKING_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDNSECHBlocking_RFC_Enabled"
+    fi
+}
+
+disable_dns_ech_blocking()
+{
+    rm -f $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH
+    echo_t ${ADV_DNS_ECH_BLOCKING_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDNSECHBlocking_RFC_Disabled"
     fi
 }
 
@@ -734,12 +758,12 @@ enable_wifidatacollection()
 
 disable_wifidatacollection()
 {
-   rm -rf $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH
-   echo_t ${ADV_WIFIDATACOLLECTION_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -rf $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH
+    echo_t ${ADV_WIFIDATACOLLECTION_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentWifiDataCollection_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentWifiDataCollection_RFC_Disabled"
+    fi
 }
 
 enable_levl()
@@ -1055,6 +1079,14 @@ fi
 
 if [ "$1" = "-disableDoHBlocking" ]; then
     disable_doh_blocking "RR"
+fi
+
+if [ "$1" = "-enableDNSECHBlocking" ]; then
+    enable_dns_ech_blocking "RR"
+fi
+
+if [ "$1" = "-disableDNSECHBlocking" ]; then
+    disable_dns_ech_blocking "RR"
 fi
 
 if [ "$1" = "-enableWSDiscovery" ]; then

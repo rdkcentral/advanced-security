@@ -26,6 +26,30 @@ CosaDmlServiceManagerInit
         ANSC_HANDLE                 hThisObject
     );
 
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecDNSECHBlocking.
+
+    *  AdvSecDNSECHBlocking_RFC_GetParamBoolValue
+    *  AdvSecDNSECHBlocking_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecDNSECHBlocking_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+AdvSecDNSECHBlocking_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
 /***********************************************************************
 
  APIs for Object:
@@ -656,6 +680,30 @@ AdvSecDoHBlocking_RFC_GetParamBoolValue
     );
 BOOL
 AdvSecDoHBlocking_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecDNSECHBlocking.
+
+    *  AdvSecDNSECHBlocking_RFC_GetParamBoolValue
+    *  AdvSecDNSECHBlocking_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecDNSECHBlocking_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+AdvSecDNSECHBlocking_RFC_SetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
