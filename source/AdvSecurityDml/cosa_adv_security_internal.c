@@ -1891,7 +1891,7 @@ void rotate_agent_log(void)
 
     CcspTraceInfo(("Agent log reached %ld bytes, calling logrotate...\n", st.st_size));
 
-    result = v_secure_system("%s /tmp/logrotate-advsec.status %s",
+    result = v_secure_system("%s %s",
                              LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
     if (result != 0)
     {
