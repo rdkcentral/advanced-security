@@ -282,6 +282,14 @@ then
         rm $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
     fi
 
+    if [ -f $ADVSEC_CPE_PROTECTION_NETWORK_ENABLED_PATH ]; then
+        rm $ADVSEC_CPE_PROTECTION_NETWORK_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_DOH_BLOCKING_ENABLED_PATH ]; then
+        rm $ADVSEC_DOH_BLOCKING_ENABLED_PATH
+    fi
+
     if [ -f $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH ]; then
         rm $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH
     fi
@@ -696,6 +704,46 @@ disable_tcptracker_filter_devices()
    fi
 }
 
+enable_cpe_protection_network()
+{
+    touch $ADVSEC_CPE_PROTECTION_NETWORK_ENABLED_PATH
+    echo_t ${ADV_CPE_PROTECTION_NETWORK_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+     if [ "$1" = "RR" ]; then
+         advsec_restart_agent "AgentCPEProtectionNetwork_RFC_Enabled"
+    fi
+}
+
+disable_cpe_protection_network()
+{
+    rm -f $ADVSEC_CPE_PROTECTION_NETWORK_ENABLED_PATH
+    echo_t ${ADV_CPE_PROTECTION_NETWORK_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+     if [ "$1" = "RR" ]; then
+         advsec_restart_agent "AgentCPEProtectionNetwork_RFC_Disabled"
+    fi
+}
+
+enable_doh_blocking()
+{
+    touch $ADVSEC_DOH_BLOCKING_ENABLED_PATH
+    echo_t ${ADV_DOH_BLOCKING_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+     if [ "$1" = "RR" ]; then
+         advsec_restart_agent "AgentDoHBlocking_RFC_Enabled"
+    fi
+}
+
+disable_doh_blocking()
+{
+    rm -f $ADVSEC_DOH_BLOCKING_ENABLED_PATH
+    echo_t ${ADV_DOH_BLOCKING_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+     if [ "$1" = "RR" ]; then
+         advsec_restart_agent "AgentDoHBlocking_RFC_Disabled"
+    fi
+}
+
 enable_wifidatacollection()
 {
     if [ -f $ADVSEC_WIFIDCL_INIT_PATH ]; then
@@ -1023,6 +1071,22 @@ fi
 
 if [ "$1" = "-disableTCPTrackerFilterDevices" ]; then
     disable_tcptracker_filter_devices "RR"
+fi
+
+if [ "$1" = "-enableCPEProtectionNetwork" ]; then
+    enable_cpe_protection_network "RR"
+fi
+
+if [ "$1" = "-disableCPEProtectionNetwork" ]; then
+    disable_cpe_protection_network "RR"
+fi
+
+if [ "$1" = "-enableDoHBlocking" ]; then
+    enable_doh_blocking "RR"
+fi
+
+if [ "$1" = "-disableDoHBlocking" ]; then
+    disable_doh_blocking "RR"
 fi
 
 if [ "$1" = "-enableWSDiscovery" ]; then

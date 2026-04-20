@@ -148,6 +148,8 @@ static char *g_AdvSecCujoTelemetryEnabled = "Adv_AdvSecCujoTelemetryRFCEnable";
 // SATE - Sentry at the Edge
 static char *g_AdvSecSATEEnabled = "Adv_SATERFCEnable";
 static char *g_AdvSecTCPTrackerFilterDevicesEnabled = "Adv_TCPTrackerFilterDevicesRFCEnable";
+static char *g_AdvSecCPEProtectionNetworkEnabled = "Adv_CPEProtectionNetworkRFCEnable";
+static char *g_AdvSecDoHBlockingEnabled = "Adv_DoHBlockingRFCEnable";
 
 pthread_mutex_t logMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t logCond = PTHREAD_COND_INITIALIZER;
@@ -838,6 +840,14 @@ VOID FreeCosaDmAgent(PCOSA_DATAMODEL_AGENT pMyObject)
             AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecTCPTrackerFilterDevices_RFC);
             pMyObject->pAdvSecTCPTrackerFilterDevices_RFC = NULL;
         }
+        if (pMyObject->pAdvSecCPEProtectionNetwork_RFC) {
+            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecCPEProtectionNetwork_RFC);
+            pMyObject->pAdvSecCPEProtectionNetwork_RFC = NULL;
+        }
+        if (pMyObject->pAdvSecDoHBlocking_RFC) {
+            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecDoHBlocking_RFC);
+            pMyObject->pAdvSecDoHBlocking_RFC = NULL;
+        }
         if (pMyObject->pAdvNetworkIntelligence_RFC) {
             AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvNetworkIntelligence_RFC);
             pMyObject->pAdvNetworkIntelligence_RFC = NULL;
@@ -1000,6 +1010,20 @@ CosaSecurityCreate
         goto mem_alloc_failure;
     }
 
+    pMyObject->pAdvSecCPEProtectionNetwork_RFC = (PCOSA_DATAMODEL_ADVSECCPEPROTECTIONNETWORK_RFC)
+                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECCPEPROTECTIONNETWORK_RFC));
+    if ( !pMyObject->pAdvSecCPEProtectionNetwork_RFC )
+    {
+        goto mem_alloc_failure;
+    }
+
+    pMyObject->pAdvSecDoHBlocking_RFC = (PCOSA_DATAMODEL_ADVSECDOHBLOCKING_RFC)
+                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECDOHBLOCKING_RFC));
+    if ( !pMyObject->pAdvSecDoHBlocking_RFC )
+    {
+        goto mem_alloc_failure;
+    }
+
     pMyObject->pAdvNetworkIntelligence_RFC = (PCOSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC)
                                                 AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC));
 
@@ -1067,6 +1091,8 @@ CosaSecurityInitialize
     ULONG                   ValueASCUJOTELEMETRY_RFC = 0;
     ULONG                   ValueASSATE_RFC = 0;
     ULONG                   ValueASTCPTrackerFilterDevices_RFC = 0;
+    ULONG                   ValueASCPEProtectionNetwork_RFC = 0;
+    ULONG                   ValueASDoHBlocking_RFC = 0;
     ULONG                   ValueRAPTR_RFC = 0;
     ULONG                   ValueRML = 0;
     ULONG                   ValueRMCS = 0;
@@ -1306,6 +1332,8 @@ CosaSecurityInitialize
     CosaGetSysCfgUlong(g_AdvSecCujoTelemetryEnabled, &ValueASCUJOTELEMETRY_RFC);
     CosaGetSysCfgUlong(g_AdvSecSATEEnabled, &ValueASSATE_RFC);
     CosaGetSysCfgUlong(g_AdvSecTCPTrackerFilterDevicesEnabled, &ValueASTCPTrackerFilterDevices_RFC);
+    CosaGetSysCfgUlong(g_AdvSecCPEProtectionNetworkEnabled, &ValueASCPEProtectionNetwork_RFC);
+    CosaGetSysCfgUlong(g_AdvSecDoHBlockingEnabled, &ValueASDoHBlocking_RFC);
     CosaGetSysCfgUlong(g_RaptrEnabled, &ValueRAPTR_RFC);
     CosaGetSysCfgUlong(g_RabidMemoryLimit, &ValueRML);
     CosaGetSysCfgUlong(g_RabidMacCacheSize, &ValueRMCS);
@@ -1398,6 +1426,8 @@ CosaSecurityInitialize
     g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable = ValueASCUJOTELEMETRY_RFC;
     g_pAdvSecAgent->pAdvSecSATE_RFC->bEnable = ValueASSATE_RFC;
     g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC->bEnable = ValueASTCPTrackerFilterDevices_RFC;
+    g_pAdvSecAgent->pAdvSecCPEProtectionNetwork_RFC->bEnable = ValueASCPEProtectionNetwork_RFC;
+    g_pAdvSecAgent->pAdvSecDoHBlocking_RFC->bEnable = ValueASDoHBlocking_RFC;
     g_pAdvSecAgent->pRaptr_RFC->bEnable = ValueRAPTR_RFC;
     g_pAdvSecAgent->pRabid->uMemoryLimit = ValueRML;
     g_pAdvSecAgent->pRabid->uMacCacheSize = ValueRMCS;
@@ -3551,6 +3581,106 @@ ANSC_STATUS CosaAdvSecTCPTrackerFilterDevicesDeInit(ANSC_HANDLE hThisObject)
     }
 
     CcspTraceWarning (("AdvSecTCPTrackerFilterDevices_RFCEnable:FALSE\n"));
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecCPEProtectionNetworkInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_AdvSecCPEProtectionNetworkEnabled, 1);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pAdvSecCPEProtectionNetwork_RFC->bEnable = TRUE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableCPEProtectionNetwork &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceWarning (("AdvSecCPEProtectionNetwork_RFCEnable:TRUE\n"));
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecCPEProtectionNetworkDeInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_AdvSecCPEProtectionNetworkEnabled, 0);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pAdvSecCPEProtectionNetwork_RFC->bEnable = FALSE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableCPEProtectionNetwork &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceWarning (("AdvSecCPEProtectionNetwork_RFCEnable:FALSE\n"));
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecDoHBlockingInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_AdvSecDoHBlockingEnabled, 1);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pAdvSecDoHBlocking_RFC->bEnable = TRUE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableDoHBlocking &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceWarning (("AdvSecDoHBlocking_RFCEnable:TRUE\n"));
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecDoHBlockingDeInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_AdvSecDoHBlockingEnabled, 0);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pAdvSecDoHBlocking_RFC->bEnable = FALSE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableDoHBlocking &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceWarning (("AdvSecDoHBlocking_RFCEnable:FALSE\n"));
     return returnStatus;
 }
 

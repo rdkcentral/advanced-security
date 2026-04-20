@@ -130,6 +130,12 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue", AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue", AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue);
 
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecCPEProtectionNetwork_RFC_GetParamBoolValue", AdvSecCPEProtectionNetwork_RFC_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecCPEProtectionNetwork_RFC_SetParamBoolValue", AdvSecCPEProtectionNetwork_RFC_SetParamBoolValue);
+
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecDoHBlocking_RFC_GetParamBoolValue", AdvSecDoHBlocking_RFC_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecDoHBlocking_RFC_SetParamBoolValue", AdvSecDoHBlocking_RFC_SetParamBoolValue);
+
     /* Create Object for Settings */
     g_pAdvSecAgent = (PCOSA_DATAMODEL_AGENT)CosaSecurityCreate();
 

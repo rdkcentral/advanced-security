@@ -641,6 +641,54 @@ AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
 
  APIs for Object:
 
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecCPEProtectionNetwork.
+
+    *  AdvSecCPEProtectionNetwork_RFC_GetParamBoolValue
+    *  AdvSecCPEProtectionNetwork_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecCPEProtectionNetwork_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+AdvSecCPEProtectionNetwork_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecDoHBlocking.
+
+    *  AdvSecDoHBlocking_RFC_GetParamBoolValue
+    *  AdvSecDoHBlocking_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecDoHBlocking_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+AdvSecDoHBlocking_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
     X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.
 
     *  WifiDataCollection_RFC_GetParamBoolValue

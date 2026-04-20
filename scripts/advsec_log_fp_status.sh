@@ -136,6 +136,18 @@ check_status()
         print_telemetry_log ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
+    if [ -e ${ADVSEC_CPE_PROTECTION_NETWORK_ENABLED_PATH} ]; then
+        print_telemetry_log ${ADV_CPE_PROTECTION_NETWORK_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    else
+        print_telemetry_log ${ADV_CPE_PROTECTION_NETWORK_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    fi
+
+    if [ -e ${ADVSEC_DOH_BLOCKING_ENABLED_PATH} ]; then
+        print_telemetry_log ${ADV_DOH_BLOCKING_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    else
+        print_telemetry_log ${ADV_DOH_BLOCKING_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    fi
+
     if [ -e ${ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH} ]; then
         print_telemetry_log ${ADV_WIFIDATACOLLECTION_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     else
