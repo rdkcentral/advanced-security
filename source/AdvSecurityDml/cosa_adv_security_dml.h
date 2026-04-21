@@ -26,6 +26,8 @@ CosaDmlServiceManagerInit
         ANSC_HANDLE                 hThisObject
     );
 
+/***********************************************************************
+
  APIs for Object:
 
     X_RDKCENTRAL-COM_RFC.Feature.AdvSecDNSECHBlocking.
@@ -41,6 +43,7 @@ AdvSecDNSECHBlocking_RFC_GetParamBoolValue
         char*                       ParamName,
         BOOL*                       pBool
     );
+
 BOOL
 AdvSecDNSECHBlocking_RFC_SetParamBoolValue
     (
@@ -48,7 +51,6 @@ AdvSecDNSECHBlocking_RFC_SetParamBoolValue
         char*                       ParamName,
         BOOL                        bValue
     );
-/***********************************************************************
 
 /***********************************************************************
 
