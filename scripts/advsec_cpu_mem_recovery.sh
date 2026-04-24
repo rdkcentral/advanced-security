@@ -34,7 +34,7 @@ AGENT_PS_COUNT_THRESHOLD=3
 # soft and hard limits are in MB
 MAX_MEM_FIRST_SOFT_LIMIT=40
 MAX_MEM_SECOND_SOFT_LIMIT=45
-MAX_MEM_HARD_LIMIT=70
+MAX_MEM_HARD_LIMIT=50
 
 #syscfg contains value in MB.
 max_rss=`syscfg get Advsecurity_RabidMemoryLimit`
@@ -120,8 +120,7 @@ log_agent_cpu_statistics()
 
 advsec_agent_multiple_processes_recovery()
 {
-    # Count only the main cujo-agent process instances, not helper processes
-    # Helper processes (cujo-qosd, cujo-fpingdq, twamp-light-client) are legitimate when NI is enabled
+    # Check for multiple cujo-agent process instances
     AGENT_PS_COUNT=$(pidof ${CUJO_AGENT} | wc -w)
     if [ "$AGENT_PS_COUNT" -gt "$AGENT_PS_COUNT_THRESHOLD" ]; then
         echo_t "Advsec Agent multiple processes detected, count=$AGENT_PS_COUNT" >> $ADVSEC_AGENT_LOG_PATH
