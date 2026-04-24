@@ -815,8 +815,8 @@ disable_raptr()
 do_firewall_restart()
 {
     if [ -f $ADVSEC_RAPTR_ENABLED_PATH ]; then
-        raptr -n -4 set | grep -v \'ipset\' > $CUJO_AGENT_RULES_V4_PATH
-        raptr -n -6 set | grep -v \'ipset\' > $CUJO_AGENT_RULES_V6_PATH
+        raptr -n -4 set | grep -v ipset > $CUJO_AGENT_RULES_V4_PATH
+        raptr -n -6 set | grep -v ipset > $CUJO_AGENT_RULES_V6_PATH
     else
         if [ -f $CUJO_AGENT_RULES_V4_PATH ]; then
             rm $CUJO_AGENT_RULES_V4_PATH

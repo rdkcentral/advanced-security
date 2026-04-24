@@ -478,12 +478,13 @@ advsec_initialize_nfq_ct()
 advsec_agent_create_ipsets()
 {
     if [ -f $ADVSEC_RAPTR_ENABLED_PATH ]; then
-        raptr set -n | grep ipset | bash
+        raptr set -n | grep ipset | sh
     else
-        ipset create cujo_fingerprint hash:mac -exist
         ipset create cujo_iotblock_mac hash:mac -exist
         ipset create cujo_iotblock_ip4 hash:ip family inet -exist
         ipset create cujo_iotblock_ip6 hash:ip family inet6 -exist
+        ipset create cujo_iotblock_ip4_mac hash:ip,mac family inet -exist
+        ipset create cujo_iotblock_ip6_mac hash:ip,mac family inet6 -exist
     fi
     touch ${ADVSEC_IPSETLIST_CREATED}
 }
@@ -491,10 +492,11 @@ advsec_agent_create_ipsets()
 advsec_agent_flush_ipsets()
 {
     ipset flush
-    ipset destroy cujo_fingerprint
     ipset destroy cujo_iotblock_mac
     ipset destroy cujo_iotblock_ip4
     ipset destroy cujo_iotblock_ip6
+    ipset destroy cujo_iotblock_ip4_mac
+    ipset destroy cujo_iotblock_ip6_mac
     rm -f ${ADVSEC_IPSETLIST_CREATED}
 }
 
