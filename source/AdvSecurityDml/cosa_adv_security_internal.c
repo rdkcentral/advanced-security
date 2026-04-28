@@ -2360,7 +2360,7 @@ void advsec_handle_sysevent_notification(char *event, char *val)
             ERR_CHK(rc);
             if((rc == EOK) && (ind == 0))
             {
-                CcspTraceInfo(("CcspAdvSecurity: Bridge mode unchanged, skipping action for value %s\n", val));
+                CcspTraceInfo(("CcspAdvSecurity: Bridge mode unchanged, no action needed %s\n", val));
                 return;
             }
 
