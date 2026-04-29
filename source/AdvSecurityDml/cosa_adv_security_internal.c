@@ -171,10 +171,22 @@ static pthread_cond_t logCond = PTHREAD_COND_INITIALIZER;
 static BOOL logReady = FALSE;
 static char prevWanIfname[MAX_INTERFACE_SIZE] = {0};
 
+#ifdef NETWORK_INTELLIGENCE
+/* Global variables for NI log monitoring control */
+static struct ev_loop *g_ni_monitor_loop = NULL;
+static ev_stat g_ni_stat_watcher;
+static pthread_mutex_t ni_monitor_mutex = PTHREAD_MUTEX_INITIALIZER;
+static BOOL g_ni_monitoring_active = FALSE;
+#endif
+
 void advsec_handle_sysevent_async(void);
 static void advsec_start_logger_thread(void);
 static void* agent_log_monitor_thread(void* arg);
 static void advsec_start_log_monitor_thread(void);
+#ifdef NETWORK_INTELLIGENCE
+static void advsec_start_ni_monitoring(void);
+static void advsec_stop_ni_monitoring(void);
+#endif
 static BOOL WaitForLoggerTimeout(ULONG period);
 enum advSysEvent_e{
     SYSEVENT_BRIDGE_MODE_EVENT,
@@ -1577,6 +1589,9 @@ ANSC_STATUS CosaAdvSecNetworkIntelligenceInit(ANSC_HANDLE hThisObject)
         {
            CcspTraceError(("%s: -enableNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
         }
+        
+        /* Start NI log monitoring thread */
+        advsec_start_ni_monitoring();
     }
     else
     {
@@ -1591,6 +1606,9 @@ ANSC_STATUS CosaAdvSecNetworkIntelligenceDeInit(ANSC_HANDLE hThisObject)
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
+
+    /* Stop NI log monitoring thread */
+    advsec_stop_ni_monitoring();
 
     returnStatus = CosaSetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
@@ -1955,9 +1973,6 @@ void* agent_log_monitor_thread(void* arg)
 
     struct ev_loop *loop = NULL;
     static ev_stat agent_stat_watcher;
-#ifdef NETWORK_INTELLIGENCE
-    static ev_stat ni_stat_watcher;
-#endif
 
     CcspTraceDebug(("Starting agent log monitor thread\n"));
 
@@ -1968,18 +1983,28 @@ void* agent_log_monitor_thread(void* arg)
         return NULL;
     }
 
+#ifdef NETWORK_INTELLIGENCE
+    /* Store loop globally for NI monitoring control */
+    pthread_mutex_lock(&ni_monitor_mutex);
+    g_ni_monitor_loop = loop;
+    pthread_mutex_unlock(&ni_monitor_mutex);
+#endif
+
     /* Monitor agent.txt */
     ev_stat_init(&agent_stat_watcher, agent_log_stat_cb, ADVSEC_AGENT_LOG_FILE, ADVSEC_LOG_MONITOR_INTERVAL);
     ev_stat_start(loop, &agent_stat_watcher);
     CcspTraceDebug(("Advsec Agent log monitoring started on %s\n", ADVSEC_AGENT_LOG_FILE));
 
 #ifdef NETWORK_INTELLIGENCE
-    /* Monitor cujo-ni.txt only if NI RFC is enabled */
+    /* Start NI monitoring if RFC is enabled */
     if (g_pAdvSecAgent && g_pAdvSecAgent->pAdvNetworkIntelligence_RFC && 
         g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable)
     {
-        ev_stat_init(&ni_stat_watcher, ni_log_stat_cb, ADVSEC_NI_LOG_FILE, ADVSEC_LOG_MONITOR_INTERVAL);
-        ev_stat_start(loop, &ni_stat_watcher);
+        pthread_mutex_lock(&ni_monitor_mutex);
+        ev_stat_init(&g_ni_stat_watcher, ni_log_stat_cb, ADVSEC_NI_LOG_FILE, ADVSEC_LOG_MONITOR_INTERVAL);
+        ev_stat_start(loop, &g_ni_stat_watcher);
+        g_ni_monitoring_active = TRUE;
+        pthread_mutex_unlock(&ni_monitor_mutex);
         CcspTraceDebug(("Network Intelligence log monitoring started on %s\n", ADVSEC_NI_LOG_FILE));
     }
     else
@@ -1989,6 +2014,14 @@ void* agent_log_monitor_thread(void* arg)
 #endif
 
     ev_run(loop, 0);
+    
+#ifdef NETWORK_INTELLIGENCE
+    pthread_mutex_lock(&ni_monitor_mutex);
+    g_ni_monitor_loop = NULL;
+    g_ni_monitoring_active = FALSE;
+    pthread_mutex_unlock(&ni_monitor_mutex);
+#endif
+    
     ev_loop_destroy(loop);
     return NULL;
 }
@@ -2009,6 +2042,61 @@ static void advsec_start_log_monitor_thread(void)
         CcspTraceDebug(("%s: Agent log monitor thread created successfully\n", __FUNCTION__));
     }
 }
+
+#ifdef NETWORK_INTELLIGENCE
+/* Start NI log monitoring dynamically */
+static void advsec_start_ni_monitoring(void)
+{
+    pthread_mutex_lock(&ni_monitor_mutex);
+    
+    if (!g_ni_monitor_loop)
+    {
+        CcspTraceWarning(("NI monitoring: event loop not initialized yet\n"));
+        pthread_mutex_unlock(&ni_monitor_mutex);
+        return;
+    }
+    
+    if (g_ni_monitoring_active)
+    {
+        CcspTraceInfo(("NI monitoring already active\n"));
+        pthread_mutex_unlock(&ni_monitor_mutex);
+        return;
+    }
+    
+    ev_stat_init(&g_ni_stat_watcher, ni_log_stat_cb, ADVSEC_NI_LOG_FILE, ADVSEC_LOG_MONITOR_INTERVAL);
+    ev_stat_start(g_ni_monitor_loop, &g_ni_stat_watcher);
+    g_ni_monitoring_active = TRUE;
+    
+    pthread_mutex_unlock(&ni_monitor_mutex);
+    CcspTraceInfo(("Network Intelligence log monitoring started\n"));
+}
+
+/* Stop NI log monitoring dynamically */
+static void advsec_stop_ni_monitoring(void)
+{
+    pthread_mutex_lock(&ni_monitor_mutex);
+    
+    if (!g_ni_monitor_loop)
+    {
+        CcspTraceWarning(("NI monitoring: event loop not initialized\n"));
+        pthread_mutex_unlock(&ni_monitor_mutex);
+        return;
+    }
+    
+    if (!g_ni_monitoring_active)
+    {
+        CcspTraceInfo(("NI monitoring already inactive\n"));
+        pthread_mutex_unlock(&ni_monitor_mutex);
+        return;
+    }
+    
+    ev_stat_stop(g_ni_monitor_loop, &g_ni_stat_watcher);
+    g_ni_monitoring_active = FALSE;
+    
+    pthread_mutex_unlock(&ni_monitor_mutex);
+    CcspTraceInfo(("Network Intelligence log monitoring stopped\n"));
+}
+#endif
 
 ANSC_STATUS CosaAdvSecStartFeatures(advsec_feature_type type)
 {
