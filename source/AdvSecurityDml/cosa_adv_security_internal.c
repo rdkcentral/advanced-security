@@ -94,14 +94,12 @@
 #define SAFEBRO_CONFIG_FILE_PATH "/tmp/safebro.json"
 #define ADVSEC_PRIMARY_WAN_IF_NAME "erouter0"
 
-/* Logrotate configuration for agent.txt and cujo-ni.txt */
+/* Logrotate configuration for agent.txt */
 #define ADVSEC_AGENT_LOG_FILE "/rdklogs/logs/agent.txt"
-#define ADVSEC_CUJONI_LOG_FILE "/rdklogs/logs/cujo-ni.txt"
 #define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 2MB */
-#define ADVSEC_LOG_MONITOR_INTERVAL 5.0  /* Check every 5 seconds */
+#define ADVSEC_AGENT_LOG_INTERVAL 5.0
 #define LOGROTATE_BINARY "/usr/sbin/logrotate"
 #define ADVSEC_AGENT_LOGROTATE_CONF "/etc/logrotate.d/advsec-agent"
-#define ADVSEC_CUJONI_LOGROTATE_CONF "/etc/logrotate.d/advsec-cujoni"
 
 #ifdef CONFIG_CISCO
 #define CONFIG_VENDOR_NAME  "Cisco"
@@ -1875,13 +1873,13 @@ static void advsec_start_logger_thread(void)
     }
 }
 
-/* Generic log rotation function using logrotate binary */
-void rotate_log_file(const char *log_file, const char *log_name, const char *config_file)
+/* Log rotation function for agent.txt using logrotate binary */
+void rotate_agent_log(void)
 {
     struct stat st;
     int result;
 
-    if (stat(log_file, &st) != 0)
+    if (stat(ADVSEC_AGENT_LOG_FILE, &st) != 0)
     {
         return;
     }
@@ -1891,10 +1889,10 @@ void rotate_log_file(const char *log_file, const char *log_name, const char *con
         return;
     }
 
-    CcspTraceInfo(("%s log reached %ld bytes, calling logrotate...\n", log_name, st.st_size));
+    CcspTraceInfo(("Agent log reached %ld bytes, calling logrotate...\n", st.st_size));
 
     result = v_secure_system("%s %s",
-                             LOGROTATE_BINARY, config_file);
+                             LOGROTATE_BINARY, ADVSEC_AGENT_LOGROTATE_CONF);
     if (result != 0)
     {
         CcspTraceError(("Logrotate failed with return code: %d\n", result));
@@ -1905,19 +1903,7 @@ void rotate_log_file(const char *log_file, const char *log_name, const char *con
     }
 }
 
-/* Log rotation function for agent.txt */
-void rotate_agent_log(void)
-{
-    rotate_log_file(ADVSEC_AGENT_LOG_FILE, "Agent", ADVSEC_AGENT_LOGROTATE_CONF);
-}
-
-/* Log rotation function for cujo-ni.txt */
-void rotate_cujoni_log(void)
-{
-    rotate_log_file(ADVSEC_CUJONI_LOG_FILE, "Cujo-NI", ADVSEC_CUJONI_LOGROTATE_CONF);
-}
-
-/* Callback function for agent.txt libev stat watcher */
+/* Callback function for libev stat watcher */
 void agent_log_stat_cb(EV_P_ ev_stat *w, int revents)
 {
     (void)loop;
@@ -1929,26 +1915,13 @@ void agent_log_stat_cb(EV_P_ ev_stat *w, int revents)
     }
 }
 
-/* Callback function for cujo-ni.txt libev stat watcher */
-void cujoni_log_stat_cb(EV_P_ ev_stat *w, int revents)
-{
-    (void)loop;
-    (void)revents;
-
-    if (w->attr.st_nlink)
-    {
-        rotate_cujoni_log();
-    }
-}
-
 /* Thread function to run libev event loop for log monitoring */
 void* agent_log_monitor_thread(void* arg)
 {
     (void)arg;
 
     struct ev_loop *loop = NULL;
-    static ev_stat agent_stat_watcher;
-    static ev_stat cujoni_stat_watcher;
+    static ev_stat stat_watcher;
 
     CcspTraceDebug(("Starting agent log monitor thread\n"));
 
@@ -1959,15 +1932,11 @@ void* agent_log_monitor_thread(void* arg)
         return NULL;
     }
 
-    /* Monitor agent.txt */
-    ev_stat_init(&agent_stat_watcher, agent_log_stat_cb, ADVSEC_AGENT_LOG_FILE, ADVSEC_LOG_MONITOR_INTERVAL);
-    ev_stat_start(loop, &agent_stat_watcher);
-    CcspTraceDebug(("Agent log monitoring started on %s\n", ADVSEC_AGENT_LOG_FILE));
+    ev_stat_init(&stat_watcher, agent_log_stat_cb, ADVSEC_AGENT_LOG_FILE, ADVSEC_AGENT_LOG_INTERVAL);
 
-    /* Monitor cujo-ni.txt */
-    ev_stat_init(&cujoni_stat_watcher, cujoni_log_stat_cb, ADVSEC_CUJONI_LOG_FILE, ADVSEC_LOG_MONITOR_INTERVAL);
-    ev_stat_start(loop, &cujoni_stat_watcher);
-    CcspTraceDebug(("Cujo-NI log monitoring started on %s\n", ADVSEC_CUJONI_LOG_FILE));
+    ev_stat_start(loop, &stat_watcher);
+
+    CcspTraceDebug(("Agent log monitoring started on %s\n", ADVSEC_AGENT_LOG_FILE));
 
     ev_run(loop, 0);
     ev_loop_destroy(loop);
