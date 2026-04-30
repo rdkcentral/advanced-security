@@ -2339,6 +2339,7 @@ void advsec_handle_sysevent_notification(char *event, char *val)
     int ret = 0;
     errno_t rc = -1;
     int ind    = -1;
+    static char prevBridgeMode[8] = {0};
 
     if(!event || !val)
         return;
@@ -2349,6 +2350,23 @@ void advsec_handle_sysevent_notification(char *event, char *val)
     {
         if(type == SYSEVENT_BRIDGE_MODE_EVENT)
         {
+            if((val[0] == '\0') || (val[1] != '\0'))
+            {
+                CcspTraceWarning(("CcspAdvSecurity: Invalid bridge mode value '%s'\n", val));
+                return;
+            }
+
+            rc = strcmp_s(val, sizeof(prevBridgeMode), prevBridgeMode, &ind);
+            ERR_CHK(rc);
+            if((rc == EOK) && (ind == 0))
+            {
+                CcspTraceInfo(("CcspAdvSecurity: Bridge mode unchanged, no action needed %s\n", val));
+                return;
+            }
+
+            rc = strcpy_s(prevBridgeMode, sizeof(prevBridgeMode), val);
+            ERR_CHK(rc);
+            
             if((val[0] == '0') && (val[1] == '\0'))
             {
                 CcspTraceWarning(("CcspAdvSecurity: Received Bridge Mode Off\n"));
