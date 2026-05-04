@@ -2339,7 +2339,7 @@ void advsec_handle_sysevent_notification(char *event, char *val)
     int ret = 0;
     errno_t rc = -1;
     int ind    = -1;
-    static char prevBridgeMode[8] = {0};
+    static char prevBridgeMode[2] = {0};
 
     if(!event || !val)
         return;
@@ -2356,7 +2356,17 @@ void advsec_handle_sysevent_notification(char *event, char *val)
                 return;
             }
 
-            rc = strcmp_s(val, sizeof(prevBridgeMode), prevBridgeMode, &ind);
+#ifndef _XF3_PRODUCT_REQ_
+            if((val[0] != '0') && (val[0] != '2'))
+#else
+            if((val[0] != '0') && (val[0] != '3'))
+#endif
+            {
+                CcspTraceWarning(("CcspAdvSecurity: Unsupported bridge mode value '%s'\n", val));
+                return;
+            }
+
+            rc = strcmp_s(prevBridgeMode, sizeof(prevBridgeMode), val, &ind);
             ERR_CHK(rc);
             if((rc == EOK) && (ind == 0))
             {
