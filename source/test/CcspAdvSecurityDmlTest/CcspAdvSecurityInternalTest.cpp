@@ -18,6 +18,10 @@
 
 #include "CcspAdvSecurityMock.h"
 
+extern "C" void advsec_handle_sysevent_notification(char *event, char *val);
+
+static char BRIDGE_MODE_EVENT_NAME[] = "bridge_mode";
+
 class CcspAdvSecurityInternalTestFixture : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -2033,7 +2037,6 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecAgentRaptrDeInit)
 
 TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_InvalidBridgeModeValue)
 {
-    char event[] = ADVSEC_SYSEVENT_BRIDGE_MODE_EVENT;
     char invalidValue[] = "00";
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, _, _, _, _))
@@ -2047,12 +2050,11 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_I
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
         .Times(0);
 
-    advsec_handle_sysevent_notification(event, invalidValue);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, invalidValue);
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_UnsupportedBridgeModeValue)
 {
-    char event[] = ADVSEC_SYSEVENT_BRIDGE_MODE_EVENT;
     char unsupportedValue[] = "1";
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, _, _, _, _))
@@ -2066,12 +2068,11 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_U
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
         .Times(0);
 
-    advsec_handle_sysevent_notification(event, unsupportedValue);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, unsupportedValue);
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_BridgeModeUnchangedNoAction)
 {
-    char event[] = ADVSEC_SYSEVENT_BRIDGE_MODE_EVENT;
     char bridgeModeOff[] = "0";
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, _, _, _, _))
@@ -2099,6 +2100,6 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_B
         .Times(1)
         .WillOnce(Return(0));
 
-    advsec_handle_sysevent_notification(event, bridgeModeOff);
-    advsec_handle_sysevent_notification(event, bridgeModeOff);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
 }
