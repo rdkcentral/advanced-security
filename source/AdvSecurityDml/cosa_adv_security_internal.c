@@ -1161,9 +1161,10 @@ CosaSecurityInitialize
 #elif defined(PON_GATEWAY)
     // For PON gateway, always use HAL API
     char deviceMACStr[32] = {0};
-    if (platform_hal_GetBaseMacAddress(deviceMACStr) == 0)
+    rc = platform_hal_GetBaseMacAddress(deviceMACStr);
+    if ( rc == 0 && deviceMACStr[0] != '\0' )
     {
-        AnscMacToLower(deviceMac, deviceMACStr, sizeof(deviceMac));
+        strcpy_s(deviceMac, sizeof(deviceMac), deviceMACStr);
         CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
     }
     else
