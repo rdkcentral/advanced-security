@@ -2053,9 +2053,13 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_I
     advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, invalidValue);
 }
 
-TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_UnsupportedBridgeModeValue)
+TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_IntermediateBridgeModeValueNoFirewallAction)
 {
-    char unsupportedValue[] = "1";
+    // Bridge mode value "1" is a real state transition on some platforms.
+    // prevBridgeMode must still be updated so subsequent transitions are
+    // correctly detected, but no firewall command should fire since only
+    // '0' and '2'/'3' trigger enable/disable actions.
+    char intermediateValue[] = "1";
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("bridge_mode"), _, _, _, _, _))
         .Times(::testing::AtLeast(1))
@@ -2063,12 +2067,19 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_U
             SetArgPointee<3>(0),
             Return(EOK)
         ));
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, StrEq("1"), _, _, _))
+        .Times(::testing::AtLeast(1))
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(1),
+            Return(EOK)
+        ));
     EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
-        .Times(0);
+        .Times(1)
+        .WillOnce(Return(EOK));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
         .Times(0);
 
-    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, unsupportedValue);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, intermediateValue);
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_BridgeModeUnchangedNoAction)

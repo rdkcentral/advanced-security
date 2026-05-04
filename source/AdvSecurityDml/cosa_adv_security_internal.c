@@ -2356,21 +2356,11 @@ void advsec_handle_sysevent_notification(char *event, char *val)
                 return;
             }
 
-#ifndef _XF3_PRODUCT_REQ_
-            if((val[0] != '0') && (val[0] != '2'))
-#else
-            if((val[0] != '0') && (val[0] != '3'))
-#endif
-            {
-                CcspTraceWarning(("CcspAdvSecurity: Unsupported bridge mode value '%s'\n", val));
-                return;
-            }
-
             rc = strcmp_s(prevBridgeMode, sizeof(prevBridgeMode), val, &ind);
             ERR_CHK(rc);
             if((rc == EOK) && (ind == 0))
             {
-                CcspTraceInfo(("CcspAdvSecurity: Bridge mode unchanged, no action needed %s\n", val));
+                CcspTraceInfo(("CcspAdvSecurity: Bridge mode unchanged '%s', no action needed\n", val));
                 return;
             }
 
