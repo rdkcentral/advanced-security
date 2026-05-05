@@ -2334,10 +2334,12 @@ int advsec_sysevent_init(void)
 /*
 * Sysevent handler.
 */
+#ifdef UNIT_TEST
 void advsec_reset_bridge_mode_for_test(void)
 {
     prevBridgeMode[0] = '\0';
 }
+#endif
 
 void advsec_handle_sysevent_notification(char *event, char *val)
 {

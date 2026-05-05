@@ -217,7 +217,9 @@ BOOL WifiMgmtFrame_GetActive_Status(void);
 BOOL WifiLevl_GetActive_Status(void);
 int wifidcl_init_precheck(void);
 void advsec_handle_sysevent_notification(char *event, char *val);
+#ifdef UNIT_TEST
 void advsec_reset_bridge_mode_for_test(void);
+#endif
 
 ANSC_HANDLE
 CosaSecurityCreate
