@@ -18,13 +18,12 @@
 
 #include "CcspAdvSecurityMock.h"
 
-extern "C" void advsec_handle_sysevent_notification(char *event, char *val);
-
 static char BRIDGE_MODE_EVENT_NAME[] = "bridge_mode";
 
 class CcspAdvSecurityInternalTestFixture : public ::testing::Test {
 protected:
     void SetUp() override {
+        advsec_reset_bridge_mode_for_test();
 
        g_syscfgMock = new SyscfgMock();
         g_securewrapperMock = new SecureWrapperMock();
@@ -2055,7 +2054,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_I
 
 TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_IntermediateBridgeModeValueNoFirewallAction)
 {
-    // Bridge mode value "1" is a real state transition on some platforms.
+    // Bridge mode value "1" is a real state transition .
     // prevBridgeMode must still be updated so subsequent transitions are
     // correctly detected, but no firewall command should fire since only
     // '0' and '2'/'3' trigger enable/disable actions.
@@ -2112,6 +2111,34 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_B
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enable &"), _))
         .Times(1)
         .WillOnce(Return(0));
+
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_BridgeModeRetryOnCommandFailure)
+{
+    char bridgeModeOff[] = "0";
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("bridge_mode"), _, _, _, _, _))
+        .Times(::testing::AtLeast(2))
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, StrEq("0"), _, _, _))
+        .Times(2)
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(1),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enable &"), _))
+        .Times(2)
+        .WillOnce(Return(1))
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
+        .Times(1)
+        .WillOnce(Return(EOK));
 
     advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
     advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);

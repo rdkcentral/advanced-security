@@ -216,6 +216,8 @@ ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal);
 BOOL WifiMgmtFrame_GetActive_Status(void);
 BOOL WifiLevl_GetActive_Status(void);
 int wifidcl_init_precheck(void);
+void advsec_handle_sysevent_notification(char *event, char *val);
+void advsec_reset_bridge_mode_for_test(void);
 
 ANSC_HANDLE
 CosaSecurityCreate

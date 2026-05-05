@@ -150,6 +150,7 @@ pthread_mutex_t logMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t logCond = PTHREAD_COND_INITIALIZER;
 static BOOL logReady = FALSE;
 static char prevWanIfname[MAX_INTERFACE_SIZE] = {0};
+static char prevBridgeMode[2] = {0};
 
 void advsec_handle_sysevent_async(void);
 static void advsec_start_logger_thread(void);
@@ -2333,13 +2334,17 @@ int advsec_sysevent_init(void)
 /*
 * Sysevent handler.
 */
+void advsec_reset_bridge_mode_for_test(void)
+{
+    prevBridgeMode[0] = '\0';
+}
+
 void advsec_handle_sysevent_notification(char *event, char *val)
 {
     enum advSysEvent_e type;
     int ret = 0;
     errno_t rc = -1;
     int ind    = -1;
-    static char prevBridgeMode[2] = {0};
 
     if(!event || !val)
         return;
@@ -2350,6 +2355,8 @@ void advsec_handle_sysevent_notification(char *event, char *val)
     {
         if(type == SYSEVENT_BRIDGE_MODE_EVENT)
         {
+            BOOL updatePrevMode = FALSE;
+
             if((val[0] == '\0') || (val[1] != '\0'))
             {
                 CcspTraceWarning(("CcspAdvSecurity: Invalid bridge mode value '%s'\n", val));
@@ -2363,9 +2370,6 @@ void advsec_handle_sysevent_notification(char *event, char *val)
                 CcspTraceInfo(("CcspAdvSecurity: Bridge mode unchanged '%s', no action needed\n", val));
                 return;
             }
-
-            rc = strcpy_s(prevBridgeMode, sizeof(prevBridgeMode), val);
-            ERR_CHK(rc);
             
             if((val[0] == '0') && (val[1] == '\0'))
             {
@@ -2375,13 +2379,17 @@ void advsec_handle_sysevent_notification(char *event, char *val)
                 {
                       CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
                 }
+                else
+                {
+                    updatePrevMode = TRUE;
+                }
 
             }
 
 #ifndef _XF3_PRODUCT_REQ_
-            if((val[0] == '2') && (val[1] == '\0'))
+            else if((val[0] == '2') && (val[1] == '\0'))
 #else
-            if((val[0] == '3') && (val[1] == '\0'))
+            else if((val[0] == '3') && (val[1] == '\0'))
 #endif
             {
                 CcspTraceWarning(("CcspAdvSecurity: Received Bridge Mode On\n"));
@@ -2390,6 +2398,21 @@ void advsec_handle_sysevent_notification(char *event, char *val)
                 {
                       CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
                 }
+                else
+                {
+                    updatePrevMode = TRUE;
+                }
+
+            }
+            else
+            {
+                updatePrevMode = TRUE;
+            }
+
+            if(updatePrevMode)
+            {
+                rc = strcpy_s(prevBridgeMode, sizeof(prevBridgeMode), val);
+                ERR_CHK(rc);
 
             }
         }
