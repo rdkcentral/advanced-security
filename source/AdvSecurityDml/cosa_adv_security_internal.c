@@ -40,6 +40,7 @@
 #include <ccsp/platform_hal.h>
 #include <syscfg/syscfg.h>
 #include <sys/sysinfo.h>
+#include <unistd.h>
 #include "safec_lib_common.h"
 #include "secure_wrapper.h"
 #include <rbus/rbus.h>
@@ -2275,6 +2276,100 @@ ULONG CosaAdvSecGetLookupTimeoutExceededCount()
     }
 
     return lcount;
+}
+
+BOOL CosaAdvSecIsModuleRestarted()
+{
+    struct sysinfo info = {0};
+    unsigned long uptime_seconds = 0;
+    unsigned long long starttime_ticks = 0;
+    unsigned long process_runtime = 0;
+    long clock_ticks_per_sec = 0;
+    FILE *fp = NULL;
+    char buf[COMMAND_MAX] = {0};
+    char proc_stat_path[COMMAND_MAX] = {0};
+    char pid_buf[MAX_VALUE] = {0};
+    int i;
+
+    /* Get system uptime */
+    if (sysinfo(&info) != 0) {
+        CcspTraceError(("%s: sysinfo fetch failed\n", __FUNCTION__));
+        return FALSE;
+    }
+    uptime_seconds = info.uptime;
+
+    /* Get cujo-agent PID using /var/run/cujo-agent.pid or pidof */
+    fp = popen("pidof cujo-agent", "r");
+    if (fp == NULL) {
+        CcspTraceWarning(("%s: Failed to get cujo-agent PID\n", __FUNCTION__));
+        return FALSE;
+    }
+    if (fgets(pid_buf, sizeof(pid_buf), fp) == NULL) {
+        pclose(fp);
+        CcspTraceWarning(("%s: cujo-agent process not found\n", __FUNCTION__));
+        return FALSE;
+    }
+    pclose(fp);
+
+    /* Remove trailing newline */
+    for (i = 0; pid_buf[i] != '\0'; i++) {
+        if (pid_buf[i] == '\n' || pid_buf[i] == ' ') {
+            pid_buf[i] = '\0';
+            break;
+        }
+    }
+
+    /* Read /proc/<pid>/stat to get process start time (field 22) */
+    snprintf(proc_stat_path, sizeof(proc_stat_path), "/proc/%s/stat", pid_buf);
+    fp = fopen(proc_stat_path, "r");
+    if (fp == NULL) {
+        CcspTraceWarning(("%s: Failed to open %s\n", __FUNCTION__, proc_stat_path));
+        return FALSE;
+    }
+    if (fgets(buf, sizeof(buf), fp) == NULL) {
+        fclose(fp);
+        CcspTraceWarning(("%s: Failed to read %s\n", __FUNCTION__, proc_stat_path));
+        return FALSE;
+    }
+    fclose(fp);
+
+    /* Parse field 22 (starttime) - skip past the comm field (enclosed in parentheses) */
+    {
+        char *ptr = strrchr(buf, ')');
+        if (ptr == NULL) {
+            CcspTraceWarning(("%s: Failed to parse proc stat\n", __FUNCTION__));
+            return FALSE;
+        }
+        ptr++; /* move past ')' */
+
+        /* starttime is field 22; after ')' we are at field 2, need to skip to field 22 */
+        /* Fields 3-21 = 19 fields to skip */
+        for (i = 0; i < 19; i++) {
+            while (*ptr == ' ') ptr++;
+            while (*ptr != ' ' && *ptr != '\0') ptr++;
+        }
+        while (*ptr == ' ') ptr++;
+        starttime_ticks = strtoull(ptr, NULL, 10);
+    }
+
+    clock_ticks_per_sec = sysconf(_SC_CLK_TCK);
+    if (clock_ticks_per_sec <= 0) {
+        CcspTraceWarning(("%s: Failed to get clock ticks per second\n", __FUNCTION__));
+        return FALSE;
+    }
+
+    /* Process runtime = uptime - (starttime / clock_ticks_per_sec) */
+    process_runtime = uptime_seconds - (unsigned long)(starttime_ticks / (unsigned long long)clock_ticks_per_sec);
+
+    /*
+     * If the process runtime is less than system uptime beyond the normal boot
+     * startup threshold (300 seconds), the module was restarted after boot.
+     */
+    if ((uptime_seconds - process_runtime) > 300) {
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 static BOOL AdvsecSysEventHandlerStarted=FALSE;

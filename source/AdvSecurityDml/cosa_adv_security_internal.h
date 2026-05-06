@@ -270,6 +270,11 @@ CosaAdvSecGetLookupTimeoutExceededCount
     (
     );
 
+BOOL
+CosaAdvSecIsModuleRestarted
+    (
+    );
+
 ANSC_STATUS
 CosaStartAdvParentalControl
     (

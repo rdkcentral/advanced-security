@@ -66,6 +66,12 @@
                   <syntax>uint32</syntax>
                   <writable>true</writable>
                 </parameter>
+                <parameter>
+                  <name>ismodulerestarted</name>
+                  <type>boolean</type>
+                  <syntax>bool</syntax>
+                  <writable>false</writable>
+                </parameter>
               </parameters>
         </object>
         <object>
