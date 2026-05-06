@@ -19,6 +19,12 @@
 #ifndef  _COSA_ADV_SEC_INTERNAL_H
 #define  _COSA_ADV_SEC_INTERNAL_H
 
+#ifndef UNIT_TEST_DOCKER_SUPPORT
+#define STATIC static
+#else
+#define STATIC
+#endif
+
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
 
@@ -217,9 +223,6 @@ BOOL WifiMgmtFrame_GetActive_Status(void);
 BOOL WifiLevl_GetActive_Status(void);
 int wifidcl_init_precheck(void);
 void advsec_handle_sysevent_notification(char *event, char *val);
-#ifdef UNIT_TEST
-void advsec_reset_bridge_mode_for_test(void);
-#endif
 
 ANSC_HANDLE
 CosaSecurityCreate

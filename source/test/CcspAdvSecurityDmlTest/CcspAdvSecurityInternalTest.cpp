@@ -20,12 +20,12 @@
 
 static char BRIDGE_MODE_EVENT_NAME[] = "bridge_mode";
 
+extern "C" char prevBridgeMode[2];
+
 class CcspAdvSecurityInternalTestFixture : public ::testing::Test {
 protected:
     void SetUp() override {
-#ifdef UNIT_TEST
-        advsec_reset_bridge_mode_for_test();
-#endif
+        prevBridgeMode[0] = '\0';
 
        g_syscfgMock = new SyscfgMock();
         g_securewrapperMock = new SecureWrapperMock();

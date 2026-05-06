@@ -150,7 +150,7 @@ pthread_mutex_t logMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t logCond = PTHREAD_COND_INITIALIZER;
 static BOOL logReady = FALSE;
 static char prevWanIfname[MAX_INTERFACE_SIZE] = {0};
-static char prevBridgeMode[2] = {0};
+STATIC char prevBridgeMode[2] = {0};
 
 void advsec_handle_sysevent_async(void);
 static void advsec_start_logger_thread(void);
@@ -2334,13 +2334,6 @@ int advsec_sysevent_init(void)
 /*
 * Sysevent handler.
 */
-#ifdef UNIT_TEST
-void advsec_reset_bridge_mode_for_test(void)
-{
-    prevBridgeMode[0] = '\0';
-}
-#endif
-
 void advsec_handle_sysevent_notification(char *event, char *val)
 {
     enum advSysEvent_e type;
