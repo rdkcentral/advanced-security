@@ -6,6 +6,8 @@ The component operates as a critical security layer in the RDK-B middleware stac
 
 At the module level, the Advanced Security component implements a plugin-based architecture with separate DML modules providing TR-181 parameter support for Device Fingerprinting (network device identification and classification), Safe Browsing (malicious URL detection and blocking), Softflowd (network flow monitoring), and Advanced Parental Control (content filtering and access control). The actual implementation of these security features is performed by the advanced security agent. The component also provides WebConfig integration for remote configuration management and RFC (Remote Feature Control) support for enabling/disabling security features dynamically.
 
+test cov scan
+
 ```mermaid
 graph LR
     subgraph "External Systems"
