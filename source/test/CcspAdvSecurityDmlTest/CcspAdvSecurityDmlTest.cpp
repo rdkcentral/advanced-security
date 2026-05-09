@@ -133,9 +133,42 @@ TEST_F(CcspAdvSecurityDmlTestFixture, CheckDeviceFingerPrint_GetParamBoolValue_U
         .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("ismodulerestarted"), strlen("ismodulerestarted"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
+
     BOOL result = DeviceFingerPrint_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
 
     EXPECT_FALSE(result);
+
+    delete pMyObject;
+}
+
+TEST_F(CcspAdvSecurityDmlTestFixture, CheckDeviceFingerPrint_GetParamBoolValue_IsModuleRestarted) {
+    BOOL resultBool;
+    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    g_pAdvSecAgent = pMyObject;
+
+    const char* ParamName = "ismodulerestarted";
+    int comparisonResultNoMatch = 1;
+    int comparisonResultMatch = 0;
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResultNoMatch), Return(EOK)));
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("ismodulerestarted"), strlen("ismodulerestarted"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResultMatch), Return(EOK)));
+
+    EXPECT_CALL(*g_securewrapperMock, v_secure_popen(StrEq("r"), _))
+        .Times(1)
+        .WillOnce(Return(nullptr));
+
+    BOOL result = DeviceFingerPrint_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
+
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(resultBool);
 
     delete pMyObject;
 }

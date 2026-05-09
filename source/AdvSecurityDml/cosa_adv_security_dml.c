@@ -141,6 +141,14 @@ DeviceFingerPrint_GetParamBoolValue
         return TRUE;
     }
 
+    rc = strcmp_s("ismodulerestarted", strlen("ismodulerestarted"), ParamName, &ind);
+    ERR_CHK(rc);
+    if((rc == EOK) && (!ind))
+    {
+        *pBool = CosaAdvSecIsModuleRestarted();
+        return TRUE;
+    }
+
     CcspTraceWarning(("%s: Unsupported parameter '%s'\n", __FUNCTION__, ParamName));
     return FALSE;
 }

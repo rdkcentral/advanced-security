@@ -3521,3 +3521,85 @@ ANSC_STATUS CosaAdvSecAgentRaptrDeInit(ANSC_HANDLE hThisObject)
     CcspTraceWarning (("AdvSecAgentRaptr_RFCEnable:FALSE\n"));
     return returnStatus;
 }
+
+BOOL CosaAdvSecIsModuleRestarted(void)
+{
+    struct sysinfo sys_info;
+    unsigned long uptime;
+    unsigned long long agent_starttime_ticks = 0;
+    unsigned long agent_start_secs;
+    unsigned long agent_runtime;
+    long hz;
+    FILE *fp = NULL;
+    char path[64];
+    char line[1024];
+    int pid = -1;
+    char *p = NULL;
+
+    if (sysinfo(&sys_info) != 0)
+    {
+        CcspTraceError(("%s: Failed to get sysinfo\n", __FUNCTION__));
+        return FALSE;
+    }
+    uptime = sys_info.uptime;
+
+    /* Get cujo-agent PID */
+    fp = v_secure_popen("r", "pidof cujo-agent");
+    if (fp == NULL)
+    {
+        CcspTraceError(("%s: Failed to run pidof cujo-agent\n", __FUNCTION__));
+        return FALSE;
+    }
+    if (fscanf(fp, "%d", &pid) != 1 || pid <= 0)
+    {
+        v_secure_pclose(fp);
+        CcspTraceWarning(("%s: cujo-agent process not found\n", __FUNCTION__));
+        return FALSE;
+    }
+    v_secure_pclose(fp);
+
+    /* Read starttime from /proc/<pid>/stat (field 22) */
+    snprintf(path, sizeof(path), "/proc/%d/stat", pid);
+    fp = fopen(path, "r");
+    if (fp == NULL)
+    {
+        CcspTraceError(("%s: Failed to open %s\n", __FUNCTION__, path));
+        return FALSE;
+    }
+
+    if (fgets(line, sizeof(line), fp) == NULL)
+    {
+        fclose(fp);
+        CcspTraceError(("%s: Failed to read %s\n", __FUNCTION__, path));
+        return FALSE;
+    }
+    fclose(fp);
+
+    /* Skip past comm field (enclosed in parentheses) */
+    p = strrchr(line, ')');
+    if (p == NULL)
+    {
+        CcspTraceError(("%s: Failed to parse comm field\n", __FUNCTION__));
+        return FALSE;
+    }
+    p++;
+
+    /* Parse field 22 (starttime): skip fields 3-21 (19 fields) */
+    if (sscanf(p, " %*c %*d %*d %*d %*d %*d %*u %*lu %*lu %*lu %*lu %*lu %*lu %*ld %*ld %*ld %*ld %*ld %*ld %llu",
+               &agent_starttime_ticks) != 1)
+    {
+        CcspTraceError(("%s: Failed to parse starttime\n", __FUNCTION__));
+        return FALSE;
+    }
+
+    hz = sysconf(_SC_CLK_TCK);
+    if (hz <= 0)
+        hz = 100;
+
+    agent_start_secs = (unsigned long)(agent_starttime_ticks / (unsigned long long)hz);
+    agent_runtime = uptime - agent_start_secs;
+
+    CcspTraceInfo(("%s: uptime=%lu agent_runtime=%lu\n", __FUNCTION__, uptime, agent_runtime));
+
+    return (agent_runtime < uptime);
+}
