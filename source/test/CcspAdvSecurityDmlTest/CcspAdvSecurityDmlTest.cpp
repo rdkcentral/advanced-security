@@ -18,14 +18,15 @@
 
 #include "CcspAdvSecurityMock.h"
 
-
+typedef void* ANSC_HANDLE;
+ANSC_HANDLE bus_handle = NULL;
 
 class CcspAdvSecurityDmlTestFixture : public CcspAdvSecurityTestBase {
 };
 
 TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamBoolValue_Enable) {
     BOOL resultBool;
-    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    PCOSA_DATAMODEL_AGENT pMyObject = (PCOSA_DATAMODEL_AGENT)calloc(1, sizeof(COSA_DATAMODEL_AGENT));
     pMyObject->bEnable = TRUE;
     g_pAdvSecAgent = pMyObject;
 
@@ -33,6 +34,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamBoolValue_Enable
     int comparisonResult = 0;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = DeviceFingerPrint_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
@@ -40,12 +42,12 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamBoolValue_Enable
     EXPECT_TRUE(result);
     EXPECT_TRUE(resultBool);
 
-    delete pMyObject;
+    free(pMyObject);
 }
 
 TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamBoolValue_Disable) {
     BOOL resultBool;
-    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    PCOSA_DATAMODEL_AGENT pMyObject = (PCOSA_DATAMODEL_AGENT)calloc(1, sizeof(COSA_DATAMODEL_AGENT));
     pMyObject->bEnable = FALSE;
     g_pAdvSecAgent = pMyObject;
 
@@ -53,6 +55,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamBoolValue_Disabl
     int comparisonResult = 0;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = DeviceFingerPrint_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
@@ -60,31 +63,32 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamBoolValue_Disabl
     EXPECT_TRUE(result);
     EXPECT_FALSE(resultBool);
 
-    delete pMyObject;
+    free(pMyObject);
 }
 
 TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamBoolValue_UnsupportedParam) {
     BOOL resultBool;
-    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    PCOSA_DATAMODEL_AGENT pMyObject = (PCOSA_DATAMODEL_AGENT)calloc(1, sizeof(COSA_DATAMODEL_AGENT));
     g_pAdvSecAgent = pMyObject;
 
     const char* ParamName = "UnsupportedParam";
     int comparisonResult = 1;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = DeviceFingerPrint_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
 
     EXPECT_FALSE(result);
 
-    delete pMyObject;
+    free(pMyObject);
 }
 
 TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_SetParamBoolValue_Enable) {
 
     const char *DeviceFingerPrintEnabled = "Advsecurity_DeviceFingerPrint";
-    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    PCOSA_DATAMODEL_AGENT pMyObject = (PCOSA_DATAMODEL_AGENT)calloc(1, sizeof(COSA_DATAMODEL_AGENT));
     pMyObject->bEnable = FALSE;
     g_pAdvSecAgent = pMyObject;
 
@@ -93,15 +97,20 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_SetParamBoolValue_Enable
     int comparisonResult = 0;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(DeviceFingerPrintEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enable &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecInit());
@@ -111,12 +120,12 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_SetParamBoolValue_Enable
     EXPECT_TRUE(result);
     EXPECT_TRUE(pMyObject->bEnable);
 
-    delete pMyObject;
+    free(pMyObject);
 }
 
 TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_SetParamBoolValue_Disable) {
     const char *DeviceFingerPrintEnabled = "Advsecurity_DeviceFingerPrint";
-    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    PCOSA_DATAMODEL_AGENT pMyObject = (PCOSA_DATAMODEL_AGENT)calloc(1, sizeof(COSA_DATAMODEL_AGENT));
     pMyObject->bEnable = TRUE;
     g_pAdvSecAgent = pMyObject;
 
@@ -125,15 +134,20 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_SetParamBoolValue_Disabl
     int comparisonResult = 0;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(DeviceFingerPrintEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disable &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecDeInit());
@@ -143,12 +157,12 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_SetParamBoolValue_Disabl
     EXPECT_TRUE(result);
     EXPECT_FALSE(pMyObject->bEnable);
 
-    delete pMyObject;
+    free(pMyObject);
 }
 
 TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamUlongValue_LoggingPeriod) {
     ULONG resultUlong;
-    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    PCOSA_DATAMODEL_AGENT pMyObject = (PCOSA_DATAMODEL_AGENT)calloc(1, sizeof(COSA_DATAMODEL_AGENT));
     pMyObject->ulLoggingPeriod = 100;
     g_pAdvSecAgent = pMyObject;
 
@@ -156,6 +170,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamUlongValue_Loggi
     int comparisonResult = 0;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("LoggingPeriod"), strlen("LoggingPeriod"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = DeviceFingerPrint_GetParamUlongValue(NULL, (char*)ParamName, &resultUlong);
@@ -163,11 +178,11 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamUlongValue_Loggi
     EXPECT_TRUE(result);
     EXPECT_EQ(100, resultUlong);
 
-    delete pMyObject;
+    free(pMyObject);
 }
 
 TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_SetParamUlongValue_LoggingPeriod) {
-    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    PCOSA_DATAMODEL_AGENT pMyObject = (PCOSA_DATAMODEL_AGENT)calloc(1, sizeof(COSA_DATAMODEL_AGENT));
     pMyObject->ulLoggingPeriod = 100;
     g_pAdvSecAgent = pMyObject;
     const char *DeviceFingerPrintLogginPeriod = "Advsecurity_LoggingPeriod";
@@ -177,13 +192,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_SetParamUlongValue_Loggi
     int comparisonResult = 0;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("LoggingPeriod"), strlen("LoggingPeriod"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(DeviceFingerPrintLogginPeriod), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecSetLoggingPeriod(bValue));
@@ -193,7 +212,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_SetParamUlongValue_Loggi
     EXPECT_TRUE(result);
     EXPECT_EQ(200, pMyObject->ulLoggingPeriod);
 
-    delete pMyObject;
+    free(pMyObject);
 }
 
 TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamStringValue_EndpointURL) {
@@ -205,20 +224,25 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_GetParamStringValue_Endp
     int comparisonResult = 0;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("EndpointURL"), strlen("EndpointURL"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_get(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecGetCustomURL(pValue, &pUlSize));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_get(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
 
     returnStatus = DeviceFingerPrint_GetParamStringValue(NULL, (char*)ParamName, pValue, &pUlSize);
@@ -235,11 +259,14 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrint_SetParamStringValue_Endp
     int comparisonResult = 0;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("EndpointURL"), strlen("EndpointURL"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecCustomEndpointURL), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecSetCustomURL(pString));
@@ -258,20 +285,25 @@ TEST_F(CcspAdvSecurityDmlTestFixture, SetParamStringValue_Success) {
 
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Data"), strlen("Data"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_base64Mock, b64_get_decoded_buffer_size(strlen(pString)))
+        .Times(1)
         .WillOnce(Return(128));
 
     EXPECT_CALL(*g_base64Mock, b64_decode(reinterpret_cast<const uint8_t*>(pString), strlen(pString), testing::_))
+        .Times(1)
         .WillOnce(Return(64));
 
     msgpack_unpack_return unpack_ret = MSGPACK_UNPACK_SUCCESS;
     EXPECT_CALL(*g_msgpackMock, msgpack_zone_init(testing::_, 2048))
         .Times(1);
     EXPECT_CALL(*g_msgpackMock, msgpack_unpack(testing::_, 64, testing::_, testing::_, testing::_))
+        .Times(1)
         .WillOnce(Return(unpack_ret));
     EXPECT_CALL(*g_msgpackMock, msgpack_unpack_next(testing::_, testing::_, testing::_, testing::_))
+        .Times(1)
         .WillOnce(Return(unpack_ret));
     EXPECT_CALL(*g_msgpackMock, msgpack_object_print(testing::_, testing::_))
         .Times(1);
@@ -308,6 +340,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, SafeBrowsing_GetParamBoolValue_Enable) {
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = SafeBrowsing_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
@@ -336,6 +369,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, SafeBrowsing_GetParamBoolValue_Disable) {
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = SafeBrowsing_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
@@ -368,15 +402,20 @@ TEST_F(CcspAdvSecurityDmlTestFixture, SafeBrowsing_SetParamBoolValue_Enable) {
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecuritySBEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -start sb null &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     if ((file = fopen(fname, "r")))
@@ -432,15 +471,20 @@ TEST_F(CcspAdvSecurityDmlTestFixture, SafeBrowsing_SetParamBoolValue_Disable) {
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecuritySBEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -stop sb null &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     if ((file = fopen(fname, "r")))
@@ -489,6 +533,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, SafeBrowsing_GetParamUlongValue_LookupTime
     g_pAdvSecAgent->pAdvSec->pSafeBrows->ulLookupTimeout = 100;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("LookupTimeout"), strlen("LookupTimeout"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = SafeBrowsing_GetParamUlongValue(NULL, (char*)ParamName, &resultUlong);
@@ -518,13 +563,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, SafeBrowsing_SetParamUlongValue_LookupTime
     g_pAdvSecAgent->pAdvSec->pSafeBrows->ulLookupTimeout = 100;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("LookupTimeout"), strlen("LookupTimeout"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecuritySBLookupTimeout), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecSetLookupTimeout(bValue));
@@ -577,6 +626,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, Softflowd_GetParamBoolValue_Enable) {
     g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = Softflowd_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
@@ -605,6 +655,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, Softflowd_GetParamBoolValue_Disable) {
     g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = Softflowd_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
@@ -638,15 +689,20 @@ TEST_F(CcspAdvSecurityDmlTestFixture, Softflowd_SetParamBoolValue_Enable) {
     g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecuritySFEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -start null sf &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     if ((file = fopen(fname, "r")))
@@ -703,15 +759,20 @@ TEST_F(CcspAdvSecurityDmlTestFixture, Softflowd_SetParamBoolValue_Disable) {
     g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecuritySFEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -stop null sf &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     if ((file = fopen(fname, "r")))
@@ -781,6 +842,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvancedParentalControl_GetParamBoolValue_
     g_pAdvSecAgent->pAdvPC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Activate"), strlen("Activate"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = AdvancedParentalControl_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
@@ -806,6 +868,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvancedParentalControl_GetParamBoolValue_
     g_pAdvSecAgent->pAdvPC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Activate"), strlen("Activate"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = AdvancedParentalControl_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
@@ -836,15 +899,20 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvancedParentalControl_SetParamBoolValue_
     g_pAdvSecAgent->pAdvPC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Activate"), strlen("Activate"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityAPCEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -startAdvPC &"), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
 
     if ((file = fopen(fname, "r")))
@@ -895,15 +963,20 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvancedParentalControl_SetParamBoolValue_
     g_pAdvSecAgent->pAdvPC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Activate"), strlen("Activate"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityAPCEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -stopAdvPC &"), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
 
     if ((file = fopen(fname, "r")))
@@ -972,6 +1045,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, PrivacyProtection_GetParamBoolValue_Enable
     g_pAdvSecAgent->pPrivProt->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Activate"), strlen("Activate"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = PrivacyProtection_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
@@ -998,6 +1072,7 @@ TEST_F(CcspAdvSecurityDmlTestFixture, PrivacyProtection_GetParamBoolValue_Disabl
     g_pAdvSecAgent->pPrivProt->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Activate"), strlen("Activate"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     BOOL result = PrivacyProtection_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
@@ -1027,15 +1102,20 @@ TEST_F(CcspAdvSecurityDmlTestFixture, PrivacyProtection_SetParamBoolValue_Enable
     g_pAdvSecAgent->pPrivProt->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Activate"), strlen("Activate"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityPPEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -startPrivProt &"), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
 
     if ((file = fopen(fname, "r")))
@@ -1086,15 +1166,20 @@ TEST_F(CcspAdvSecurityDmlTestFixture, PrivacyProtection_SetParamBoolValue_Disabl
     g_pAdvSecAgent->pPrivProt->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Activate"), strlen("Activate"), StrEq(ParamName), _, _, _))
+        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityPPEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -stopPrivProt &"), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
 
     if ((file = fopen(fname, "r")))
@@ -1228,10 +1313,13 @@ TEST_F(CcspAdvSecurityDmlTestFixture, RabidFramework_SetParamUlongValue_MemoryLi
     g_pAdvSecAgent->pRabid->uMemoryLimit = 100;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityRabidMemoryLimit), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaRabidSetMemoryLimit(NULL, bValue));
@@ -1260,10 +1348,13 @@ TEST_F(CcspAdvSecurityDmlTestFixture, RabidFramework_SetParamUlongValue_MacCache
     g_pAdvSecAgent->pRabid->uMacCacheSize = 100;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityRabidMacCacheSize), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaRabidSetMacCacheSize(NULL, bValue));
@@ -1292,10 +1383,13 @@ TEST_F(CcspAdvSecurityDmlTestFixture, RabidFramework_SetParamUlongValue_DNSCache
     g_pAdvSecAgent->pRabid->uDNSCacheSize = 100;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityRabidDNSCacheSize), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaRabidSetDNSCacheSize(NULL, bValue));
@@ -1369,12 +1463,16 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvancedParentalControl_RFC_SetParamBoolVa
     g_pAdvSecAgent->pAdvPC_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityAPCRFCEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -startAdvPC &"), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
 
     if ((file = fopen(fname, "r")))
@@ -1425,12 +1523,16 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvancedParentalControl_RFC_SetParamBoolVa
     g_pAdvSecAgent->pAdvPC_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityAPCRFCEnabled), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -stopAdvPC &"), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
 
     if ((file = fopen(fname, "r")))
@@ -1605,13 +1707,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrintICMPv6_RFC_SetParamBoolVa
     g_pAdvSecAgent->pDFIcmpv6_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityDFICMPv6Enable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableICMP6 &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvDFIcmpv6Init(NULL));
@@ -1640,13 +1746,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, DeviceFingerPrintICMPv6_RFC_SetParamBoolVa
     g_pAdvSecAgent->pDFIcmpv6_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityDFICMPv6Enable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disableICMP6 &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvDFIcmpv6DeInit(NULL));
@@ -1717,13 +1827,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, WS_Discovery_Analysis_RFC_SetParamBoolValu
     g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityWSDisEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableWSDiscovery &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaWSDisInit(NULL));
@@ -1752,13 +1866,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, WS_Discovery_Analysis_RFC_SetParamBoolValu
     g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityWSDisEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disableWSDiscovery &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaWSDisDeInit(NULL));
@@ -1829,13 +1947,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvancedSecurityOTM_RFC_SetParamBoolValue_
     g_pAdvSecAgent->pAdvSecOTM_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityOTMEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableOTM &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecOTMInit(NULL));
@@ -1863,13 +1985,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvancedSecurityOTM_RFC_SetParamBoolValue_
     g_pAdvSecAgent->pAdvSecOTM_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityOTMEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disableOTM &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecOTMDeInit(NULL));
@@ -1940,13 +2066,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvSecAgentRaptr_RFC_SetParamBoolValue_Ena
     g_pAdvSecAgent->pRaptr_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityRaptrEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableRaptr &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecAgentRaptrInit(NULL));
@@ -2043,13 +2173,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvanceSecurityUserSpace_RFC_SetParamBoolV
     g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityUserSpaceEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableUS &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecUserSpaceInit(NULL));
@@ -2083,13 +2217,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvanceSecurityUserSpace_RFC_SetParamBoolV
     g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityUserSpaceEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disableUS &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecUserSpaceDeInit(NULL));
@@ -2162,13 +2300,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvSecAgent_RFC_SetParamBoolValue_Enable) 
     g_pAdvSecAgent->pAdvSecAgent_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityAgentEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableAGT &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecAgentInit(NULL));
@@ -2197,13 +2339,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvSecAgent_RFC_SetParamBoolValue_Disable)
     g_pAdvSecAgent->pAdvSecAgent_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityAgentEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disableAGT &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecAgentDeInit(NULL));
@@ -2277,13 +2423,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvSecSafeBrowsing_RFC_SetParamBoolValue_E
     g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecuritySafeBrowsingEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableSBRule &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecSafeBrowsingInit(NULL));
@@ -2316,13 +2466,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvSecSafeBrowsing_RFC_SetParamBoolValue_D
     g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecuritySafeBrowsingEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disableSBRule &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecSafeBrowsingDeInit(NULL));
@@ -2397,13 +2551,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvSecCujoTelemetryWiFiFP_RFC_SetParamBool
     g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityCujoTelemetryWiFiFPEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableCTW &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecCujoTelemetryWiFiFPInit(NULL));
@@ -2436,13 +2594,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvSecCujoTelemetryWiFiFP_RFC_SetParamBool
     g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityCujoTelemetryWiFiFPEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disableCTW &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecCujoTelemetryWiFiFPDeInit(NULL));
@@ -2513,13 +2675,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvanceSecurityCujoTracer_RFC_SetParamBool
     g_pAdvSecAgent->pAdvSecCujoTracer_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityCujoTracerEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableCT &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecCujoTracerInit(NULL));
@@ -2548,13 +2714,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvanceSecurityCujoTracer_RFC_SetParamBool
     g_pAdvSecAgent->pAdvSecCujoTracer_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityCujoTracerEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disableCT &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecCujoTracerDeInit(NULL));
@@ -2624,13 +2794,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvanceSecurityCujoTelemetry_RFC_SetParamB
     g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityCujoTelemetryEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableCTD &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecCujoTelemetryInit(NULL));
@@ -2659,13 +2833,17 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvanceSecurityCujoTelemetry_RFC_SetParamB
     g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityCujoTelemetryEnable), _))
+        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disableCTD &"), _))
+        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecCujoTelemetryDeInit(NULL));

@@ -88,11 +88,8 @@ static async_id_t async_id[4];
 enum {SYS_EVENT_ERROR=-1, SYS_EVENT_OK, SYS_EVENT_TIMEOUT, SYS_EVENT_HANDLE_EXIT, SYS_EVENT_RECEIVED=0x10};
 
 /*
- * Common base test fixture shared by all CcspAdvSecurity test suites.
- * Centralizes mock object lifecycle (SetUp/TearDown) and provides helper
- * methods for agent data-model allocation and sentinel-file management,
- * eliminating the duplication that previously existed across the three
- * fixture classes.
+ * Common base test fixture shared by DML, Internal, and WebConfig test suites.
+ * Centralises mock object lifecycle to eliminate duplicated SetUp/TearDown code.
  */
 class CcspAdvSecurityTestBase : public ::testing::Test {
 protected:
@@ -150,53 +147,59 @@ protected:
         g_anscWrapperApiMock = nullptr;
     }
 
-    /* --- Agent data-model helpers --- */
+    /* --- Data model allocation helpers --- */
 
-    PCOSA_DATAMODEL_AGENT AllocateAgent() {
-        PCOSA_DATAMODEL_AGENT pAgent = (PCOSA_DATAMODEL_AGENT)malloc(sizeof(COSA_DATAMODEL_AGENT));
-        EXPECT_NE(pAgent, nullptr);
-        if (pAgent) {
-            memset(pAgent, 0, sizeof(COSA_DATAMODEL_AGENT));
-        }
-        return pAgent;
+    PCOSA_DATAMODEL_AGENT CreateAgent(BOOL bEnable = TRUE) {
+        PCOSA_DATAMODEL_AGENT p = (PCOSA_DATAMODEL_AGENT)calloc(1, sizeof(COSA_DATAMODEL_AGENT));
+        EXPECT_NE(p, nullptr);
+        p->bEnable = bEnable;
+        g_pAdvSecAgent = p;
+        return p;
     }
 
-    void AllocateAgentWithAdvSec() {
-        g_pAdvSecAgent = AllocateAgent();
+    void CreateAdvSec() {
         ASSERT_NE(g_pAdvSecAgent, nullptr);
-        g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
+        g_pAdvSecAgent->pAdvSec = (PCOSA_DATAMODEL_ADVSEC)calloc(1, sizeof(COSA_DATAMODEL_ADVSEC));
         ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-        memset(g_pAdvSecAgent->pAdvSec, 0, sizeof(COSA_DATAMODEL_ADVSEC));
     }
 
-    void AllocateAgentWithSafeBrowsing() {
-        AllocateAgentWithAdvSec();
-        g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
+    void CreateSafeBrowsing(BOOL bEnable = FALSE) {
+        ASSERT_NE(g_pAdvSecAgent, nullptr);
+        if (!g_pAdvSecAgent->pAdvSec) CreateAdvSec();
+        g_pAdvSecAgent->pAdvSec->pSafeBrows = (PCOSA_DATAMODEL_SB)calloc(1, sizeof(COSA_DATAMODEL_SB));
         ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
-        memset(g_pAdvSecAgent->pAdvSec->pSafeBrows, 0, sizeof(COSA_DATAMODEL_SB));
+        g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = bEnable;
     }
 
-    void AllocateAgentWithSoftflowd() {
-        AllocateAgentWithAdvSec();
-        g_pAdvSecAgent->pAdvSec->pSoftFlowd = (COSA_DATAMODEL_SOFTFLOWD *)malloc(sizeof(COSA_DATAMODEL_SOFTFLOWD));
+    void CreateSoftflowd(BOOL bEnable = FALSE) {
+        ASSERT_NE(g_pAdvSecAgent, nullptr);
+        if (!g_pAdvSecAgent->pAdvSec) CreateAdvSec();
+        g_pAdvSecAgent->pAdvSec->pSoftFlowd = (PCOSA_DATAMODEL_SOFTFLOWD)calloc(1, sizeof(COSA_DATAMODEL_SOFTFLOWD));
         ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSoftFlowd, nullptr);
-        memset(g_pAdvSecAgent->pAdvSec->pSoftFlowd, 0, sizeof(COSA_DATAMODEL_SOFTFLOWD));
+        g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable = bEnable;
     }
 
-    void AllocateAgentWithAllFeatures() {
-        AllocateAgentWithAdvSec();
-        g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
-        ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
-        memset(g_pAdvSecAgent->pAdvSec->pSafeBrows, 0, sizeof(COSA_DATAMODEL_SB));
-        g_pAdvSecAgent->pAdvSec->pSoftFlowd = (COSA_DATAMODEL_SOFTFLOWD *)malloc(sizeof(COSA_DATAMODEL_SOFTFLOWD));
-        ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSoftFlowd, nullptr);
-        memset(g_pAdvSecAgent->pAdvSec->pSoftFlowd, 0, sizeof(COSA_DATAMODEL_SOFTFLOWD));
-        g_pAdvSecAgent->pAdvPC = (COSA_DATAMODEL_ADVPARENTALCONTROL *)malloc(sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
+    void CreateParentalControl(BOOL bEnable = FALSE) {
+        ASSERT_NE(g_pAdvSecAgent, nullptr);
+        g_pAdvSecAgent->pAdvPC = (PCOSA_DATAMODEL_ADVPARENTALCONTROL)calloc(1, sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
         ASSERT_NE(g_pAdvSecAgent->pAdvPC, nullptr);
-        memset(g_pAdvSecAgent->pAdvPC, 0, sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
-        g_pAdvSecAgent->pPrivProt = (COSA_DATAMODEL_PRIVACYPROTECTION *)malloc(sizeof(COSA_DATAMODEL_PRIVACYPROTECTION));
+        g_pAdvSecAgent->pAdvPC->bEnable = bEnable;
+    }
+
+    void CreatePrivacyProtection(BOOL bEnable = FALSE) {
+        ASSERT_NE(g_pAdvSecAgent, nullptr);
+        g_pAdvSecAgent->pPrivProt = (PCOSA_DATAMODEL_PRIVACYPROTECTION)calloc(1, sizeof(COSA_DATAMODEL_PRIVACYPROTECTION));
         ASSERT_NE(g_pAdvSecAgent->pPrivProt, nullptr);
-        memset(g_pAdvSecAgent->pPrivProt, 0, sizeof(COSA_DATAMODEL_PRIVACYPROTECTION));
+        g_pAdvSecAgent->pPrivProt->bEnable = bEnable;
+    }
+
+    void CreateRabid(ULONG memLimit = 0, ULONG macCache = 0, ULONG dnsCache = 0) {
+        ASSERT_NE(g_pAdvSecAgent, nullptr);
+        g_pAdvSecAgent->pRabid = (PCOSA_DATAMODEL_RABID)calloc(1, sizeof(COSA_DATAMODEL_RABID));
+        ASSERT_NE(g_pAdvSecAgent->pRabid, nullptr);
+        g_pAdvSecAgent->pRabid->uMemoryLimit = memLimit;
+        g_pAdvSecAgent->pRabid->uMacCacheSize = macCache;
+        g_pAdvSecAgent->pRabid->uDNSCacheSize = dnsCache;
     }
 
     void FreeAgent() {
@@ -221,6 +224,7 @@ protected:
         free(g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC);
         free(g_pAdvSecAgent->pAdvSecCujoTracer_RFC);
         free(g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC);
+        free(g_pAdvSecAgent->pLevl_RFC);
         free(g_pAdvSecAgent);
         g_pAdvSecAgent = nullptr;
     }
@@ -228,13 +232,13 @@ protected:
     /* --- Sentinel file helpers --- */
 
     void EnsureSentinelFile(const char *path) {
-        sentinelCreated_ = false;
-        FILE *file = fopen(path, "r");
-        if (file) {
-            fclose(file);
+        FILE *f = fopen(path, "r");
+        if (f) {
+            fclose(f);
+            sentinelCreated_ = false;
         } else {
-            file = fopen(path, "w");
-            if (file) fclose(file);
+            f = fopen(path, "w");
+            if (f) fclose(f);
             sentinelCreated_ = true;
         }
         sentinelPath_ = path;
@@ -248,20 +252,41 @@ protected:
         sentinelPath_.clear();
     }
 
-    /* --- Common mock expectation helpers --- */
+    /* --- Mock expectation helpers for common patterns --- */
 
-    void ExpectSyscfgSetAndCommit(const char *key) {
-        EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
-            .WillOnce(Return(0));
+    void ExpectSyscfgSetAndCommit(const char *key, int times = 1) {
         EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(key), _))
-            .WillOnce(Return(0));
+            .Times(times)
+            .WillRepeatedly(Return(0));
         EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+            .Times(times)
+            .WillRepeatedly(Return(0));
+    }
+
+    void ExpectSprintfChk(int times = 1) {
+        EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+            .Times(times)
+            .WillRepeatedly(Return(0));
+    }
+
+    void ExpectScriptCall(const char *scriptSubstr) {
+        EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr(scriptSubstr), _))
+            .Times(1)
             .WillOnce(Return(0));
     }
 
-    void ExpectSecureSystemCall(const char *substring) {
-        EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr(substring), _))
-            .WillOnce(Return(0));
+    void ExpectStrcmpMatch(const char *expected, const char *param) {
+        int match = 0;
+        EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq(expected), strlen(expected), StrEq(param), _, _, _))
+            .Times(1)
+            .WillOnce(DoAll(SetArgPointee<3>(match), Return(EOK)));
+    }
+
+    void ExpectStrcmpMismatch(const char *expected, const char *param) {
+        int mismatch = 1;
+        EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq(expected), strlen(expected), StrEq(param), _, _, _))
+            .Times(1)
+            .WillOnce(DoAll(SetArgPointee<3>(mismatch), Return(EOK)));
     }
 
 private:
