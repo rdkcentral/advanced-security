@@ -18,61 +18,7 @@
 
 #include "CcspAdvSecurityMock.h"
 
-class CcspAdvSecurityWebconfigTestFixture : public ::testing::Test {
-protected:
-    void SetUp() override {
-       g_syscfgMock = new SyscfgMock();
-        g_securewrapperMock = new SecureWrapperMock();
-        g_msgpackMock = new msgpackMock();
-        g_usertimeMock = new UserTimeMock();
-        g_safecLibMock = new SafecLibMock();
-        g_anscMemoryMock = new AnscMemoryMock();
-        g_baseapiMock = new BaseAPIMock();
-        g_traceMock = new TraceMock();
-        g_base64Mock = new base64Mock();
-        g_rbusMock = new rbusMock();
-        g_cmHALMock = new CmHalMock();
-        g_platformHALMock = new PlatformHalMock();
-        g_cjsonMock = new cjsonMock();
-        g_syseventMock = new SyseventMock();
-        g_webconfigFwMock = new webconfigFwMock();
-        g_anscWrapperApiMock = new AnscWrapperApiMock();
-    }
-
-    void TearDown() override {
-        delete g_syscfgMock;
-        delete g_securewrapperMock;
-        delete g_msgpackMock;
-        delete g_usertimeMock;
-        delete g_safecLibMock;
-        delete g_anscMemoryMock;
-        delete g_baseapiMock;
-        delete g_traceMock;
-        delete g_base64Mock;
-        delete g_rbusMock;
-        delete g_cmHALMock;
-        delete g_platformHALMock;
-        delete g_cjsonMock;
-        delete g_syseventMock;
-        delete g_webconfigFwMock;
-        delete g_anscWrapperApiMock;
-        g_syscfgMock = nullptr;
-        g_securewrapperMock = nullptr;
-        g_msgpackMock = nullptr;
-        g_usertimeMock = nullptr;
-        g_safecLibMock = nullptr;
-        g_anscMemoryMock = nullptr;
-        g_baseapiMock = nullptr;
-        g_traceMock = nullptr;
-        g_base64Mock = nullptr;
-        g_rbusMock = nullptr;
-        g_cmHALMock = nullptr;
-        g_platformHALMock = nullptr;
-        g_cjsonMock = nullptr;
-        g_syseventMock = nullptr;
-        g_webconfigFwMock = nullptr;
-        g_anscWrapperApiMock = nullptr;
-    }
+class CcspAdvSecurityWebconfigTestFixture : public CcspAdvSecurityTestBase {
 };
 
 // cosa_adv_security_webconfig.c file test cases
@@ -82,7 +28,6 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_get_blobversion_suc
     char subdoc[] = "test";
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
-        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_get(_, _, _, _))
@@ -102,7 +47,6 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_get_blobversion_fai
     char subdoc[] = "test";
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
-        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_syscfgMock, syscfg_get(_, _, _, _))
         .WillOnce(DoAll(
@@ -126,11 +70,9 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_set_blobversion_suc
         .WillRepeatedly(Return(0));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(_, _))
-        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
-        .Times(1)
         .WillOnce(Return(0));
 
     int result = advsec_webconfig_set_blobversion(subdoc, version);
@@ -149,7 +91,6 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_set_blobversion_fai
         .WillRepeatedly(Return(0));
 
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(_, _))
-        .Times(1)
         .WillOnce(Return(1));
 
     int result = advsec_webconfig_set_blobversion(subdoc, version);
@@ -162,10 +103,8 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_init) {
     blobRegInfo *blobData;
 
     EXPECT_CALL(*g_safecLibMock, _memset_s_chk(_, _, _, _, _))
-        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
-        .Times(1)
         .WillOnce(Return(0));
 
     EXPECT_CALL(*g_webconfigFwMock, register_sub_docs(_, _, _, _))
@@ -211,13 +150,10 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_process_request_suc
     g_pAdvSecAgent->pPrivProt->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _memset_s_chk(_, _, _, _, _))
-        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, _, _, _, _))
-        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -configure_features &"),_))
-        .Times(1)
         .WillOnce(Return(0));
 
     int result = advsec_webconfig_handle_blob(advsec.param);
@@ -269,13 +205,10 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_process_request_fai
     g_pAdvSecAgent->pPrivProt->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _memset_s_chk(_, _, _, _, _))
-        .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, _, _, _, _))
-        .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disable &"),_))
-        .Times(1)
         .WillOnce(Return(0));
     
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(_, _))
