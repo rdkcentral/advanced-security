@@ -133,6 +133,10 @@ TEST_F(CcspAdvSecurityDmlTestFixture, CheckDeviceFingerPrint_GetParamBoolValue_U
         .Times(1)
         .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
 
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("FlushConntrackTable"), strlen("FlushConntrackTable"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
+
     BOOL result = DeviceFingerPrint_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
 
     EXPECT_FALSE(result);
@@ -2910,4 +2914,81 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvanceSecurityCujoTelemetry_RFC_SetParamB
 
     free(g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC);
     free(g_pAdvSecAgent);
+}
+
+TEST_F(CcspAdvSecurityDmlTestFixture, CheckDeviceFingerPrint_GetParamBoolValue_FlushConntrackTable) {
+    BOOL resultBool;
+    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    g_pAdvSecAgent = pMyObject;
+
+    const char* ParamName = "FlushConntrackTable";
+    int comparisonResult = 1;
+    int comparisonResultMatch = 0;
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("FlushConntrackTable"), strlen("FlushConntrackTable"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResultMatch), Return(EOK)));
+
+    BOOL result = DeviceFingerPrint_GetParamBoolValue(NULL, (char*)ParamName, &resultBool);
+
+    EXPECT_TRUE(result);
+    EXPECT_FALSE(resultBool);
+
+    delete pMyObject;
+}
+
+TEST_F(CcspAdvSecurityDmlTestFixture, CheckDeviceFingerPrint_SetParamBoolValue_FlushConntrackTable_True) {
+    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    g_pAdvSecAgent = pMyObject;
+
+    const char* ParamName = "FlushConntrackTable";
+    BOOL bValue = TRUE;
+    int comparisonResult = 1;
+    int comparisonResultMatch = 0;
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("FlushConntrackTable"), strlen("FlushConntrackTable"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResultMatch), Return(EOK)));
+
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("conntrack -F"), _))
+        .Times(1)
+        .WillOnce(Return(0));
+
+    BOOL result = DeviceFingerPrint_SetParamBoolValue(NULL, (char*)ParamName, bValue);
+
+    EXPECT_TRUE(result);
+
+    delete pMyObject;
+}
+
+TEST_F(CcspAdvSecurityDmlTestFixture, CheckDeviceFingerPrint_SetParamBoolValue_FlushConntrackTable_False) {
+    PCOSA_DATAMODEL_AGENT pMyObject = new COSA_DATAMODEL_AGENT;
+    g_pAdvSecAgent = pMyObject;
+
+    const char* ParamName = "FlushConntrackTable";
+    BOOL bValue = FALSE;
+    int comparisonResult = 1;
+    int comparisonResultMatch = 0;
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("Enable"), strlen("Enable"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("FlushConntrackTable"), strlen("FlushConntrackTable"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResultMatch), Return(EOK)));
+
+    BOOL result = DeviceFingerPrint_SetParamBoolValue(NULL, (char*)ParamName, bValue);
+
+    EXPECT_TRUE(result);
+
+    delete pMyObject;
 }

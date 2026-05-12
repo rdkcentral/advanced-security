@@ -564,4 +564,10 @@ CosaAdvSecFetchSbConfig
         ULONG* pUlSize,
         ULONG* puLong
     );
+
+ANSC_STATUS
+CosaAdvSecFlushConntrackTable
+    (
+        VOID
+    );
 #endif

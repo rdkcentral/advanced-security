@@ -3521,3 +3521,20 @@ ANSC_STATUS CosaAdvSecAgentRaptrDeInit(ANSC_HANDLE hThisObject)
     CcspTraceWarning (("AdvSecAgentRaptr_RFCEnable:FALSE\n"));
     return returnStatus;
 }
+
+ANSC_STATUS CosaAdvSecFlushConntrackTable(VOID)
+{
+    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
+    int rc = -1;
+
+    CcspTraceInfo(("%s: Flushing connection tracking table\n", __FUNCTION__));
+
+    rc = v_secure_system("conntrack -F");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+        CcspTraceError(("%s: conntrack flush failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        returnStatus = ANSC_STATUS_FAILURE;
+    }
+
+    return returnStatus;
+}

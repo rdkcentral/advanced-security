@@ -141,6 +141,15 @@ DeviceFingerPrint_GetParamBoolValue
         return TRUE;
     }
 
+    rc = strcmp_s("FlushConntrackTable", strlen("FlushConntrackTable"), ParamName, &ind);
+    ERR_CHK(rc);
+    if((rc == EOK) && (!ind))
+    {
+        /* FlushConntrackTable is a trigger parameter, always returns FALSE */
+        *pBool = FALSE;
+        return TRUE;
+    }
+
     CcspTraceWarning(("%s: Unsupported parameter '%s'\n", __FUNCTION__, ParamName));
     return FALSE;
 }
@@ -210,6 +219,22 @@ DeviceFingerPrint_SetParamBoolValue
             return  returnStatus;
         }
 
+        return TRUE;
+    }
+
+    rc = strcmp_s("FlushConntrackTable", strlen("FlushConntrackTable"), ParamName, &ind);
+    ERR_CHK(rc);
+    if((rc == EOK) && (!ind))
+    {
+        if( bValue )
+        {
+            returnStatus = CosaAdvSecFlushConntrackTable();
+            if ( returnStatus != ANSC_STATUS_SUCCESS )
+            {
+                CcspTraceError(("%s: FlushConntrackTable failed\n", __FUNCTION__));
+                return FALSE;
+            }
+        }
         return TRUE;
     }
 
