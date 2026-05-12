@@ -18,6 +18,7 @@ This matrix maps all `Device.DeviceInfo.X_RDKCENTRAL-COM_*` ownership areas to i
 | `X_RDKCENTRAL-COM_DeviceFingerPrint.LoggingPeriod` | Telemetry logging interval (seconds) | `DeviceFingerPrint_SetParamUlongValue` | `CosaAdvSecSetLoggingPeriod()` | `Advsecurity_LoggingPeriod` | — |
 | `X_RDKCENTRAL-COM_DeviceFingerPrint.EndpointURL` | Cloud endpoint URL (HTTPS only) | `DeviceFingerPrint_SetParamStringValue` | URL validated by `isValidUrl()` | `Advsecurity_CustomEndpointURL` | — |
 | `X_RDKCENTRAL-COM_DeviceFingerPrint.LogLevel` | Agent log level | `DeviceFingerPrint_SetParamUlongValue` | `CosaAdvSecSetLogLevel()` | `Advsecurity_LogLevel` | — |
+| `X_RDKCENTRAL-COM_DeviceFingerPrint.FlushConntrackTable` | Trigger to flush connection tracking table (always reads FALSE) | `DeviceFingerPrint_SetParamBoolValue` | `CosaAdvSecFlushConntrackTable()` | — (trigger, no persistence) | — |
 
 ### AdvancedSecurity.SafeBrowsing Parameters
 

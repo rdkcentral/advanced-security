@@ -24,7 +24,7 @@ This catalog documents all security feature modules, their RFC toggle dependenci
 ### Identity
 
 - **TR-181**: `Device.DeviceInfo.X_RDKCENTRAL-COM_DeviceFingerPrint`
-- **Parameters**: `Enable` (bool), `LoggingPeriod` (uint), `EndpointURL` (string), `LogLevel` (uint)
+- **Parameters**: `Enable` (bool), `LoggingPeriod` (uint), `EndpointURL` (string), `LogLevel` (uint), `FlushConntrackTable` (bool, trigger)
 - **syscfg**: `Advsecurity_DeviceFingerPrint`
 - **Init/DeInit**: `CosaAdvSecInit()` / `CosaAdvSecDeInit()`
 - **Script**: `start_adv_security.sh -enable` / `-disable`

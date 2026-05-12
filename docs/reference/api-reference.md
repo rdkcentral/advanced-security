@@ -169,6 +169,7 @@ All follow the pattern: persist to syscfg → check DeviceFingerPrint active →
 | `CosaRabidSetMacCacheSize(value)` | Set Rabid MAC cache (max: 32768) |
 | `CosaRabidSetDNSCacheSize(value)` | Set Rabid DNS cache (max: 32768) |
 | `CosaAdvSecFetchSbConfig(param, ...)` | Fetch SafeBrowsing config from `/tmp/safebro.json` |
+| `CosaAdvSecFlushConntrackTable()` | Flush connection tracking table via `conntrack -F` |
 
 ## 6. Syscfg Utility APIs
 
