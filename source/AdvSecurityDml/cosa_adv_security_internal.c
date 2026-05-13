@@ -2354,7 +2354,7 @@ void advsec_handle_sysevent_notification(char *event, char *val)
 
             if((val[0] == '\0') || (val[1] != '\0'))
             {
-                CcspTraceWarning(("CcspAdvSecurity: Invalid Bridge Mode value '%s'\n", val));
+                CcspTraceWarning(("CcspAdvSecurity: Invalid sysevent bridge_mode value '%s'\n", val));
                 return;
             }
 
@@ -2368,7 +2368,7 @@ void advsec_handle_sysevent_notification(char *event, char *val)
             
             if((val[0] == '0') && (val[1] == '\0'))
             {
-                CcspTraceWarning(("CcspAdvSecurity: Received sysevent bridge_mode Off\n"));
+                CcspTraceWarning(("CcspAdvSecurity: Received Bridge Mode Off\n"));
                 ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enable &");
                 if(ret !=0)
                 {
