@@ -292,7 +292,7 @@ static void advsec_create_dir(char *path)
 {
     int ret =0;
     /* CID 135545: Time of check time of use  */
-    ret = mkdir(path, 0777);
+    ret = mkdir(path, 0755);
     if (ret < 0 && errno != EEXIST)
     {
         CcspTraceError(("%s:Folder Not created. Error %d\n", __FUNCTION__,errno));
@@ -513,6 +513,8 @@ int wifidcl_init_precheck()
             returnStatus = ANSC_STATUS_FAILURE;
         }
         else {
+            /* rbus_getStr() return is strdup()'ed, free it before returning */
+            free(s);
             break;
         }
 
@@ -679,7 +681,7 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
     }
     memset(data, 0, file_length+1);
 
-    if( !advsec_read_from_file(SAFEBRO_CONFIG_FILE_PATH,data, file_length) )
+    if( !advsec_read_from_file(SAFEBRO_CONFIG_FILE_PATH,data, file_length + 1) )
     {
         CcspTraceWarning(("Error in opening safebro config JSON file %s\n", SAFEBRO_CONFIG_FILE_PATH));
         /* CID 190454: Resource leak */
@@ -709,7 +711,7 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
             if( ((rc1 == EOK) && (!ind1)) || ((rc2 == EOK) && (!ind2)) )
             {
                 paramLen = (int)strlen(paramName);
-                for (i = 0, j = 0; i < paramLen; i++, j++)
+                for (i = 0, j = 0; i < paramLen && j < (int)sizeof(json_key) - 2; i++, j++)
                 {
                     if(isupper(paramName[i]) && i != 0)
                     {
@@ -722,6 +724,7 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
                         json_key[j] = paramName[i];
                     }
                 }
+                json_key[j] = '\0';
             }
             else
             {
@@ -739,22 +742,36 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
             {
                 if (parameterObj->valuestring)
                 {
-                    rc1 = strcpy_s(pValue, strlen(parameterObj->valuestring) + 1, parameterObj->valuestring);
+                    if (pValue == NULL || pUlSize == NULL)
+                    {
+                        cJSON_Delete(json);
+                        return ANSC_STATUS_FAILURE;
+                    }
+
+                    rc1 = strcpy_s(pValue, *pUlSize, parameterObj->valuestring);
                     if(rc1 != EOK)
                     {
                         ERR_CHK(rc1);
+                        cJSON_Delete(json);
                         return ANSC_STATUS_FAILURE;
                     }
                     *pUlSize = AnscSizeOfString(pValue);
                 }
                 else
                 {
+                    if (puLong == NULL)
+                    {
+                        cJSON_Delete(json);
+                        return ANSC_STATUS_FAILURE;
+                    }
                     *puLong = (unsigned long) parameterObj->valueint;
                 }
             }
             else
             {
                 CcspTraceWarning(("%s - parameterObj is NULL\n", __FUNCTION__ ));
+                cJSON_Delete(json);
+                return ANSC_STATUS_FAILURE;
             }
             cJSON_Delete(json);
         }
@@ -1206,7 +1223,7 @@ CosaSecurityInitialize
         {
             ERR_CHK(rc);
             sleep(30);
-            exit(0);
+            exit(1);
         }
         CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
     }
@@ -1214,7 +1231,7 @@ CosaSecurityInitialize
     {
         CcspTraceError(("CcspAdvSecurity: Unable to get MACAdress\n"));
         sleep(30);
-        exit(0);
+        exit(1);
     }
 #elif defined(PON_GATEWAY)
     // For PON gateway, always use HAL API
@@ -1228,7 +1245,7 @@ CosaSecurityInitialize
     {
         CcspTraceError(("CcspAdvSecurity: Failed to get BaseMacAddress from HAL API\n"));
         sleep(30);
-        exit(0);
+        exit(1);
     }
 #else
     char isEthEnabled[64]={'\0'};
@@ -1267,7 +1284,7 @@ CosaSecurityInitialize
             ERR_CHK(rc);
             sysevent_close(fd, token);
             sleep(30);
-            exit(0);
+            exit(1);
         }
         CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
     }
@@ -1284,7 +1301,7 @@ CosaSecurityInitialize
                   ERR_CHK(rc);
                   sysevent_close(fd, token);
                   sleep(30);
-                  exit(0);
+                  exit(1);
               }
               CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
           }
@@ -1293,7 +1310,7 @@ CosaSecurityInitialize
               CcspTraceWarning(("CcspAdvSecurity: Unable to get MACAdress or HAL not ready\n"));
               sysevent_close(fd, token);
               sleep(30);
-              exit(0);
+              exit(1);
           }
     }
 #endif
@@ -1302,7 +1319,7 @@ CosaSecurityInitialize
         CcspTraceWarning(("CcspAdvSecurity: Unable to get MACAdress or HAL not ready\n"));
         sysevent_close(fd, token);
         sleep(30);
-        exit(0);
+        exit(1);
     }
     /* close this session with syseventd */
     sysevent_close(fd, token);
@@ -1515,7 +1532,14 @@ ANSC_STATUS CosaGetSysCfgUlong(char* setting, ULONG* value)
 
     if(ANSC_STATUS_SUCCESS == (ret = syscfg_get( NULL, setting, buf, sizeof(buf))))
     {
-        *value = atol(buf);
+        char *endptr = NULL;
+        errno = 0;
+        *value = strtoul(buf, &endptr, 10);
+        if(errno != 0 || endptr == buf)
+        {
+            CcspTraceError(("syscfg_get: invalid numeric value for [%s]\n", setting));
+            *value = 0;
+        }
     }
     else
     {

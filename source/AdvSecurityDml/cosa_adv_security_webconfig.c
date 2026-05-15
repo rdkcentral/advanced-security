@@ -18,6 +18,7 @@
 
 #include "cosa_adv_security_webconfig.h"
 #include "webconfig_framework.h"
+#include <errno.h>
 #include <syscfg/syscfg.h>
 #include "safec_lib_common.h"
 /* API to get the subdoc version */
@@ -25,23 +26,26 @@
 
 uint32_t advsec_webconfig_get_blobversion(char* subdoc)
 {
-
-	char subdoc_ver[64] = {0}, buf[72] = {0};
-        errno_t rc = -1;
-        rc = sprintf_s(buf,sizeof(buf),"%s_version",subdoc);
-        if(rc < EOK)
+    char subdoc_ver[64] = {0}, buf[72] = {0};
+    errno_t rc = -1;
+    rc = sprintf_s(buf,sizeof(buf),"%s_version",subdoc);
+    if(rc < EOK)
+    {
+        ERR_CHK(rc);
+        return 0;
+    }
+    if ( syscfg_get( NULL, buf, subdoc_ver, sizeof(subdoc_ver)) == 0 )
+    {
+        char *endptr = NULL;
+        errno = 0;
+        uint32_t version = (uint32_t)strtoul(subdoc_ver, &endptr, 10);
+        if(errno != 0 || endptr == subdoc_ver)
         {
-            ERR_CHK(rc);
             return 0;
         }
-    	if ( syscfg_get( NULL, buf, subdoc_ver, sizeof(subdoc_ver)) == 0 )
-    	{
-        	int version = atoi(subdoc_ver);
-      		//  uint32_t version = strtoul(subdoc_ver, NULL, 10) ; 
-
-        	return (uint32_t)version;
-    	}
-    	return 0;
+        return version;
+    }
+    return 0;
 }
 
 /* API to update the subdoc version */
@@ -108,6 +112,7 @@ void advsec_webconfig_init()
                 if(rc != EOK)
 		{
                     ERR_CHK(rc);
+                    AnscFreeMemory(blobData);
                     return;
                 }
 

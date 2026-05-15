@@ -68,8 +68,8 @@ void* comp_helper_convert( const void *buf, size_t len,
             msgpack_unpacked_init( &msg );
             /* The outermost wrapper MUST be a map. */
             mp_rv = msgpack_unpack_next( &msg, (const char*) buf, len, &offset );
-	/*For Printing the msgpack object use the following 3 lines*/
-	    msgpack_object obj = msg.data;
+            /*For Printing the msgpack object use the following 3 lines*/
+            msgpack_object obj = msg.data;
             msgpack_object_print(stdout, obj);
             fprintf(stderr,"\n");
 

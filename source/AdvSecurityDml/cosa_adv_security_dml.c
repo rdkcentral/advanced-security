@@ -54,24 +54,47 @@ ANSC_STATUS isValidUrl( char *inputparam )
 {
     ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
 
-    if(urlStartsWith(inputparam, "https://"))
+    if (inputparam == NULL)
+    {
+        return ANSC_STATUS_FAILURE;
+    }
+
+    if (urlStartsWith(inputparam, "https://") != 0)
     {
         returnStatus = ANSC_STATUS_FAILURE;
     }
-    if(strstr(inputparam,";")) // check for possible command injection 
+    if (strstr(inputparam, ";")) // check for possible command injection
     {
         returnStatus = ANSC_STATUS_FAILURE;
     }
-    else if(strstr(inputparam,"&"))
+    if (strstr(inputparam, "&"))
     {
         returnStatus = ANSC_STATUS_FAILURE;
     }
-    else if(strstr(inputparam,"|"))
+    if (strstr(inputparam, "|"))
     {
         returnStatus = ANSC_STATUS_FAILURE;
     }
-    else if(strstr(inputparam,"'"))
+    if (strstr(inputparam, "'"))
+    {
         returnStatus = ANSC_STATUS_FAILURE;
+    }
+    if (strstr(inputparam, "`"))
+    {
+        returnStatus = ANSC_STATUS_FAILURE;
+    }
+    if (strstr(inputparam, "$"))
+    {
+        returnStatus = ANSC_STATUS_FAILURE;
+    }
+    if (strstr(inputparam, "\""))
+    {
+        returnStatus = ANSC_STATUS_FAILURE;
+    }
+    if (strchr(inputparam, '\n') || strchr(inputparam, '\r'))
+    {
+        returnStatus = ANSC_STATUS_FAILURE;
+    }
 
     return returnStatus;
 }

@@ -331,6 +331,23 @@ TEST_F(CcspAdvSecurityDmlTestFixture, CheckDeviceFingerPrint_SetParamStringValue
     EXPECT_EQ(ANSC_STATUS_SUCCESS, returnStatus);
 }
 
+TEST_F(CcspAdvSecurityDmlTestFixture, CheckDeviceFingerPrint_SetParamStringValue_RejectsHttpEndpoint) {
+    char pString[] = "http://www.example.com";
+    const char* ParamName = "EndpointURL";
+    int comparisonResult = 0;
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("EndpointURL"), strlen("EndpointURL"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
+
+    EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(_, _)).Times(0);
+    EXPECT_CALL(*g_syscfgMock, syscfg_commit()).Times(0);
+
+    BOOL result = DeviceFingerPrint_SetParamStringValue(NULL, (char*)ParamName, pString);
+
+    EXPECT_FALSE(result);
+}
+
 TEST_F(CcspAdvSecurityDmlTestFixture, SetParamStringValue_Success) {
     const char* ParamName = "Data";
     const char* pString = "encodedData";
