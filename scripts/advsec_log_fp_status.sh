@@ -46,13 +46,13 @@ check_status()
     fi
     print_telemetry_log $AGENT_HIBERNATION_PRINT$_status $ADVSEC_AGENT_LOG_PATH
 
-    _RES=`syscfg get dmz_enabled`
+    _RES=$(syscfg get dmz_enabled)
     if [ "$_RES" = "1" ] ; then
         print_telemetry_log ${ADVSEC_DMZ_ENABLE} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
     if [ -e $ADVSEC_SAFEBRO_SETTING ]; then
-        _RES=`grep $ADVSEC_LISTEN_MODE_FORMAT $ADVSEC_SAFEBRO_SETTING`
+        _RES=$(grep "$ADVSEC_LISTEN_MODE_FORMAT" "$ADVSEC_SAFEBRO_SETTING")
         if [ "$?" = "0" ] ; then
             print_telemetry_log ${ADVSEC_LISTEN_MODE_ENABLE} ${ADVSEC_AGENT_LOG_PATH}
         fi
@@ -75,17 +75,17 @@ check_status()
         print_telemetry_log ${PRIVACY_PROTECTION_RFC_DISABLED_LOG} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
-    AGENT_USER=`advsec_get_agent_group_name`
+    AGENT_USER=$(advsec_get_agent_group_name)
     if [ "${AGENT_USER}" = "root" ]; then
         print_telemetry_log ${AGENT_RUNNING_AS_ROOT_LOG} ${ADVSEC_AGENT_LOG_PATH}
     elif [ "${AGENT_USER}" = "${CUJO_AGENT_USER_NAME}" ]; then
         print_telemetry_log ${AGENT_RUNNING_AS_NON_ROOT_LOG} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
-    echo `cujo-agent-status apptracker-active-macs` | tr " " "\n" > $ADV_PARENTAL_CONTROL_ACTIVEMACSFILE
+    cujo-agent-status apptracker-active-macs | tr " " "\n" > $ADV_PARENTAL_CONTROL_ACTIVEMACSFILE
     if [ -e ${ADV_PARENTAL_CONTROL_PATH} ]; then
         if [ -e $ADV_PARENTAL_CONTROL_ACTIVEMACSFILE ]; then
-            _ACTIVE_MACS_COUNT=`cat $ADV_PARENTAL_CONTROL_ACTIVEMACSFILE |  grep ":" | wc -l`
+            _ACTIVE_MACS_COUNT=$(grep -c ":" "$ADV_PARENTAL_CONTROL_ACTIVEMACSFILE")
         else
             _ACTIVE_MACS_COUNT=0
         fi
@@ -190,11 +190,14 @@ print_telemetry_log()
     string_=$1
     file_path=$2
 
-    _RES=`grep ${string_} ${file_path}`
+    _RES=$(grep "${string_}" "${file_path}")
     if [ "$?" = "1" ] ; then
         echo_t ${string_} >> ${file_path}
     fi
 }
 
-$1
+case "$1" in
+    check_status) check_status ;;
+    *) echo "Unknown command: $1" >&2; exit 1 ;;
+esac
 

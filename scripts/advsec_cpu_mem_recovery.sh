@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ##########################################################################
 #
 # Copyright 2018 Comcast Cable Communications Management, LLC
@@ -20,7 +20,7 @@
 
 source $(dirname $(realpath ${0}))/advsec.sh
 
-bridge_mode=`syscfg get bridge_mode`
+bridge_mode=$(syscfg get bridge_mode)
 if [ "${bridge_mode}" = "2" ]; then
         #Advsec Agent doesn't run in Bridge mode.
         exit 0
@@ -37,7 +37,7 @@ MAX_MEM_SECOND_SOFT_LIMIT=45
 MAX_MEM_HARD_LIMIT=70
 
 #syscfg contains value in MB.
-max_rss=`syscfg get Advsecurity_RabidMemoryLimit`
+max_rss=$(syscfg get Advsecurity_RabidMemoryLimit)
 if [ "$max_rss" != "" ]; then
     MAX_MEM_HARD_LIMIT=$max_rss
 fi
@@ -71,7 +71,7 @@ get_agent_pid_list()
     echo "Agent processes: ${AGENT_PROC}"
 
 	for agent in ${AGENT_PROC}; do
-		PID=`pidof $agent`
+		PID=$(pidof "$agent")
 		if [ "$PID" != "" ]; then
 			PID_LIST="$PID_LIST $PID"
 		fi
@@ -105,14 +105,14 @@ get_total_cpu_usage()
 #8 softirq: servicing softirqs
 #9 steal: involuntary wait
 #10 guest: running a normal guest
-	total_cpu_usage=`grep '^cpu ' /proc/stat | awk '{sum=$2+$3+$4+$5+$6+$7+$8+$9+$10; print sum}'`
+	total_cpu_usage=$(awk '/^cpu /{sum=$2+$3+$4+$5+$6+$7+$8+$9+$10; print sum}' /proc/stat)
 	echo "$total_cpu_usage"
 }
 
 log_agent_cpu_statistics()
 {
 	#Log all agent processes cpu stats before clearing them.
-	agent_cpu_stats=`top -bn1 | grep -e ${CUJO_AGENT} | grep -v grep`
+	agent_cpu_stats=$(top -bn1 | grep -e ${CUJO_AGENT} | grep -v grep)
 	echo "####Advsec Agent CPU stats####" >> $ADVSEC_AGENT_LOG_PATH
 	echo_t "$agent_cpu_stats" >> $ADVSEC_AGENT_LOG_PATH
 	echo "##############################" >> $ADVSEC_AGENT_LOG_PATH
@@ -139,7 +139,7 @@ log_agent_mem_statistics()
 		if [ -e "$sfile" ]; then
                         rss=$(awk '/VmRSS/{print $2}' "$sfile")
 			echo_t "$pid:$proc_name : $rss kb" >> $ADVSEC_AGENT_LOG_PATH
-                        total_rss_mem=`expr $total_rss_mem + $rss`
+                        total_rss_mem=$(expr $total_rss_mem + $rss)
 		fi
         done
         echo_t "ADVSEC_PROCESS_TOTAL_RSS_MEM:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
@@ -156,7 +156,7 @@ log_agent_mem_statistics()
         fi
 
 	if [ "$BOX_TYPE" = "XF3" ]; then
-		lowfree_mem=`cat /proc/meminfo | grep -i lowfree | awk '{ print $2 }'`
+		lowfree_mem=$(awk '/[Ll]ow[Ff]ree/{print $2}' /proc/meminfo)
 		if [ $lowfree_mem -le $LOWFREE_MEM_THRESHOLD ]; then
 			echo_t "ADVSEC Lowfree Memory threshold recovery" >> $ADVSEC_AGENT_LOG_PATH
 			advsec_restart_agent "LowFreeMem"
@@ -165,10 +165,10 @@ log_agent_mem_statistics()
 	fi
 
 	if [ ! -e ${ADVSEC_USERSPACE_ENABLED_PATH} ]; then
-		tracer_interval=`${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e 'return cujo.config.tracer_interval'`
+		tracer_interval=$(${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e 'return cujo.config.tracer_interval')
 		if [ "x${tracer_interval}" = "x" ]; then
 			${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e 'cujo.nf.dostring([[print("nfluamem:"..collectgarbage("count"))]])'
-			nflua_rss=`dmesg | grep nfluamem: | tail -1 | cut -d':' -f2`
+			nflua_rss=$(dmesg | grep nfluamem: | tail -1 | cut -d':' -f2)
 			if [ "${nflua_rss}" = "" ]; then
 				nflua_rss=0
 			fi
@@ -226,10 +226,10 @@ sleep $SAMPLING_TIME
 total_cpu_time_after=$( get_agent_cpu_time_spent )
 total_cpu_usage_after=$( get_total_cpu_usage )
 
-cpu_time_diff=`expr $total_cpu_time_after - $total_cpu_time_before`
-cpu_usage_diff=`expr $total_cpu_usage_after - $total_cpu_usage_before`
+cpu_time_diff=$(expr $total_cpu_time_after - $total_cpu_time_before)
+cpu_usage_diff=$(expr $total_cpu_usage_after - $total_cpu_usage_before)
 
-CPU=`expr $cpu_time_diff \* 100 / $cpu_usage_diff`
+CPU=$(expr $cpu_time_diff \* 100 / $cpu_usage_diff)
 
 echo_t "Advsec total_CPU_usage=$CPU %" >> $ADVSEC_AGENT_LOG_PATH
 

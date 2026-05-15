@@ -204,7 +204,7 @@ advsec_is_agent_installed()
 
 advsec_start_agent()
 {
-    ADV_AGENT_PID=`advsec_is_alive ${CUJO_AGENT}`
+    ADV_AGENT_PID=$(advsec_is_alive ${CUJO_AGENT})
     if [ "${ADV_AGENT_PID}" = "" ] ; then
         echo_t "Starting ${CUJO_AGENT_LOG}..."
         echo_t "[ADVSEC_LOG_START]" >> $ADVSEC_AGENT_LOG_PATH
@@ -368,7 +368,7 @@ advsec_module_load()
 		echo_t "[ADVSEC] Load nfnetlink_queue kernel module manually" >> $ADVSEC_AGENT_LOG_PATH
 		insmod $NF_NETLINK_QUEUE_MODULE_PATH 2>> $ADVSEC_AGENT_LOG_PATH
 		STATUS=$?
-		if [ ${STATUS} ]; then
+		if [ ${STATUS} -eq 0 ]; then
 			echo_t "[ADVSEC] kernel module nfnetlink_queue successfully loaded" >> $ADVSEC_AGENT_LOG_PATH
 		else
                 	echo_t "[ADVSEC] Unable to load nfnetlink_queue kernel module" >> $ADVSEC_AGENT_LOG_PATH
@@ -440,10 +440,10 @@ advsec_module_unload()
 
 advsec_kernel_module_load()
 {
-    if [ -e $1 ]; then
-        insmod $1 2>> $ADVSEC_AGENT_LOG_PATH
+    if [ -e "$1" ]; then
+        insmod "$1" 2>> $ADVSEC_AGENT_LOG_PATH
         STATUS=$?
-        if [ ${STATUS} ]; then
+        if [ ${STATUS} -eq 0 ]; then
             echo_t "[ADVSEC] NFLua kernel module $1 successfully loaded"  >> $ADVSEC_AGENT_LOG_PATH
         else
             echo_t "[ADVSEC] Unable to load $1 kernel module"  >> $ADVSEC_AGENT_LOG_PATH
@@ -453,12 +453,12 @@ advsec_kernel_module_load()
 
 advsec_kernel_module_unload()
 {
-    if [ -e $1 ]; then
+    if [ -e "$1" ]; then
         module_name=$(basename "$1" | cut -d . -f1)
         if lsmod | grep -q "^$module_name"; then
-            rmmod $1 2>> $ADVSEC_AGENT_LOG_PATH
+            rmmod "$1" 2>> $ADVSEC_AGENT_LOG_PATH
             STATUS=$?
-            if [ ${STATUS} ]; then
+            if [ ${STATUS} -eq 0 ]; then
                 echo_t "[ADVSEC] kernel module $1 successfully unloaded"  >> $ADVSEC_AGENT_LOG_PATH
             else
                 echo_t "[ADVSEC] Unable to unload $1 kernel module"  >> $ADVSEC_AGENT_LOG_PATH
@@ -506,11 +506,11 @@ advsec_agent_restart_needed()
 	#Check for cloud socket connection
 	if [ -e ${SOFTFLOWD_ENABLE} ] || [ -e ${ADV_PARENTAL_CONTROL_PATH} ]; then
 		if [ -e ${ADVSEC_CLOUD_IP} ] && [ -e ${ADVSEC_ASSOC_SUCCESS} ]; then
-			ip_port=`cat ${ADVSEC_CLOUD_IP}`
+			ip_port=$(cat "${ADVSEC_CLOUD_IP}")
 			if [ "${ip_port}" != "" ]; then
-				stat=`sysevent get wan-status`
+				stat=$(sysevent get wan-status)
 				if [ "${stat}" = "started" ]; then
-					res=`netstat -an | grep ${ip_port} | grep "ESTABLISHED"`
+					res=$(netstat -an | grep -F "${ip_port}" | grep "ESTABLISHED")
 					if [ "${res}" = "" ]; then
 						result="1"
 						touch ${ADVSEC_AGENT_SHUTDOWN}
@@ -529,25 +529,21 @@ advsec_is_alive() {
 
 	if [ "$1" = "${CUJO_AGENT}" ]
 	then
-		PROCESS_PID=`pidof ${CUJO_AGENT}`
+        PROCESS_PID=$(pidof ${CUJO_AGENT})
 	fi
 	echo $PROCESS_PID
 }
 
 advsec_stop_process() {
-	ADVSEC_RDK_LOG_FILE=""
 	echo_t "Stopping process " $1
 	if [ "$1" = "${CUJO_AGENT}" ]
 	then
-		PROCESS_PID=`pidof ${CUJO_AGENT}`
-		ADVSEC_RDK_LOG_FILE=$ADVSEC_AGENT_LOG_PATH
+		PROCESS_PID=$(pidof ${CUJO_AGENT})
 	fi
 	if [ "$PROCESS_PID" != "" ]; then
 		kill -TERM $PROCESS_PID
 	fi
-	if [ "$ADVSEC_RDK_LOG_FILE" != "" ]; then
-		echo_t "[ADVSEC_LOG_STOP]" >> $ADVSEC_RDK_LOG_FILE
-	fi
+	echo_t "[ADVSEC_LOG_STOP]" >> $ADVSEC_AGENT_LOG_PATH
 }
 
 advsec_cleanup_config() {
@@ -648,11 +644,11 @@ advsec_restart_agent() {
 
 advsec_get_agent_group_name() 
 {
-        agent_pid=`pidof cujo-agent`
+        agent_pid=$(pidof cujo-agent)
         if [ -n "$agent_pid" ]
         then
-         agent_uid=`cat /proc/"$agent_pid"/status | grep -i uid | awk '{print $NF}'`
-         agentuser=`cat /etc/passwd | grep ":$agent_uid:" | cut -d: -f1`
+         agent_uid=$(awk '/[Uu][Ii][Dd]/{print $NF; exit}' /proc/"$agent_pid"/status)
+         agentuser=$(awk -F: -v uid="$agent_uid" '$3 == uid {print $1; exit}' /etc/passwd)
          echo $agentuser
         fi
 
@@ -660,7 +656,7 @@ advsec_get_agent_group_name()
 
 advsec_agent_loglevel()
 {
-      get_agentloglevel=`${RUNTIME_DIR}/bin/cujo-agent-log | awk '{print $NF}'`
+      get_agentloglevel=$(${RUNTIME_DIR}/bin/cujo-agent-log | awk '{print $NF}')
       if [ "$get_agentloglevel" != "$1" ]; then
          set_agentloglevel="${RUNTIME_DIR}/bin/cujo-agent-log $1"
          ${set_agentloglevel}
@@ -670,7 +666,7 @@ advsec_agent_loglevel()
 
 advsec_agent_get_safebro_config()
 {
-    safebro_json=`${RUNTIME_DIR}/bin/${CUJO_AGENT_STATUS} safebro-config`
+    safebro_json=$(${RUNTIME_DIR}/bin/${CUJO_AGENT_STATUS} safebro-config)
     echo $safebro_json > ${ADVSEC_SAFEBRO_SETTING}
 }
 
@@ -678,8 +674,8 @@ wait_for_lanip()
 {
     ip_retry_limit=6
     while [ ${ip_retry_limit} -gt 0 ]; do
-        lanipv6addr=`ip -6 a s brlan0 | grep global | cut -d " " -f 6`
-        lanipv4addr=`ip -4 a s brlan0 | grep global | cut -d " " -f 6`
+        lanipv6addr=$(ip -6 a s brlan0 | grep global | cut -d " " -f 6)
+        lanipv4addr=$(ip -4 a s brlan0 | grep global | cut -d " " -f 6)
         if [ "$lanipv6addr" = "" ] || [ "$lanipv4addr" = "" ]; then
              echo_t "Waiting for LAN ipv6 and ipv4 address..." >> ${ADVSEC_AGENT_LOG_PATH}
              sleep 10

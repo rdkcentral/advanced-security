@@ -28,7 +28,7 @@ start_device_services()
 if [ "$1" = "-enable" ]
 then
 
-    bridge_mode=`syscfg get bridge_mode`
+    bridge_mode=$(syscfg get bridge_mode)
     if [ "$bridge_mode" = "2" ]; then
         echo_t "Advanced Security : Device is in Bridge Mode, do not launch agent!" >> ${ADVSEC_AGENT_LOG_PATH}
         exit 0
@@ -182,10 +182,10 @@ then
             #This is a workaround for an issue in firewall utility, where cujo related rules are not added.
             #To be removed once firewall utility issue is fixed!
             sleep 20s
-            ipt4=`cat /tmp/.ipt | grep CUJO | wc -l`
-            ipt6=`cat /tmp/.ipt_v6 | grep CUJO | wc -l`
-            ip4=`iptables-save | grep CUJO | wc -l`
-            ip6=`ip6tables-save | grep CUJO | wc -l`
+            ipt4=$(grep -c CUJO /tmp/.ipt)
+            ipt6=$(grep -c CUJO /tmp/.ipt_v6)
+            ip4=$(iptables-save | grep -c CUJO)
+            ip6=$(ip6tables-save | grep -c CUJO)
             if [ ${ipt4} != ${ip4} ] || [ ${ipt6} != ${ip6} ]; then
                 do_firewall_restart "wait"
             else
@@ -194,7 +194,7 @@ then
         fi
     fi
 
-    AGENT_USER=`advsec_get_agent_group_name`
+    AGENT_USER=$(advsec_get_agent_group_name)
     if [ "${AGENT_USER}" = "root" ]; then
         echo_t ${AGENT_RUNNING_AS_ROOT_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
     elif [ "${AGENT_USER}" = "${CUJO_AGENT_USER_NAME}" ]; then
@@ -347,8 +347,8 @@ stop_agent_services()
             echo_t "${CUJO_AGENT_LOG} triggering firewall restart..." >> ${ADVSEC_AGENT_LOG_PATH}
             sysevent set firewall-restart
             sleep 10s
-            ip4=`iptables-save | grep CUJO | wc -l`
-            ip6=`ip6tables-save | grep CUJO | wc -l`
+            ip4=$(iptables-save | grep -c CUJO)
+            ip6=$(ip6tables-save | grep -c CUJO)
             if [ $ip4 = "0" ] && [ $ip6 = "0" ]; then
                 break
             else
@@ -831,7 +831,7 @@ do_firewall_restart()
     if [ "$1" = "wait" ]; then
         fw_retries=10
         while [ ${fw_retries} -gt 0 ]; do
-            fw_stat=`sysevent get firewall-status`
+            fw_stat=$(sysevent get firewall-status)
             if [ "${fw_stat}" = "starting" ]; then
                 echo_t "starting firewall" >> ${ADVSEC_AGENT_LOG_PATH}
                 break
@@ -843,7 +843,7 @@ do_firewall_restart()
 
         fw_retries=20
         while [ ${fw_retries} -gt 0 ]; do
-            fw_stat=`sysevent get firewall-status`
+            fw_stat=$(sysevent get firewall-status)
             if [ "${fw_stat}" = "started" ]; then
                 break
             else
