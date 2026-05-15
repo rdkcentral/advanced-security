@@ -46,8 +46,8 @@ static char *g_AdvWifiDataCollection = "Adv_WifiDataCollectionRFCEnable";
 static int urlStartsWith(const char *haystack, const char *needle)
 {
    if(strncmp(haystack, needle, strlen(needle)) == 0)
-       return 0;
-   return 1;
+       return 1;
+   return 0;
 }
 
 ANSC_STATUS isValidUrl( char *inputparam )
@@ -59,7 +59,7 @@ ANSC_STATUS isValidUrl( char *inputparam )
         return ANSC_STATUS_FAILURE;
     }
 
-    if (urlStartsWith(inputparam, "https://") != 0)
+    if (urlStartsWith(inputparam, "https://") == 0)
     {
         returnStatus = ANSC_STATUS_FAILURE;
     }
@@ -227,9 +227,9 @@ DeviceFingerPrint_SetParamBoolValue
         if(bValue == pMyObject->bEnable)
                 return TRUE;
         if( bValue )
-                returnStatus = CosaAdvSecInit(pMyObject);
+                returnStatus = CosaAdvSecInit();
         else
-                returnStatus = CosaAdvSecDeInit(pMyObject);
+                returnStatus = CosaAdvSecDeInit();
 
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {

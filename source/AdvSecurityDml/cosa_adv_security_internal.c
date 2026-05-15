@@ -270,7 +270,7 @@ static BOOL Is_Device_Finger_Print_Enabled()
 static BOOL Is_Device_Finger_Print_Enabled_Completed()
 {
     FILE *file = NULL;
-    if ((file = fopen("/tmp/advsec_initialized", "r")))
+    if ((file = fopen(ADVSEC_INITIALIZED_FILE_PATH, "r")))
     {
         fclose(file);
         return 1;
@@ -525,7 +525,7 @@ BOOL Wifi_Get_Status(const char *pParamName)
    errno_t      rc = -1;
    int ind         = -1;
 
-   ret = Wifi_GetParameterValue(pParamName, Value);
+   ret = Wifi_GetParameterValue(pParamName, Value, sizeof(Value));
 
    if (ret == ANSC_STATUS_SUCCESS)
    {
@@ -544,7 +544,7 @@ BOOL Wifi_Get_Status(const char *pParamName)
 }
 
 /* Get parameter value API */
-ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal)
+ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal, size_t retValSize)
 {
     int                    ret = -1;
     rbusValue_t            value;
@@ -581,14 +581,16 @@ ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal)
         } else {
             pStrVal = "false";
         }
-        strncpy( pReturnVal, pStrVal, strlen( pStrVal ) + 1 );
+        strncpy( pReturnVal, pStrVal, retValSize - 1 );
+        pReturnVal[retValSize - 1] = '\0';
     }
     else
     {
         pStrVal = rbusValue_ToString(value, NULL, 0);
         if (pStrVal)
         {
-            strncpy( pReturnVal, pStrVal, strlen( pStrVal ) + 1 );
+            strncpy( pReturnVal, pStrVal, retValSize - 1 );
+            pReturnVal[retValSize - 1] = '\0';
             free(pStrVal);
             pStrVal = NULL;
         }
@@ -1210,6 +1212,7 @@ CosaSecurityInitialize
         if(rc < EOK)
         {
             ERR_CHK(rc);
+            rbus_close(rbus_handle);
             sleep(30);
             exit(1);
         }
@@ -1218,6 +1221,7 @@ CosaSecurityInitialize
     else
     {
         CcspTraceError(("CcspAdvSecurity: Unable to get MACAdress\n"));
+        rbus_close(rbus_handle);
         sleep(30);
         exit(1);
     }
@@ -1233,6 +1237,7 @@ CosaSecurityInitialize
     else
     {
         CcspTraceError(("CcspAdvSecurity: Failed to get BaseMacAddress from HAL API\n"));
+        rbus_close(rbus_handle);
         sleep(30);
         exit(1);
     }
@@ -1246,7 +1251,7 @@ CosaSecurityInitialize
         /* Coverity Fix CID : 125132,125510 PRINTF_ARGS */
         CcspTraceError(("CcspAdvSecurity: Failed to get sysevent fd %d\n", fd));
         /* CID 59050: Improper use of negative value */
-	/* exit with error code 1 */
+        rbus_close(rbus_handle);
         exit(1);
     }
 
@@ -1272,6 +1277,7 @@ CosaSecurityInitialize
         {
             ERR_CHK(rc);
             sysevent_close(fd, token);
+            rbus_close(rbus_handle);
             sleep(30);
             exit(1);
         }
@@ -1289,6 +1295,7 @@ CosaSecurityInitialize
               {
                   ERR_CHK(rc);
                   sysevent_close(fd, token);
+                  rbus_close(rbus_handle);
                   sleep(30);
                   exit(1);
               }
@@ -1298,6 +1305,7 @@ CosaSecurityInitialize
           {
               CcspTraceWarning(("CcspAdvSecurity: Unable to get MACAdress or HAL not ready\n"));
               sysevent_close(fd, token);
+              rbus_close(rbus_handle);
               sleep(30);
               exit(1);
           }
@@ -1307,6 +1315,7 @@ CosaSecurityInitialize
     {
         CcspTraceWarning(("CcspAdvSecurity: Unable to get MACAdress or HAL not ready\n"));
         sysevent_close(fd, token);
+        rbus_close(rbus_handle);
         sleep(30);
         exit(1);
     }

@@ -85,10 +85,10 @@ get_agent_cpu_time_spent()
 	total_time=0
 	for pid in ${PID_LIST}; do
 		sfile=/proc/$pid/stat
-		if [ -e $sfile ]; then
-			utime=`cat $sfile| awk '{print $14}'`
-			ctime=`cat $sfile| awk '{print $15}'`
-			total_time=`expr $total_time + $utime + $ctime`
+		if [ -e "$sfile" ]; then
+			utime=$(awk '{print $14}' "$sfile")
+			ctime=$(awk '{print $15}' "$sfile")
+			total_time=$(expr $total_time + $utime + $ctime)
 		fi
 	done
 	echo "$total_time"
@@ -136,8 +136,8 @@ log_agent_mem_statistics()
 		sfile=/proc/$pid/status
 		# Get process command line (replace NULLs with spaces)
         proc_name=$(tr '\0' ' ' < /proc/$pid/cmdline | sed 's/[[:space:]]*$//')
-		if [ -e $sfile ]; then
-                        rss=`cat $sfile | grep VmRSS | awk '{print $2}'`
+		if [ -e "$sfile" ]; then
+                        rss=$(awk '/VmRSS/{print $2}' "$sfile")
 			echo_t "$pid:$proc_name : $rss kb" >> $ADVSEC_AGENT_LOG_PATH
                         total_rss_mem=`expr $total_rss_mem + $rss`
 		fi

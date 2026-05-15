@@ -233,7 +233,7 @@ COSA_DATAMODEL_AGENT,  *PCOSA_DATAMODEL_AGENT;
 /*
     Standard function declaration 
 */
-ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal);
+ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal, size_t retValSize);
 BOOL WifiMgmtFrame_GetActive_Status(void);
 BOOL WifiLevl_GetActive_Status(void);
 int wifidcl_init_precheck(void);
