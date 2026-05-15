@@ -234,7 +234,7 @@ DeviceFingerPrint_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -1083,7 +1083,7 @@ SafeBrowsing_SetParamUlongValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceError(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2211,7 +2211,7 @@ RabidFramework_SetParamUlongValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2229,7 +2229,7 @@ RabidFramework_SetParamUlongValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2247,7 +2247,7 @@ RabidFramework_SetParamUlongValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2372,7 +2372,7 @@ AdvancedParentalControl_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2497,7 +2497,7 @@ PrivacyProtection_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2627,7 +2627,7 @@ DeviceFingerPrintICMPv6_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
 #else
@@ -2755,7 +2755,7 @@ WS_Discovery_Analysis_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
@@ -2878,7 +2878,7 @@ AdvancedSecurityOTM_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
@@ -3145,7 +3145,7 @@ AdvanceSecurityUserSpace_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
@@ -3766,7 +3766,7 @@ AdvanceSecurityCujoTracer_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
@@ -3889,7 +3889,7 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }

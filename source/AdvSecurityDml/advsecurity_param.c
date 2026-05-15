@@ -156,6 +156,7 @@ int process_advsecurityparams( advsecurityparam_t *e, msgpack_object_map *map )
         
     
     if( 1 & objects_left ) {
+        CcspTraceError(("FingerPrintEnable field missing from advsecurity blob\n"));
     } else {
         errno = OK;
     }

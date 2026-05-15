@@ -375,7 +375,7 @@ advsec_module_load()
 		fi
 	fi
 
-        if [ "$ADVSEC_USERSPACE_RFC_ENABLED" -eq 0 ]; then
+        if [ "${ADVSEC_USERSPACE_RFC_ENABLED:-0}" -eq 0 ]; then
             # unload userspace kernel module - switching from userspace to nflua mode
             if [ "$ADV_PC_RFC_ENABLED" = "1" ]; then
                 advsec_kernel_module_unload $PUMASTATS_MODULE_PATH
@@ -419,7 +419,7 @@ advsec_module_unload()
                 fi
         fi
 
-        if [ "$ADVSEC_USERSPACE_RFC_ENABLED" -eq 0 ]; then
+        if [ "${ADVSEC_USERSPACE_RFC_ENABLED:-0}" -eq 0 ]; then
             advsec_kernel_module_unload $NFLUA_MODULE_PATH
             advsec_kernel_module_unload $LUAPUMA_MODULE_PATH
             advsec_kernel_module_unload $LUACONNTRACK_MODULE_PATH

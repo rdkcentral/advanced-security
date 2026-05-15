@@ -248,15 +248,16 @@ static BOOL Advsec_getPartnerBasedURL(char *url)
     if(strlen(valStructs[0]->parameterValue) > 0)
     {
         /* CID 278549: Calling risky function */
-        rc = strcpy_s(url,BUFFERSIZE_MAX-1,valStructs[0]->parameterValue);
+        rc = strcpy_s(url, BUFFERSIZE_MAX, valStructs[0]->parameterValue);
         ERR_CHK(rc);
-        CcspTraceInfo(("%s Returned URL for the partner = %s\n",__FUNCTION__, url));
+        CcspTraceInfo(("%s Returned URL for the partner = %s\n", __FUNCTION__, url));
         free_parameterValStruct_t(bus_handle, valNum, valStructs);
         return true;
     }
     else
     {
         CcspTraceError(("%s Empty URL, go with defaults\n", __FUNCTION__));
+        free_parameterValStruct_t(bus_handle, valNum, valStructs);
         return false;
     }
 }
@@ -328,20 +329,10 @@ static BOOL advsec_read_from_file(char *fpath, char *str, int size)
 
     if ((file = fopen(fpath, "r")))
     {
+        size_t nread;
         CcspTraceDebug(("%s: size: %d\n", __FUNCTION__, size));
-        /* CID 162508: Calling risky function */
-        char format[20] = {'\0'};
-        int count = 0;
-        errno_t rc = -1;
-        count = snprintf(format,sizeof(format),"%%%ds", size-1);
-        if (count < 0 || count >= (int)sizeof(format)) {
-            CcspTraceError(("snprintf failed or output is truncated\n"));
-            fclose(file);
-            return 0;
-        }
-        /* CID 162506: Unchecked return value from library */
-        rc = fscanf(file, format, str);
-        ERR_CHK(rc);
+        nread = fread(str, 1, (size_t)(size - 1), file);
+        str[nread] = '\0';
         fclose(file);
         return 1;
     }
@@ -671,25 +662,22 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
         return ANSC_STATUS_FAILURE;
     }
     CcspTraceDebug(("%s: File length: %d\n", __FUNCTION__, file_length));
-
-    fclose(file);
+    rewind(file);
 
     data = (char *) malloc((file_length+1)*sizeof(char));
     if(data == NULL){
         CcspTraceError(("%s: malloc failed\n", __FUNCTION__));
+        fclose(file);
         return ANSC_STATUS_FAILURE;
     }
     memset(data, 0, file_length+1);
-
-    if( !advsec_read_from_file(SAFEBRO_CONFIG_FILE_PATH,data, file_length + 1) )
     {
-        CcspTraceWarning(("Error in opening safebro config JSON file %s\n", SAFEBRO_CONFIG_FILE_PATH));
-        /* CID 190454: Resource leak */
-        free(data);
-        data = NULL;
-        return ANSC_STATUS_FAILURE;
+        size_t nread = fread(data, 1, (size_t)file_length, file);
+        data[nread] = '\0';
     }
-    else if ( strlen(data) != 0)
+    fclose(file);
+
+    if ( strlen(data) != 0)
     {
         json = cJSON_Parse(data);
         if (data != NULL)
