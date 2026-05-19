@@ -634,6 +634,12 @@ ANSC_STATUS Wifi_SetParameterValue(const char *paramName, bool bValue)
 
 ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSize, ULONG* puLong)
 {
+    if (paramName == NULL)
+    {
+        CcspTraceError(("%s: paramName is NULL\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
     errno_t rc1 = -1, rc2 = -1;
     int ind1 = -1, ind2 = -1, i = 0, j = 0, paramLen = 0;
     cJSON *parameterObj = NULL;
@@ -725,6 +731,7 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
                 if(rc1 != EOK)
                 {
                     ERR_CHK(rc1);
+                    cJSON_Delete(json);
                     return ANSC_STATUS_FAILURE;
                 }
             }
