@@ -638,10 +638,10 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
     int ind1 = -1, ind2 = -1, i = 0, j = 0, paramLen = 0;
     cJSON *parameterObj = NULL;
     cJSON *json = NULL;
-    char* data = NULL;
+    char *data = NULL;
     char json_key[30] = {0};
     errno_t rc = -1;
-    int file_length;
+    long file_length = 0;
 
     rc = v_secure_system("/usr/ccsp/advsec/start_adv_security.sh -getSafebroConfig");
     if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
@@ -658,35 +658,37 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
 
     fseek(file, 0, SEEK_END);
     file_length = ftell(file);
-    if (file_length < 0) {
-        CcspTraceError(("%s: ftell failed\n", __FUNCTION__));
+    if (file_length <= 0) {
+        if (file_length < 0)
+            CcspTraceError(("%s: ftell failed\n", __FUNCTION__));
+        else
+            CcspTraceWarning(("SAFEBRO_CONFIG_FILE_PATH %s is empty\n", SAFEBRO_CONFIG_FILE_PATH));
         fclose(file);
         return ANSC_STATUS_FAILURE;
     }
-    CcspTraceDebug(("%s: File length: %d\n", __FUNCTION__, file_length));
-    rewind(file);
+    CcspTraceDebug(("%s: File length: %ld\n", __FUNCTION__, file_length));
 
-    data = (char *) malloc((file_length+1)*sizeof(char));
-    if(data == NULL){
-        CcspTraceError(("%s: malloc failed\n", __FUNCTION__));
-        fclose(file);
-        return ANSC_STATUS_FAILURE;
-    }
-    memset(data, 0, file_length+1);
-    {
-        size_t nread = fread(data, 1, (size_t)file_length, file);
-        data[nread] = '\0';
-    }
     fclose(file);
 
-    if ( strlen(data) != 0)
+    data = (char *) malloc((size_t)(file_length + 1));
+    if(data == NULL){
+        CcspTraceError(("%s: malloc failed\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    if( !advsec_read_from_file(SAFEBRO_CONFIG_FILE_PATH, data, (int)(file_length + 1)) )
+    {
+        CcspTraceWarning(("Error in opening safebro config JSON file %s\n", SAFEBRO_CONFIG_FILE_PATH));
+        /* CID 190454: Resource leak */
+        free(data);
+        data = NULL;
+        return ANSC_STATUS_FAILURE;
+    }
+    else if ( strlen(data) != 0)
     {
         json = cJSON_Parse(data);
-        if (data != NULL)
-        {
-            free(data);
-            data = NULL;
-        }
+        free(data);
+        data = NULL;
         if( !json )
         {
             CcspTraceWarning(("json file parser error %s:%d\n", __FUNCTION__,__LINE__));

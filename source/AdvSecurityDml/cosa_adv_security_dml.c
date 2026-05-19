@@ -46,55 +46,32 @@ static char *g_AdvWifiDataCollection = "Adv_WifiDataCollectionRFCEnable";
 static int urlStartsWith(const char *haystack, const char *needle)
 {
    if(strncmp(haystack, needle, strlen(needle)) == 0)
-       return 1;
-   return 0;
+       return 0;
+   return 1;
 }
 
 ANSC_STATUS isValidUrl( char *inputparam )
 {
     ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
 
-    if (inputparam == NULL)
-    {
-        return ANSC_STATUS_FAILURE;
-    }
-
-    if (urlStartsWith(inputparam, "https://") == 0)
+    if(urlStartsWith(inputparam, "https://"))
     {
         returnStatus = ANSC_STATUS_FAILURE;
     }
-    if (strstr(inputparam, ";")) // check for possible command injection
+    if(strstr(inputparam,";")) // check for possible command injection 
     {
         returnStatus = ANSC_STATUS_FAILURE;
     }
-    if (strstr(inputparam, "&"))
+    else if(strstr(inputparam,"&"))
     {
         returnStatus = ANSC_STATUS_FAILURE;
     }
-    if (strstr(inputparam, "|"))
+    else if(strstr(inputparam,"|"))
     {
         returnStatus = ANSC_STATUS_FAILURE;
     }
-    if (strstr(inputparam, "'"))
-    {
+    else if(strstr(inputparam,"'"))
         returnStatus = ANSC_STATUS_FAILURE;
-    }
-    if (strstr(inputparam, "`"))
-    {
-        returnStatus = ANSC_STATUS_FAILURE;
-    }
-    if (strstr(inputparam, "$"))
-    {
-        returnStatus = ANSC_STATUS_FAILURE;
-    }
-    if (strstr(inputparam, "\""))
-    {
-        returnStatus = ANSC_STATUS_FAILURE;
-    }
-    if (strchr(inputparam, '\n') || strchr(inputparam, '\r'))
-    {
-        returnStatus = ANSC_STATUS_FAILURE;
-    }
 
     return returnStatus;
 }

@@ -153,12 +153,13 @@ int process_advsecurityparams( advsecurityparam_t *e, msgpack_object_map *map )
         }
            p++;
     }
-
+        
+    
     if( 1 & objects_left ) {
     } else {
         errno = OK;
     }
-
+   
     return (0 == objects_left) ? 0 : -1;
 }
 int process_advsecuritydoc( advsecuritydoc_t *ad,int num, ... )
@@ -168,24 +169,17 @@ int process_advsecuritydoc( advsecuritydoc_t *ad,int num, ... )
 	va_start(valist, num);//start of variable argument loop
 
 	msgpack_object *obj = va_arg(valist, msgpack_object *);//each usage of va_arg fn argument iterates by one time
-	msgpack_object *obj1 = va_arg(valist, msgpack_object *);
-	msgpack_object *obj2 = va_arg(valist, msgpack_object *);
-	msgpack_object *obj3 = va_arg(valist, msgpack_object *);
-	va_end(valist);//End of variable argument loop
-
-	if( obj == NULL || obj1 == NULL || obj2 == NULL || obj3 == NULL )
-	{
-		CcspTraceError(("%s: NULL msgpack object argument\n", __FUNCTION__));
-		return -1;
-	}
-
 	msgpack_object_map *mapobj = &obj->via.map;
 
+	msgpack_object *obj1 = va_arg(valist, msgpack_object *);
 	ad->subdoc_name = strndup( obj1->via.str.ptr, obj1->via.str.size );
 
+	msgpack_object *obj2 = va_arg(valist, msgpack_object *);
 	ad->version = (uint32_t) obj2->via.u64;
 
+	msgpack_object *obj3 = va_arg(valist, msgpack_object *);
 	ad->transaction_id = (uint16_t) obj3->via.u64;
+	va_end(valist);//End of variable argument loop
 
 
 	ad->param = (advsecurityparam_t *) AnscAllocateMemory( sizeof(advsecurityparam_t) );

@@ -150,18 +150,11 @@ COSA_Init
     if ( g_pAdvSecAgent )
     {
     	  CcspTraceInfo(("Initializing CosaAdvSecurityAgent\n"));
-      if (CosaSecurityInitialize(g_pAdvSecAgent) != ANSC_STATUS_SUCCESS)
-      {
-          CcspTraceError(("%s exit ERROR CosaSecurityInitialize failed\n", __FUNCTION__));
-          CosaSecurityRemove(g_pAdvSecAgent);
-          g_pAdvSecAgent = NULL;
-          return -1;
-      }
+    	  CosaSecurityInitialize(g_pAdvSecAgent);
     }
     else
     {
     	CcspTraceError(("%s exit ERROR CosaAdvSecurityCreate returned 0!!!\n", __FUNCTION__));
-        return -1;
     }
 
     return  0;
