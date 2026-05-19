@@ -659,10 +659,11 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
     fseek(file, 0, SEEK_END);
     file_length = ftell(file);
     if (file_length <= 0) {
-        if (file_length < 0)
+        if (file_length < 0) {
             CcspTraceError(("%s: ftell failed\n", __FUNCTION__));
-        else
+        } else {
             CcspTraceWarning(("SAFEBRO_CONFIG_FILE_PATH %s is empty\n", SAFEBRO_CONFIG_FILE_PATH));
+        }
         fclose(file);
         return ANSC_STATUS_FAILURE;
     }
