@@ -564,4 +564,10 @@ CosaAdvSecFetchSbConfig
         ULONG* pUlSize,
         ULONG* puLong
     );
+
+BOOL
+CosaAdvSecIsAgentRestarted
+    (
+        void
+    );
 #endif

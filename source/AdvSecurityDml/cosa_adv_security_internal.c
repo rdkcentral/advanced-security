@@ -3521,3 +3521,109 @@ ANSC_STATUS CosaAdvSecAgentRaptrDeInit(ANSC_HANDLE hThisObject)
     CcspTraceWarning (("AdvSecAgentRaptr_RFCEnable:FALSE\n"));
     return returnStatus;
 }
+
+BOOL CosaAdvSecIsAgentRestarted(void)
+{
+    FILE *fp = NULL;
+    char pid_str[32] = {0};
+    char proc_path[64] = {0};
+    char stat_buf[512] = {0};
+    unsigned long long starttime = 0;
+    long uptime_sec = 0;
+    long agent_start_sec = 0;
+    long clk_tck = 0;
+    struct sysinfo si;
+    int i = 0;
+    char *token = NULL;
+
+    /* Read cujo-agent PID */
+    fp = fopen("/tmp/cujo-agent.pid", "r");
+    if (fp == NULL)
+    {
+        CcspTraceInfo(("%s: cujo-agent.pid not found, agent not running\n", __FUNCTION__));
+        return FALSE;
+    }
+    if (fgets(pid_str, sizeof(pid_str), fp) == NULL)
+    {
+        fclose(fp);
+        return FALSE;
+    }
+    fclose(fp);
+
+    /* Remove trailing newline */
+    pid_str[strcspn(pid_str, "\n")] = '\0';
+    if (pid_str[0] == '\0')
+    {
+        return FALSE;
+    }
+
+    /* Read /proc/<pid>/stat to get process start time */
+    snprintf(proc_path, sizeof(proc_path), "/proc/%s/stat", pid_str);
+    fp = fopen(proc_path, "r");
+    if (fp == NULL)
+    {
+        CcspTraceInfo(("%s: Cannot open %s, agent process not found\n", __FUNCTION__, proc_path));
+        return FALSE;
+    }
+    if (fgets(stat_buf, sizeof(stat_buf), fp) == NULL)
+    {
+        fclose(fp);
+        return FALSE;
+    }
+    fclose(fp);
+
+    /* Field 22 (1-indexed) in /proc/<pid>/stat is starttime in clock ticks.
+     * Skip past the comm field (enclosed in parentheses) first to avoid
+     * issues with spaces in the process name. */
+    token = strrchr(stat_buf, ')');
+    if (token == NULL)
+    {
+        return FALSE;
+    }
+    token++; /* move past ')' */
+
+    /* Now parse fields starting from field 3 (state). Field 22 is at index 20 from here. */
+    for (i = 0; i < 20 && token != NULL; i++)
+    {
+        token = strchr(token, ' ');
+        if (token != NULL)
+        {
+            token++;
+        }
+    }
+    if (token == NULL)
+    {
+        return FALSE;
+    }
+    starttime = strtoull(token, NULL, 10);
+    if (starttime == 0)
+    {
+        return FALSE;
+    }
+
+    /* Get system uptime */
+    if (sysinfo(&si) != 0)
+    {
+        CcspTraceError(("%s: sysinfo() failed\n", __FUNCTION__));
+        return FALSE;
+    }
+    uptime_sec = si.uptime;
+
+    /* Convert agent start time from clock ticks to seconds since boot */
+    clk_tck = sysconf(_SC_CLK_TCK);
+    if (clk_tck <= 0)
+    {
+        clk_tck = 100; /* default fallback */
+    }
+    agent_start_sec = (long)(starttime / (unsigned long long)clk_tck);
+
+    /* If agent started after boot (agent_start_sec > 0), it has been restarted */
+    if (agent_start_sec > 0)
+    {
+        CcspTraceInfo(("%s: Agent restarted. Agent start=%ld sec after boot, system uptime=%ld sec\n",
+                       __FUNCTION__, agent_start_sec, uptime_sec));
+        return TRUE;
+    }
+
+    return FALSE;
+}
