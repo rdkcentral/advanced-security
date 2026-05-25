@@ -129,9 +129,10 @@ check_networkintelligence_mem_recovery()
         return
     fi
 
+    echo "NI processes: ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}" >> $ADVSEC_AGENT_LOG_PATH
     NI_MAX_RSS_THRESHOLD=$(($NI_MEM_HARD_LIMIT * $KB))
     NI_PID_LIST=""
-    for ni_proc in ${CUJO_AGENT_QOSD}; do
+    for ni_proc in ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}; do
         pids=$(pidof "$ni_proc")
         if [ "$pids" != "" ]; then
             NI_PID_LIST="$NI_PID_LIST $pids"
@@ -142,19 +143,25 @@ check_networkintelligence_mem_recovery()
         return
     fi
 
+    echo "####Network Intelligence RSS MEM stats####" >> $ADVSEC_AGENT_LOG_PATH
     ni_rss=0
     for pid in ${NI_PID_LIST}; do
         sfile=/proc/$pid/status
         if [ -e "$sfile" ]; then
             rss=$(awk '/VmRSS/{print $2}' "$sfile")
-            ni_rss=$(expr $ni_rss + $rss)
+            proc_name=$(tr '\0' ' ' < /proc/$pid/cmdline | sed 's/[[:space:]]*$//')
+            echo_t "$pid:$proc_name : $rss kb" >> $ADVSEC_AGENT_LOG_PATH
+            if [ ${ni_rss} -eq 0 ]; then
+                ni_rss=$rss
+            fi
         fi
     done
+    echo "######################################################" >> $ADVSEC_AGENT_LOG_PATH
 
-    echo_t "ADVSEC_NI_RSS_MEM:$ni_rss kb, threshold:$NI_MAX_RSS_THRESHOLD kb" >> $ADVSEC_AGENT_LOG_PATH
+    echo_t "NI_RSS_MEM:$ni_rss kB, threshold:$NI_MAX_RSS_THRESHOLD kB" >> $ADVSEC_AGENT_LOG_PATH
 
     if [ "$ni_rss" -ge "$NI_MAX_RSS_THRESHOLD" ]; then
-        echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$ni_rss kb, restarting cujo-ni" >> $ADVSEC_AGENT_LOG_PATH
+        echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$ni_rss kB, restarting cujo-ni" >> $ADVSEC_AGENT_LOG_PATH
         systemctl restart cujo-ni
     fi
 }
@@ -178,12 +185,12 @@ log_agent_mem_statistics()
 		# Get process command line (replace NULLs with spaces)
         proc_name=$(tr '\0' ' ' < /proc/$pid/cmdline | sed 's/[[:space:]]*$//')
 		if [ -e "$sfile" ]; then
-                        rss=$(awk '/VmRSS/{print $2}' "$sfile")
+            rss=$(awk '/VmRSS/{print $2}' "$sfile")
 			echo_t "$pid:$proc_name : $rss kb" >> $ADVSEC_AGENT_LOG_PATH
-                        total_rss_mem=$(expr $total_rss_mem + $rss)
+            total_rss_mem=$(expr $total_rss_mem + $rss)
 		fi
-        done
-        echo_t "ADVSEC_PROCESS_TOTAL_RSS_MEM:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
+    done
+    echo_t "ADVSEC_PROCESS_TOTAL_RSS_MEM:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
 	echo "######################################################" >> $ADVSEC_AGENT_LOG_PATH
 
 	if [ "$total_rss_mem" -ge "$MAX_RSS_THRESHOLD" ]; then
@@ -257,9 +264,9 @@ fi
 
 advsec_agent_multiple_processes_recovery
 
-check_networkintelligence_mem_recovery
-
 log_agent_mem_statistics
+
+check_networkintelligence_mem_recovery
 
 total_cpu_time_before=$( get_agent_cpu_time_spent )
 total_cpu_usage_before=$( get_total_cpu_usage )
