@@ -43,7 +43,7 @@ if [ "$max_rss" != "" ]; then
 fi
 
 # Default NI memory hard limit in MB
-NI_MEM_HARD_LIMIT=20
+NI_MEM_HARD_LIMIT=15
 
 #syscfg contains value in MB.
 ni_max_rss=$(syscfg get Advsecurity_NetworkIntelligenceMemoryLimit)
@@ -129,7 +129,7 @@ check_networkintelligence_mem_recovery()
         return
     fi
 
-    echo "NI processes: ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}" >> $ADVSEC_AGENT_LOG_PATH
+    echo "NI processes: ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}"
     NI_MAX_RSS_THRESHOLD=$(($NI_MEM_HARD_LIMIT * $KB))
     NI_PID_LIST=""
     for ni_proc in ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}; do
@@ -159,7 +159,7 @@ check_networkintelligence_mem_recovery()
             fi
         fi
     done
-    echo "######################################################" >> $ADVSEC_AGENT_LOG_PATH
+    echo "##############################################" >> $ADVSEC_AGENT_LOG_PATH
 
     echo_t "NI_RSS_MEM:$ni_rss kB NI_PSS_MEM:$ni_pss kB, threshold:$NI_MAX_RSS_THRESHOLD kB" >> $ADVSEC_AGENT_LOG_PATH
 
@@ -198,7 +198,7 @@ log_agent_mem_statistics()
     done
     echo_t "ADVSEC_PROCESS_TOTAL_RSS_MEM:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
     echo_t "ADVSEC_PROCESS_TOTAL_PSS_MEM:$total_pss_mem" >> $ADVSEC_AGENT_LOG_PATH
-    echo "######################################################" >> $ADVSEC_AGENT_LOG_PATH
+    echo "######################################" >> $ADVSEC_AGENT_LOG_PATH
 
     if [ "$total_rss_mem" -ge "$MAX_RSS_THRESHOLD" ]; then
         echo_t "Warning !!! Reached hard limit of $MAX_MEM_HARD_LIMIT MB, current memory:$total_rss_mem which is HighRSS Memory, restarting $CUJO_AGENT" >> $ADVSEC_AGENT_LOG_PATH
