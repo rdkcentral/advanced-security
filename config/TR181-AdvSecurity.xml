@@ -464,8 +464,8 @@
                 <functions>
                   <func_GetParamBoolValue>NetworkIntelligence_RFC_GetParamBoolValue</func_GetParamBoolValue>
                   <func_SetParamBoolValue>NetworkIntelligence_RFC_SetParamBoolValue</func_SetParamBoolValue>
-                  <func_GetParamUlongValue>AdvSecNetworkIntelligence_RFC_GetParamUlongValue</func_GetParamUlongValue>
-                  <func_SetParamUlongValue>AdvSecNetworkIntelligence_RFC_SetParamUlongValue</func_SetParamUlongValue>
+                  <func_GetParamUlongValue>NetworkIntelligence_RFC_GetParamUlongValue</func_GetParamUlongValue>
+                  <func_SetParamUlongValue>NetworkIntelligence_RFC_SetParamUlongValue</func_SetParamUlongValue>
                 </functions>
                 <parameters>
                   <parameter>
