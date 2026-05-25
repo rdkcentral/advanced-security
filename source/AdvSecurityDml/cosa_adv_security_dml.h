@@ -599,6 +599,8 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
 
     *  NetworkIntelligence_RFC_GetParamBoolValue
     *  NetworkIntelligence_RFC_SetParamBoolValue
+    *  NetworkIntelligence_RFC_GetParamUlongValue
+    *  NetworkIntelligence_RFC_SetParamUlongValue
 
 ***********************************************************************/
 BOOL
@@ -614,6 +616,20 @@ NetworkIntelligence_RFC_SetParamBoolValue
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
         BOOL                        bValue
+    );
+BOOL
+NetworkIntelligence_RFC_GetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG*                      pUlong
+    );
+BOOL
+NetworkIntelligence_RFC_SetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG                       uValue
     );
 /***********************************************************************
 

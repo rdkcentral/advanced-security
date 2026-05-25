@@ -91,6 +91,7 @@ COSA_DATAMODEL_ADVSECUSERSPACE_RFC,  *PCOSA_DATAMODEL_ADVSECUSERSPACE_RFC;
 typedef struct
 _COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC {
     BOOL            bEnable;
+    ULONG           uMemoryLimit;
 }
 COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC,  *PCOSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC;
 
@@ -366,6 +367,13 @@ CosaAdvSecDeInit
 
 ANSC_STATUS
 CosaRabidSetMemoryLimit
+    (
+        ANSC_HANDLE hThisObject,
+        ULONG uValue
+    );
+
+ANSC_STATUS
+CosaNetworkIntelligenceSetMemoryLimit
     (
         ANSC_HANDLE hThisObject,
         ULONG uValue

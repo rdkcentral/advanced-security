@@ -147,6 +147,7 @@ static char *g_AdvSecUserSpaceEnabled = "Adv_AdvSecUserSpaceRFCEnable";
 static char *g_RaptrEnabled = "Adv_RaptrRFCEnable";
 #ifdef NETWORK_INTELLIGENCE
 static char *g_AdvSecNetworkIntelligenceEnabled = "Adv_AdvSecNetworkIntelligenceRFCEnable";
+static char *g_NetworkIntelligenceMemoryLimit = "Advsecurity_NetworkIntelligenceMemoryLimit";
 #endif
 #ifdef WIFI_DATA_COLLECTION
 static char *g_AdvWifiDataCollection = "Adv_WifiDataCollectionRFCEnable";
@@ -1109,7 +1110,8 @@ CosaSecurityInitialize
     ULONG                   ValueASOTM_RFC = 0;
     ULONG                   ValueASUSERSPACE_RFC = 0;
 #ifdef NETWORK_INTELLIGENCE
-    ULONG                   ValueASNI_RFC = 0;
+    ULONG                   ValueNI_RFC = 0;
+    ULONG                   ValueNIML_RFC = 0;
 #endif
 #ifdef WIFI_DATA_COLLECTION
     ULONG                   ValueASWIFIDCL_RFC = 0;
@@ -1358,7 +1360,8 @@ CosaSecurityInitialize
     CosaGetSysCfgUlong(g_AdvSecOTMEnabled, &ValueASOTM_RFC);
     CosaGetSysCfgUlong(g_AdvSecUserSpaceEnabled, &ValueASUSERSPACE_RFC);
 #ifdef NETWORK_INTELLIGENCE
-    CosaGetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, &ValueASNI_RFC);
+    CosaGetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, &ValueNI_RFC);
+    CosaGetSysCfgUlong(g_NetworkIntelligenceMemoryLimit, &ValueNIML_RFC);
 #endif
 #ifdef WIFI_DATA_COLLECTION
     CosaGetSysCfgUlong(g_AdvWifiDataCollection, &ValueASWIFIDCL_RFC);
@@ -1404,7 +1407,8 @@ CosaSecurityInitialize
         g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = ValueASUSERSPACE_RFC;
     }
 #ifdef NETWORK_INTELLIGENCE
-    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = ValueASNI_RFC;
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = ValueNI_RFC;
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit = ValueNIML_RFC;
 #else
     g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = FALSE;
 #endif
@@ -2914,6 +2918,23 @@ ANSC_STATUS CosaRabidSetDNSCacheSize(ANSC_HANDLE hThisObject, ULONG uValue)
     {
         g_pAdvSecAgent->pRabid->uDNSCacheSize = uValue;
     }
+    return returnStatus;
+}
+
+ANSC_STATUS CosaNetworkIntelligenceSetMemoryLimit(ANSC_HANDLE hThisObject, ULONG uValue)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS                 returnStatus = ANSC_STATUS_SUCCESS;
+
+#ifdef NETWORK_INTELLIGENCE
+    returnStatus = CosaSetSysCfgUlong(g_NetworkIntelligenceMemoryLimit, uValue);
+    if ( returnStatus == ANSC_STATUS_SUCCESS )
+    {
+        g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit = uValue;
+    }
+#else
+    UNREFERENCED_PARAMETER(uValue);
+#endif
     return returnStatus;
 }
 

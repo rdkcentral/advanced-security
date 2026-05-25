@@ -31,6 +31,7 @@
 #define MIN_AGENT_MEMORY_HARD_LIMIT 45
 #define MAX_RABID_MACCACHE_SIZE 32768
 #define MAX_RABID_DNSCACHE_SIZE 32768
+#define MIN_NI_MEMORY_HARD_LIMIT 15
 
 extern COSA_DATAMODEL_AGENT* g_pAdvSecAgent;
 extern pthread_mutex_t logMutex;
@@ -4008,6 +4009,139 @@ NetworkIntelligence_RFC_SetParamBoolValue
     }
 #else
     UNREFERENCED_PARAMETER(bValue);
+#endif
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.NetworkIntelligence.
+
+    *  NetworkIntelligence_RFC_GetParamUlongValue
+    *  NetworkIntelligence_RFC_SetParamUlongValue
+
+***********************************************************************/
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        NetworkIntelligence_RFC_GetParamUlongValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                ULONG*                      pUlong
+            );
+
+    description:
+
+        This function is called to retrieve unsigned long parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                ULONG*                       pUlong
+                The buffer of returned unsigned long value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+NetworkIntelligence_RFC_GetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG*                      pUlong
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+#ifdef NETWORK_INTELLIGENCE
+    if( AnscEqualString(ParamName, "MemoryLimit", TRUE))
+    {
+        *pUlong = g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit;
+        return TRUE;
+    }
+#else
+    UNREFERENCED_PARAMETER(pUlong);
+#endif
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        NetworkIntelligence_RFC_SetParamUlongValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                ULONG                       uValue
+            );
+
+    description:
+
+        This function is called to set unsigned long parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                ULONG                        uValue
+                The updated ULONG value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+NetworkIntelligence_RFC_SetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG                       uValue
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+#ifdef NETWORK_INTELLIGENCE
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+
+    if( AnscEqualString(ParamName, "MemoryLimit", TRUE))
+    {
+        if(uValue == g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit)
+            return TRUE;
+
+        if (uValue <= MIN_NI_MEMORY_HARD_LIMIT)
+            return FALSE;
+
+        returnStatus = CosaNetworkIntelligenceSetMemoryLimit(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC, uValue);
+
+        if ( returnStatus != ANSC_STATUS_SUCCESS )
+        {
+            CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
+            return FALSE;
+        }
+
+        return TRUE;
+    }
+#else
+    UNREFERENCED_PARAMETER(uValue);
 #endif
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;

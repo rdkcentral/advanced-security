@@ -1475,6 +1475,61 @@ TEST_F(CcspAdvSecurityDmlTestFixture, RabidFramework_SetParamUlongValue_DNSCache
     free(g_pAdvSecAgent);
 }
 
+TEST_F(CcspAdvSecurityDmlTestFixture, NetworkIntelligence_RFC_GetParamUlongValue_MemoryLimit) {
+    ULONG resultUlong;
+    const char* ParamName = "MemoryLimit";
+
+    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
+    ASSERT_NE(g_pAdvSecAgent, nullptr);
+
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC = (COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC));
+    ASSERT_NE(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC, nullptr);
+
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit = 100;
+
+    BOOL result = NetworkIntelligence_RFC_GetParamUlongValue(NULL, (char*)ParamName, &resultUlong);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(100, resultUlong);
+
+    free(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC);
+    free(g_pAdvSecAgent);
+}
+
+TEST_F(CcspAdvSecurityDmlTestFixture, NetworkIntelligence_RFC_SetParamUlongValue_MemoryLimit) {
+    const char *ParamName = "MemoryLimit";
+    ULONG bValue = 100;
+    const char *AdvSecurityNetworkIntelligenceMemoryLimit = "Advsecurity_NetworkIntelligenceMemoryLimit";
+
+    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
+    ASSERT_NE(g_pAdvSecAgent, nullptr);
+
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC = (COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC));
+    ASSERT_NE(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC, nullptr);
+
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit = 100;
+
+    EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityNetworkIntelligenceMemoryLimit), _))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
+        .WillOnce(Return(0));
+
+    EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaNetworkIntelligenceSetMemoryLimit(NULL, bValue));
+
+    BOOL result = NetworkIntelligence_RFC_SetParamUlongValue(NULL, (char*)ParamName, bValue);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(100, bValue);
+
+    free(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC);
+    free(g_pAdvSecAgent);
+}
+
 TEST_F(CcspAdvSecurityDmlTestFixture, AdvancedParentalControl_RFC_GetParamBoolValue_Enable) {
     BOOL resultBool;
     const char* ParamName = "Enable";
