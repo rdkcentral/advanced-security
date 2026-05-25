@@ -31,8 +31,6 @@ CUJO_AGENT_LOG="CujoAgent"
 CUJO_AGENT_USER_NAME="_cujo-agent"
 CUJO_AGENT_STATUS="cujo-agent-status"
 CUJO_AGENT_QOSD="cujo-qosd"
-CUJO_AGENT_FPING="cujo-fpingdq"
-CUJO_TWAMP_LIGHT="twamp-light-client"
 
 if [ "$BOX_TYPE" = "XB3" ] || [ "$BOX_TYPE" = "XF3" ]; then
     CUJO_AGENT="rabid"

@@ -131,7 +131,7 @@ check_networkintelligence_mem_recovery()
 
     NI_MAX_RSS_THRESHOLD=$(($NI_MEM_HARD_LIMIT * $KB))
     NI_PID_LIST=""
-    for ni_proc in ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}; do
+    for ni_proc in ${CUJO_AGENT_QOSD}; do
         pids=$(pidof "$ni_proc")
         if [ "$pids" != "" ]; then
             NI_PID_LIST="$NI_PID_LIST $pids"
