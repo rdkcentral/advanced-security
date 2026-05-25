@@ -96,12 +96,15 @@
 
 /* Logrotate configuration for agent.txt and cujo-ni.txt */
 #define ADVSEC_AGENT_LOG_FILE "/rdklogs/logs/agent.txt"
-#define ADVSEC_NI_LOG_FILE "/rdklogs/logs/cujo-ni.txt"
 #define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 2MB */
 #define ADVSEC_LOG_MONITOR_INTERVAL 5.0  /* Check every 5 seconds */
 #define LOGROTATE_BINARY "/usr/sbin/logrotate"
 #define ADVSEC_AGENT_LOGROTATE_CONF "/etc/logrotate.d/advsec-agent"
+
+#ifdef NETWORK_INTELLIGENCE
+#define ADVSEC_NI_LOG_FILE "/rdklogs/logs/cujo-ni.txt"
 #define ADVSEC_NI_LOGROTATE_CONF "/etc/logrotate.d/advsec-ni"
+#endif
 
 #ifdef CONFIG_CISCO
 #define CONFIG_VENDOR_NAME  "Cisco"
@@ -171,7 +174,7 @@ static char prevWanIfname[MAX_INTERFACE_SIZE] = {0};
 
 void advsec_handle_sysevent_async(void);
 static void advsec_start_logger_thread(void);
-static void* agent_log_monitor_thread(void* arg);
+static void* advsec_log_monitor_thread(void* arg);
 static void advsec_start_log_monitor_thread(void);
 static BOOL WaitForLoggerTimeout(ULONG period);
 enum advSysEvent_e{
@@ -1947,11 +1950,13 @@ void rotate_agent_log(void)
     rotate_log_file(ADVSEC_AGENT_LOG_FILE, "Advsec Agent", ADVSEC_AGENT_LOGROTATE_CONF);
 }
 
+#ifdef NETWORK_INTELLIGENCE
 /* Log rotation function for cujo-ni.txt */
 void rotate_ni_log(void)
 {
     rotate_log_file(ADVSEC_NI_LOG_FILE, "Network Intelligence", ADVSEC_NI_LOGROTATE_CONF);
 }
+#endif
 
 /* Callback function for agent.txt libev stat watcher */
 void agent_log_stat_cb(EV_P_ ev_stat *w, int revents)
@@ -1965,6 +1970,7 @@ void agent_log_stat_cb(EV_P_ ev_stat *w, int revents)
     }
 }
 
+#ifdef NETWORK_INTELLIGENCE
 /* Callback function for cujo-ni.txt libev stat watcher */
 void ni_log_stat_cb(EV_P_ ev_stat *w, int revents)
 {
@@ -1976,17 +1982,20 @@ void ni_log_stat_cb(EV_P_ ev_stat *w, int revents)
         rotate_ni_log();
     }
 }
+#endif
 
 /* Thread function to run libev event loop for log monitoring */
-void* agent_log_monitor_thread(void* arg)
+void* advsec_log_monitor_thread(void* arg)
 {
     (void)arg;
 
     struct ev_loop *loop = NULL;
     static ev_stat agent_stat_watcher;
+#ifdef NETWORK_INTELLIGENCE
     static ev_stat ni_stat_watcher;
+#endif
 
-    CcspTraceDebug(("Starting agent log monitor thread\n"));
+    CcspTraceDebug(("Starting log monitor thread\n"));
 
     loop = ev_loop_new(0);
     if (!loop)
@@ -1998,12 +2007,14 @@ void* agent_log_monitor_thread(void* arg)
     /* Monitor agent.txt */
     ev_stat_init(&agent_stat_watcher, agent_log_stat_cb, ADVSEC_AGENT_LOG_FILE, ADVSEC_LOG_MONITOR_INTERVAL);
     ev_stat_start(loop, &agent_stat_watcher);
-    CcspTraceDebug(("Advsec Agent log monitoring started on %s\n", ADVSEC_AGENT_LOG_FILE));
+    CcspTraceInfo(("Advsec Agent log monitoring started on %s\n", ADVSEC_AGENT_LOG_FILE));
 
-    /* Monitor cujo-ni.txt */
+#ifdef NETWORK_INTELLIGENCE
+    /* Monitor cujo-ni.txt - file may not exist yet, libev handles this safely */
     ev_stat_init(&ni_stat_watcher, ni_log_stat_cb, ADVSEC_NI_LOG_FILE, ADVSEC_LOG_MONITOR_INTERVAL);
     ev_stat_start(loop, &ni_stat_watcher);
-    CcspTraceDebug(("Network Intelligence log monitoring started on %s\n", ADVSEC_NI_LOG_FILE));
+    CcspTraceInfo(("Network Intelligence log monitoring started on %s\n", ADVSEC_NI_LOG_FILE));
+#endif
 
     ev_run(loop, 0);
     ev_loop_destroy(loop);
@@ -2015,15 +2026,15 @@ static void advsec_start_log_monitor_thread(void)
     int err;
     pthread_t log_monitor_tid;
 
-    err = pthread_create(&log_monitor_tid, NULL, agent_log_monitor_thread, NULL);
+    err = pthread_create(&log_monitor_tid, NULL, advsec_log_monitor_thread, NULL);
     if (err != 0)
     {
-        CcspTraceError(("%s: Failed to create agent log monitor thread\n", __FUNCTION__));
+        CcspTraceError(("%s: Failed to create log monitor thread\n", __FUNCTION__));
     }
     else
     {
         pthread_detach(log_monitor_tid);
-        CcspTraceDebug(("%s: Agent log monitor thread created successfully\n", __FUNCTION__));
+        CcspTraceDebug(("%s: Log monitor thread created successfully\n", __FUNCTION__));
     }
 }
 
