@@ -143,22 +143,25 @@ check_networkintelligence_mem_recovery()
         return
     fi
 
-    echo "####Network Intelligence RSS MEM stats####" >> $ADVSEC_AGENT_LOG_PATH
+    echo "####Network Intelligence RSS/PSS MEM stats####" >> $ADVSEC_AGENT_LOG_PATH
     ni_rss=0
+    ni_pss=0
     for pid in ${NI_PID_LIST}; do
-        sfile=/proc/$pid/status
+        sfile=/proc/$pid/smaps_rollup
         if [ -e "$sfile" ]; then
-            rss=$(awk '/VmRSS/{print $2}' "$sfile")
+            rss=$(awk '/^Rss:/{print $2}' "$sfile")
+            pss=$(awk '/^Pss:/{print $2}' "$sfile")
             proc_name=$(tr '\0' ' ' < /proc/$pid/cmdline | sed 's/[[:space:]]*$//')
-            echo_t "$pid:$proc_name : $rss kb" >> $ADVSEC_AGENT_LOG_PATH
+            echo_t "$pid:$proc_name : RSS=$rss kB PSS=$pss kB" >> $ADVSEC_AGENT_LOG_PATH
             if [ ${ni_rss} -eq 0 ]; then
                 ni_rss=$rss
+                ni_pss=$pss
             fi
         fi
     done
     echo "######################################################" >> $ADVSEC_AGENT_LOG_PATH
 
-    echo_t "NI_RSS_MEM:$ni_rss kB, threshold:$NI_MAX_RSS_THRESHOLD kB" >> $ADVSEC_AGENT_LOG_PATH
+    echo_t "NI_RSS_MEM:$ni_rss kB NI_PSS_MEM:$ni_pss kB, threshold:$NI_MAX_RSS_THRESHOLD kB" >> $ADVSEC_AGENT_LOG_PATH
 
     if [ "$ni_rss" -ge "$NI_MAX_RSS_THRESHOLD" ]; then
         echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$ni_rss kB, restarting cujo-ni" >> $ADVSEC_AGENT_LOG_PATH
@@ -178,30 +181,34 @@ advsec_agent_multiple_processes_recovery()
 
 log_agent_mem_statistics()
 {
-	echo "####Advsec Agent RSS MEM stats####" >> $ADVSEC_AGENT_LOG_PATH
+	echo "####Advsec Agent RSS/PSS MEM stats####" >> $ADVSEC_AGENT_LOG_PATH
 	total_rss_mem=0
+	total_pss_mem=0
 	for pid in ${PID_LIST}; do
-		sfile=/proc/$pid/status
+		sfile=/proc/$pid/smaps_rollup
 		# Get process command line (replace NULLs with spaces)
         proc_name=$(tr '\0' ' ' < /proc/$pid/cmdline | sed 's/[[:space:]]*$//')
 		if [ -e "$sfile" ]; then
-            rss=$(awk '/VmRSS/{print $2}' "$sfile")
-			echo_t "$pid:$proc_name : $rss kb" >> $ADVSEC_AGENT_LOG_PATH
+            rss=$(awk '/^Rss:/{print $2}' "$sfile")
+            pss=$(awk '/^Pss:/{print $2}' "$sfile")
+            echo_t "$pid:$proc_name : RSS=$rss kB PSS=$pss kB" >> $ADVSEC_AGENT_LOG_PATH
             total_rss_mem=$(expr $total_rss_mem + $rss)
-		fi
+            total_pss_mem=$(expr $total_pss_mem + $pss)
+        fi
     done
     echo_t "ADVSEC_PROCESS_TOTAL_RSS_MEM:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
-	echo "######################################################" >> $ADVSEC_AGENT_LOG_PATH
+    echo_t "ADVSEC_PROCESS_TOTAL_PSS_MEM:$total_pss_mem" >> $ADVSEC_AGENT_LOG_PATH
+    echo "######################################################" >> $ADVSEC_AGENT_LOG_PATH
 
-	if [ "$total_rss_mem" -ge "$MAX_RSS_THRESHOLD" ]; then
-                echo_t "Warning !!! Reached hard limit of $MAX_MEM_HARD_LIMIT MB, current memory:$total_rss_mem which is HighRSS Memory, restarting $CUJO_AGENT" >> $ADVSEC_AGENT_LOG_PATH
-		advsec_restart_agent "HighRSS"
-		exit
-	elif [ "$total_rss_mem" -ge "$MIN_RSS_SECOND_THRESHOLD" ]; then
-                echo_t "Warning !!! Reached Soft limit of $MAX_MEM_SECOND_SOFT_LIMIT MB, current memory:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
-	elif [ "$total_rss_mem" -ge "$MIN_RSS_FIRST_THRESHOLD" ]; then
-                echo_t "Warning !!! Reached Soft limit of $MAX_MEM_FIRST_SOFT_LIMIT MB, current memory:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
-        fi
+    if [ "$total_rss_mem" -ge "$MAX_RSS_THRESHOLD" ]; then
+        echo_t "Warning !!! Reached hard limit of $MAX_MEM_HARD_LIMIT MB, current memory:$total_rss_mem which is HighRSS Memory, restarting $CUJO_AGENT" >> $ADVSEC_AGENT_LOG_PATH
+        advsec_restart_agent "HighRSS"
+        exit
+    elif [ "$total_rss_mem" -ge "$MIN_RSS_SECOND_THRESHOLD" ]; then
+        echo_t "Warning !!! Reached Soft limit of $MAX_MEM_SECOND_SOFT_LIMIT MB, current memory:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
+    elif [ "$total_rss_mem" -ge "$MIN_RSS_FIRST_THRESHOLD" ]; then
+        echo_t "Warning !!! Reached Soft limit of $MAX_MEM_FIRST_SOFT_LIMIT MB, current memory:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
+    fi
 
 	if [ "$BOX_TYPE" = "XF3" ]; then
 		lowfree_mem=$(awk '/[Ll]ow[Ff]ree/{print $2}' /proc/meminfo)
