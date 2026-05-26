@@ -22,8 +22,8 @@ source $(dirname $(realpath ${0}))/advsec.sh
 
 bridge_mode=$(syscfg get bridge_mode)
 if [ "${bridge_mode}" = "2" ]; then
-        #Advsec Agent doesn't run in Bridge mode.
-        exit 0
+    #Advsec Agent doesn't run in Bridge mode.
+    exit 0
 fi
 
 KB=1024
@@ -281,14 +281,14 @@ log_agent_mem_statistics
 
 check_networkintelligence_mem_recovery
 
-agent_cpu_time_before=$( get_cpu_time_spent $PID_LIST )
-ni_cpu_time_before=$(get_cpu_time_spent $NI_PID_LIST)
+agent_cpu_time_before=$( get_cpu_time_spent $(pidof ${CUJO_AGENT}) )
+ni_cpu_time_before=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
 total_cpu_usage_before=$( get_total_cpu_usage )
 
 sleep $SAMPLING_TIME
 
-agent_cpu_time_after=$( get_cpu_time_spent $PID_LIST )
-ni_cpu_time_after=$(get_cpu_time_spent $NI_PID_LIST)
+agent_cpu_time_after=$( get_cpu_time_spent $(pidof ${CUJO_AGENT}) )
+ni_cpu_time_after=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
 total_cpu_usage_after=$( get_total_cpu_usage )
 
 agent_cpu_time_diff=$(expr $agent_cpu_time_after - $agent_cpu_time_before)
