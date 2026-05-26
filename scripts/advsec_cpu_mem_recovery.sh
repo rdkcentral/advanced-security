@@ -42,6 +42,8 @@ if [ "$max_rss" != "" ]; then
     MAX_MEM_HARD_LIMIT=$max_rss
 fi
 
+NI_ENABLE=$(dmcli eRT retv Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.NetworkIntelligence.Enable)
+
 # Default NI memory hard limit in MB
 NI_MEM_HARD_LIMIT=15
 
@@ -279,26 +281,33 @@ advsec_agent_multiple_processes_recovery
 
 log_agent_mem_statistics
 
-check_networkintelligence_mem_recovery
+if [ "$NI_ENABLE" = "true" ]; then
+    check_networkintelligence_mem_recovery
+fi
 
 agent_cpu_time_before=$( get_cpu_time_spent $(pidof ${CUJO_AGENT}) )
-ni_cpu_time_before=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
+if [ "$NI_ENABLE" = "true" ]; then
+    ni_cpu_time_before=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
+fi
 total_cpu_usage_before=$( get_total_cpu_usage )
 
 sleep $SAMPLING_TIME
 
 agent_cpu_time_after=$( get_cpu_time_spent $(pidof ${CUJO_AGENT}) )
-ni_cpu_time_after=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
 total_cpu_usage_after=$( get_total_cpu_usage )
 
 agent_cpu_time_diff=$(expr $agent_cpu_time_after - $agent_cpu_time_before)
-ni_cpu_time_diff=$(expr $ni_cpu_time_after - $ni_cpu_time_before)
 cpu_usage_diff=$(expr $total_cpu_usage_after - $total_cpu_usage_before)
 
 agent_CPU=$(expr $agent_cpu_time_diff \* 100 / $cpu_usage_diff)
-ni_CPU=$(expr $ni_cpu_time_diff \* 100 / $cpu_usage_diff)
 
 t2ValNotify "ADVSEC_AGENT_CPU_USAGE_PERCENTAGE_split" "$agent_CPU"
-t2ValNotify "NI_CPU_USAGE_PERCENTAGE_split" "$ni_CPU"
 echo_t "Advsec Agent CPU_usage=$agent_CPU %" >> $ADVSEC_AGENT_LOG_PATH
-echo_t "NetworkIntelligence CPU_usage=$ni_CPU %" >> $ADVSEC_AGENT_LOG_PATH
+
+if [ "$NI_ENABLE" = "true" ]; then
+    ni_cpu_time_after=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
+    ni_cpu_time_diff=$(expr $ni_cpu_time_after - $ni_cpu_time_before)
+    ni_CPU=$(expr $ni_cpu_time_diff \* 100 / $cpu_usage_diff)
+    t2ValNotify "NI_CPU_USAGE_PERCENTAGE_split" "$ni_CPU"
+    echo_t "NetworkIntelligence CPU_usage=$ni_CPU %" >> $ADVSEC_AGENT_LOG_PATH
+fi
