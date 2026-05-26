@@ -20,6 +20,16 @@ source /etc/device.properties
 source /etc/log_timestamp.sh
 source /usr/bin/cujo-agent-sh-env
 
+T2_MSG_CLIENT=/usr/bin/telemetry2_0_client
+
+t2ValNotify() {
+    if [ -f $T2_MSG_CLIENT ]; then
+        marker=$1
+        shift
+        $T2_MSG_CLIENT "$marker" "$*"
+    fi
+}
+
 export RUNTIME_DIR="/usr"
 if [ "$DEVICE_MODEL" = "TCHXB3" ]; then
     export RUNTIME_DIR="/tmp/cujo_dnld/usr"

@@ -65,7 +65,7 @@ if [ "$2" != "" ]; then
 fi
 
 if [ "$3" != "" ]; then
-        MAX_RSS_THRESHOLD=$3
+    MAX_RSS_THRESHOLD=$3
 fi
 
 get_agent_pid_list()
@@ -83,12 +83,13 @@ get_agent_pid_list()
 	done
 }
 
-get_agent_cpu_time_spent()
+get_cpu_time_spent()
 {
 #14 utime - CPU time spent in user code, measured in clock ticks
 #15 stime - CPU time spent in kernel code, measured in clock ticks
+	local pid_list="$@"
 	total_time=0
-	for pid in ${PID_LIST}; do
+	for pid in ${pid_list}; do
 		sfile=/proc/$pid/stat
 		if [ -e "$sfile" ]; then
 			utime=$(awk '{print $14}' "$sfile")
@@ -159,9 +160,12 @@ check_networkintelligence_mem_recovery()
             fi
         fi
     done
-    echo "##############################################" >> $ADVSEC_AGENT_LOG_PATH
 
-    echo_t "NI_RSS_MEM:$ni_rss kB NI_PSS_MEM:$ni_pss kB, threshold:$NI_MAX_RSS_THRESHOLD kB" >> $ADVSEC_AGENT_LOG_PATH
+    t2ValNotify "NI_RSS_MEM_kB_split" "$ni_rss"
+    t2ValNotify "NI_PSS_MEM_kB_split" "$ni_pss"
+    echo_t "NI_RSS_MEM:$ni_rss kB" >> $ADVSEC_AGENT_LOG_PATH
+    echo_t "NI_PSS_MEM:$ni_pss kB" >> $ADVSEC_AGENT_LOG_PATH
+    echo "##############################################" >> $ADVSEC_AGENT_LOG_PATH
 
     if [ "$ni_rss" -ge "$NI_MAX_RSS_THRESHOLD" ]; then
         echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$ni_rss kB, restarting cujo-ni" >> $ADVSEC_AGENT_LOG_PATH
@@ -196,8 +200,10 @@ log_agent_mem_statistics()
             total_pss_mem=$(expr $total_pss_mem + $pss)
         fi
     done
-    echo_t "ADVSEC_PROCESS_TOTAL_RSS_MEM:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
-    echo_t "ADVSEC_PROCESS_TOTAL_PSS_MEM:$total_pss_mem" >> $ADVSEC_AGENT_LOG_PATH
+    t2ValNotify "ADVSEC_AGENT_RSS_MEM_kB_split" "$total_rss_mem"
+    t2ValNotify "ADVSEC_AGENT_PSS_MEM_kB_split" "$total_pss_mem"
+    echo_t "ADVSEC_AGENT_RSS_MEM:$total_rss_mem kB" >> $ADVSEC_AGENT_LOG_PATH
+    echo_t "ADVSEC_AGENT_PSS_MEM:$total_pss_mem kB" >> $ADVSEC_AGENT_LOG_PATH
     echo "######################################" >> $ADVSEC_AGENT_LOG_PATH
 
     if [ "$total_rss_mem" -ge "$MAX_RSS_THRESHOLD" ]; then
@@ -275,18 +281,24 @@ log_agent_mem_statistics
 
 check_networkintelligence_mem_recovery
 
-total_cpu_time_before=$( get_agent_cpu_time_spent )
+agent_cpu_time_before=$( get_cpu_time_spent $PID_LIST )
+ni_cpu_time_before=$(get_cpu_time_spent $NI_PID_LIST)
 total_cpu_usage_before=$( get_total_cpu_usage )
 
 sleep $SAMPLING_TIME
 
-total_cpu_time_after=$( get_agent_cpu_time_spent )
+agent_cpu_time_after=$( get_cpu_time_spent $PID_LIST )
+ni_cpu_time_after=$(get_cpu_time_spent $NI_PID_LIST)
 total_cpu_usage_after=$( get_total_cpu_usage )
 
-cpu_time_diff=$(expr $total_cpu_time_after - $total_cpu_time_before)
+agent_cpu_time_diff=$(expr $agent_cpu_time_after - $agent_cpu_time_before)
+ni_cpu_time_diff=$(expr $ni_cpu_time_after - $ni_cpu_time_before)
 cpu_usage_diff=$(expr $total_cpu_usage_after - $total_cpu_usage_before)
 
-CPU=$(expr $cpu_time_diff \* 100 / $cpu_usage_diff)
+agent_CPU=$(expr $agent_cpu_time_diff \* 100 / $cpu_usage_diff)
+ni_CPU=$(expr $ni_cpu_time_diff \* 100 / $cpu_usage_diff)
 
-echo_t "Advsec total_CPU_usage=$CPU %" >> $ADVSEC_AGENT_LOG_PATH
-
+t2ValNotify "ADVSEC_AGENT_CPU_USAGE_PERCENTAGE_split" "$agent_CPU"
+t2ValNotify "NI_CPU_USAGE_PERCENTAGE_split" "$ni_CPU"
+echo_t "Advsec Agent CPU_usage=$agent_CPU %" >> $ADVSEC_AGENT_LOG_PATH
+echo_t "NetworkIntelligence CPU_usage=$ni_CPU %" >> $ADVSEC_AGENT_LOG_PATH
