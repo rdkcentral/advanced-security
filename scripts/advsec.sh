@@ -241,7 +241,7 @@ advsec_wait_for_agent()
         sleep 5s
         ${RUNTIME_DIR}/bin/cujo-agent-status running
         EXIT_STATUS=$?
-        RETRY_CNT=$(expr $RETRY_CNT - 1)
+        (( RETRY_CNT-- ))
     done
 }
 
@@ -689,7 +689,7 @@ wait_for_lanip()
         if [ "$lanipv6addr" = "" ] || [ "$lanipv4addr" = "" ]; then
              echo_t "Waiting for LAN ipv6 and ipv4 address..." >> ${ADVSEC_AGENT_LOG_PATH}
              sleep 10
-             ip_retry_limit=$(expr $ip_retry_limit - 1)
+             (( ip_retry_limit-- ))
         else
              echo_t "LAN IPv6 Address: $lanipv6addr and IPv4 Address: $lanipv4addr" >> ${ADVSEC_AGENT_LOG_PATH}
              break
