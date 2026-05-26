@@ -96,7 +96,7 @@ get_cpu_time_spent()
 		if [ -e "$sfile" ]; then
 			utime=$(awk '{print $14}' "$sfile")
 			ctime=$(awk '{print $15}' "$sfile")
-			total_time=$(expr $total_time + $utime + $ctime)
+			total_time=$(( total_time + utime + ctime ))
 		fi
 	done
 	echo "$total_time"
@@ -198,8 +198,8 @@ log_agent_mem_statistics()
             rss=$(awk '/^Rss:/{print $2}' "$sfile")
             pss=$(awk '/^Pss:/{print $2}' "$sfile")
             echo_t "$pid:$proc_name : RSS=$rss kB PSS=$pss kB" >> $ADVSEC_AGENT_LOG_PATH
-            total_rss_mem=$(expr $total_rss_mem + $rss)
-            total_pss_mem=$(expr $total_pss_mem + $pss)
+            total_rss_mem=$(( total_rss_mem + rss ))
+            total_pss_mem=$(( total_pss_mem + pss ))
         fi
     done
     t2ValNotify "ADVSEC_AGENT_RSS_MEM_kB_split" "$total_rss_mem"
@@ -296,18 +296,18 @@ sleep $SAMPLING_TIME
 agent_cpu_time_after=$( get_cpu_time_spent $(pidof ${CUJO_AGENT}) )
 total_cpu_usage_after=$( get_total_cpu_usage )
 
-agent_cpu_time_diff=$(expr $agent_cpu_time_after - $agent_cpu_time_before)
-cpu_usage_diff=$(expr $total_cpu_usage_after - $total_cpu_usage_before)
+agent_cpu_time_diff=$(( agent_cpu_time_after - agent_cpu_time_before ))
+cpu_usage_diff=$(( total_cpu_usage_after - total_cpu_usage_before ))
 
-agent_CPU=$(expr $agent_cpu_time_diff \* 100 / $cpu_usage_diff)
+agent_CPU=$(awk "BEGIN {printf \"%.2f\", ($agent_cpu_time_diff * 100.0) / $cpu_usage_diff}")
 
 t2ValNotify "ADVSEC_AGENT_CPU_USAGE_PERCENTAGE_split" "$agent_CPU"
 echo_t "Advsec Agent CPU_usage=$agent_CPU %" >> $ADVSEC_AGENT_LOG_PATH
 
 if [ "$NI_ENABLE" = "true" ]; then
     ni_cpu_time_after=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
-    ni_cpu_time_diff=$(expr $ni_cpu_time_after - $ni_cpu_time_before)
-    ni_CPU=$(expr $ni_cpu_time_diff \* 100 / $cpu_usage_diff)
+    ni_cpu_time_diff=$(( ni_cpu_time_after - ni_cpu_time_before ))
+    ni_CPU=$(awk "BEGIN {printf \"%.2f\", ($ni_cpu_time_diff * 100.0) / $cpu_usage_diff}")
     t2ValNotify "NI_CPU_USAGE_PERCENTAGE_split" "$ni_CPU"
     echo_t "NetworkIntelligence CPU_usage=$ni_CPU %" >> $ADVSEC_AGENT_LOG_PATH
 fi
