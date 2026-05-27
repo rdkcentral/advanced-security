@@ -1363,6 +1363,12 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMemoryLimit)
     const char *RabidMemoryLimit = "Advsecurity_RabidMemoryLimit";
     ULONG value = 100;
 
+    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
+    ASSERT_NE(g_pAdvSecAgent, nullptr);
+
+    g_pAdvSecAgent->pRabid = (COSA_DATAMODEL_RABID *)malloc(sizeof(COSA_DATAMODEL_RABID));
+    ASSERT_NE(g_pAdvSecAgent->pRabid, nullptr);
+
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
         .Times(1)
         .WillOnce(Return(0));
@@ -1376,12 +1382,21 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMemoryLimit)
     ANSC_STATUS status = CosaRabidSetMemoryLimit(NULL, value);
 
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
+
+    free(g_pAdvSecAgent->pRabid);
+    free(g_pAdvSecAgent);
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMacCacheSize)
 {
     const char *RabidMacCacheSize = "Advsecurity_RabidMacCacheSize";
     ULONG value = 100;
+
+    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
+    ASSERT_NE(g_pAdvSecAgent, nullptr);
+
+    g_pAdvSecAgent->pRabid = (COSA_DATAMODEL_RABID *)malloc(sizeof(COSA_DATAMODEL_RABID));
+    ASSERT_NE(g_pAdvSecAgent->pRabid, nullptr);
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
         .Times(1)
@@ -1396,12 +1411,21 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMacCacheSize)
     ANSC_STATUS status = CosaRabidSetMacCacheSize(NULL, value);
 
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
+
+    free(g_pAdvSecAgent->pRabid);
+    free(g_pAdvSecAgent);
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetDNSCacheSize)
 {
     const char *RabidDNSCacheSize = "Advsecurity_RabidDNSCacheSize";
     ULONG value = 100;
+
+    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
+    ASSERT_NE(g_pAdvSecAgent, nullptr);
+
+    g_pAdvSecAgent->pRabid = (COSA_DATAMODEL_RABID *)malloc(sizeof(COSA_DATAMODEL_RABID));
+    ASSERT_NE(g_pAdvSecAgent->pRabid, nullptr);
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
         .Times(1)
@@ -1416,6 +1440,9 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetDNSCacheSize)
     ANSC_STATUS status = CosaRabidSetDNSCacheSize(NULL, value);
 
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
+
+    free(g_pAdvSecAgent->pRabid);
+    free(g_pAdvSecAgent);
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCInit)

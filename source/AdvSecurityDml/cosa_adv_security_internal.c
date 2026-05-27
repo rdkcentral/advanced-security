@@ -43,6 +43,9 @@
 #include "safec_lib_common.h"
 #include "secure_wrapper.h"
 #include <rbus/rbus.h>
+#include <sys/stat.h>
+#include <ev.h>
+#include <pthread.h>
 #if defined(_COSA_BCM_MIPS_)
 #include <ccsp/dpoe_hal.h>
 #else
@@ -91,6 +94,18 @@
 #define SAFEBRO_CONFIG_FILE_PATH "/tmp/safebro.json"
 #define ADVSEC_PRIMARY_WAN_IF_NAME "erouter0"
 
+/* Logrotate configuration for agent.txt and cujo-ni.txt */
+#define ADVSEC_AGENT_LOG_FILE "/rdklogs/logs/agent.txt"
+#define ADVSEC_AGENT_LOG_MAX_SIZE (2 * 1024 * 1024)  /* 2MB */
+#define ADVSEC_LOG_MONITOR_INTERVAL 5.0  /* Check every 5 seconds */
+#define LOGROTATE_BINARY "/usr/sbin/logrotate"
+#define ADVSEC_AGENT_LOGROTATE_CONF "/etc/logrotate.d/advsec-agent"
+
+#ifdef NETWORK_INTELLIGENCE
+#define ADVSEC_NI_LOG_FILE "/rdklogs/logs/cujo-ni.txt"
+#define ADVSEC_NI_LOGROTATE_CONF "/etc/logrotate.d/advsec-ni"
+#endif
+
 #ifdef CONFIG_CISCO
 #define CONFIG_VENDOR_NAME  "Cisco"
 #endif
@@ -133,6 +148,10 @@ static char *g_WSDiscoveryAnalysisEnabled = "Adv_WSDisAnaRFCEnable";
 static char *g_AdvSecOTMEnabled = "Adv_AdvSecOTMRFCEnable";
 static char *g_AdvSecUserSpaceEnabled = "Adv_AdvSecUserSpaceRFCEnable";
 static char *g_RaptrEnabled = "Adv_RaptrRFCEnable";
+#ifdef NETWORK_INTELLIGENCE
+static char *g_AdvSecNetworkIntelligenceEnabled = "Adv_AdvSecNetworkIntelligenceRFCEnable";
+static char *g_NetworkIntelligenceMemoryLimit = "Advsecurity_NetworkIntelligenceMemoryLimit";
+#endif
 #ifdef WIFI_DATA_COLLECTION
 static char *g_AdvWifiDataCollection = "Adv_WifiDataCollectionRFCEnable";
 static char *g_LevlEnabled = "Adv_LevlRFCEnable";
@@ -145,6 +164,8 @@ static char *g_AdvSecCujoTelemetryEnabled = "Adv_AdvSecCujoTelemetryRFCEnable";
 // SATE - Sentry at the Edge
 static char *g_AdvSecSATEEnabled = "Adv_SATERFCEnable";
 static char *g_AdvSecTCPTrackerFilterDevicesEnabled = "Adv_TCPTrackerFilterDevicesRFCEnable";
+static char *g_AdvSecDoHBlockingEnabled = "Adv_DoHBlockingRFCEnable";
+static char *g_AdvSecDNSECHBlockingEnabled = "Adv_DNSECHBlockingRFCEnable";
 
 pthread_mutex_t logMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t logCond = PTHREAD_COND_INITIALIZER;
@@ -154,6 +175,8 @@ STATIC char prevBridgeMode[2] = {0};
 
 void advsec_handle_sysevent_async(void);
 static void advsec_start_logger_thread(void);
+static void* advsec_log_monitor_thread(void* arg);
+static void advsec_start_log_monitor_thread(void);
 static BOOL WaitForLoggerTimeout(ULONG period);
 enum advSysEvent_e{
     SYSEVENT_BRIDGE_MODE_EVENT,
@@ -230,15 +253,16 @@ static BOOL Advsec_getPartnerBasedURL(char *url)
     if(strlen(valStructs[0]->parameterValue) > 0)
     {
         /* CID 278549: Calling risky function */
-        rc = strcpy_s(url,BUFFERSIZE_MAX-1,valStructs[0]->parameterValue);
+        rc = strcpy_s(url, BUFFERSIZE_MAX, valStructs[0]->parameterValue);
         ERR_CHK(rc);
-        CcspTraceInfo(("%s Returned URL for the partner = %s\n",__FUNCTION__, url));
+        CcspTraceInfo(("%s Returned URL for the partner = %s\n", __FUNCTION__, url));
         free_parameterValStruct_t(bus_handle, valNum, valStructs);
         return true;
     }
     else
     {
         CcspTraceError(("%s Empty URL, go with defaults\n", __FUNCTION__));
+        free_parameterValStruct_t(bus_handle, valNum, valStructs);
         return false;
     }
 }
@@ -251,7 +275,7 @@ static BOOL Is_Device_Finger_Print_Enabled()
 static BOOL Is_Device_Finger_Print_Enabled_Completed()
 {
     FILE *file = NULL;
-    if ((file = fopen("/tmp/advsec_initialized", "r")))
+    if ((file = fopen(ADVSEC_INITIALIZED_FILE_PATH, "r")))
     {
         fclose(file);
         return 1;
@@ -274,7 +298,7 @@ static void advsec_create_dir(char *path)
 {
     int ret =0;
     /* CID 135545: Time of check time of use  */
-    ret = mkdir(path, 0777);
+    ret = mkdir(path, 0755);
     if (ret < 0 && errno != EEXIST)
     {
         CcspTraceError(("%s:Folder Not created. Error %d\n", __FUNCTION__,errno));
@@ -310,20 +334,10 @@ static BOOL advsec_read_from_file(char *fpath, char *str, int size)
 
     if ((file = fopen(fpath, "r")))
     {
+        size_t nread;
         CcspTraceDebug(("%s: size: %d\n", __FUNCTION__, size));
-        /* CID 162508: Calling risky function */
-        char format[20] = {'\0'};
-        int count = 0;
-        errno_t rc = -1;
-        count = snprintf(format,sizeof(format),"%%%ds", size-1);
-        if (count < 0 || count >= (int)sizeof(format)) {
-            CcspTraceError(("snprintf failed or output is truncated\n"));
-            fclose(file);
-            return 0;
-        }
-        /* CID 162506: Unchecked return value from library */
-        rc = fscanf(file, format, str);
-        ERR_CHK(rc);
+        nread = fread(str, 1, (size_t)(size - 1), file);
+        str[nread] = '\0';
         fclose(file);
         return 1;
     }
@@ -495,6 +509,8 @@ int wifidcl_init_precheck()
             returnStatus = ANSC_STATUS_FAILURE;
         }
         else {
+            /* rbus_getStr() return is strdup()'ed, free it before returning */
+            free(s);
             break;
         }
 
@@ -514,7 +530,7 @@ BOOL Wifi_Get_Status(const char *pParamName)
    errno_t      rc = -1;
    int ind         = -1;
 
-   ret = Wifi_GetParameterValue(pParamName, Value);
+   ret = Wifi_GetParameterValue(pParamName, Value, sizeof(Value));
 
    if (ret == ANSC_STATUS_SUCCESS)
    {
@@ -533,7 +549,7 @@ BOOL Wifi_Get_Status(const char *pParamName)
 }
 
 /* Get parameter value API */
-ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal)
+ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal, size_t retValSize)
 {
     int                    ret = -1;
     rbusValue_t            value;
@@ -570,14 +586,16 @@ ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal)
         } else {
             pStrVal = "false";
         }
-        strncpy( pReturnVal, pStrVal, strlen( pStrVal ) + 1 );
+        strncpy( pReturnVal, pStrVal, retValSize - 1 );
+        pReturnVal[retValSize - 1] = '\0';
     }
     else
     {
         pStrVal = rbusValue_ToString(value, NULL, 0);
         if (pStrVal)
         {
-            strncpy( pReturnVal, pStrVal, strlen( pStrVal ) + 1 );
+            strncpy( pReturnVal, pStrVal, retValSize - 1 );
+            pReturnVal[retValSize - 1] = '\0';
             free(pStrVal);
             pStrVal = NULL;
         }
@@ -621,14 +639,20 @@ ANSC_STATUS Wifi_SetParameterValue(const char *paramName, bool bValue)
 
 ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSize, ULONG* puLong)
 {
+    if (paramName == NULL)
+    {
+        CcspTraceError(("%s: paramName is NULL\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
     errno_t rc1 = -1, rc2 = -1;
     int ind1 = -1, ind2 = -1, i = 0, j = 0, paramLen = 0;
     cJSON *parameterObj = NULL;
     cJSON *json = NULL;
-    char* data = NULL;
+    char *data = NULL;
     char json_key[30] = {0};
     errno_t rc = -1;
-    int file_length;
+    long file_length = 0;
 
     rc = v_secure_system("/usr/ccsp/advsec/start_adv_security.sh -getSafebroConfig");
     if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
@@ -645,23 +669,26 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
 
     fseek(file, 0, SEEK_END);
     file_length = ftell(file);
-    if (file_length < 0) {
-        CcspTraceError(("%s: ftell failed\n", __FUNCTION__));
+    if (file_length <= 0) {
+        if (file_length < 0) {
+            CcspTraceError(("%s: ftell failed\n", __FUNCTION__));
+        } else {
+            CcspTraceWarning(("SAFEBRO_CONFIG_FILE_PATH %s is empty\n", SAFEBRO_CONFIG_FILE_PATH));
+        }
         fclose(file);
         return ANSC_STATUS_FAILURE;
     }
-    CcspTraceDebug(("%s: File length: %d\n", __FUNCTION__, file_length));
+    CcspTraceDebug(("%s: File length: %ld\n", __FUNCTION__, file_length));
 
     fclose(file);
 
-    data = (char *) malloc((file_length+1)*sizeof(char));
+    data = (char *) malloc((size_t)(file_length + 1));
     if(data == NULL){
         CcspTraceError(("%s: malloc failed\n", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
-    memset(data, 0, file_length+1);
 
-    if( !advsec_read_from_file(SAFEBRO_CONFIG_FILE_PATH,data, file_length) )
+    if( !advsec_read_from_file(SAFEBRO_CONFIG_FILE_PATH, data, (int)(file_length + 1)) )
     {
         CcspTraceWarning(("Error in opening safebro config JSON file %s\n", SAFEBRO_CONFIG_FILE_PATH));
         /* CID 190454: Resource leak */
@@ -672,11 +699,8 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
     else if ( strlen(data) != 0)
     {
         json = cJSON_Parse(data);
-        if (data != NULL)
-        {
-            free(data);
-            data = NULL;
-        }
+        free(data);
+        data = NULL;
         if( !json )
         {
             CcspTraceWarning(("json file parser error %s:%d\n", __FUNCTION__,__LINE__));
@@ -691,7 +715,7 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
             if( ((rc1 == EOK) && (!ind1)) || ((rc2 == EOK) && (!ind2)) )
             {
                 paramLen = (int)strlen(paramName);
-                for (i = 0, j = 0; i < paramLen; i++, j++)
+                for (i = 0, j = 0; i < paramLen && j < (int)sizeof(json_key) - 2; i++, j++)
                 {
                     if(isupper(paramName[i]) && i != 0)
                     {
@@ -704,6 +728,7 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
                         json_key[j] = paramName[i];
                     }
                 }
+                json_key[j] = '\0';
             }
             else
             {
@@ -711,6 +736,7 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
                 if(rc1 != EOK)
                 {
                     ERR_CHK(rc1);
+                    cJSON_Delete(json);
                     return ANSC_STATUS_FAILURE;
                 }
             }
@@ -721,22 +747,36 @@ ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSiz
             {
                 if (parameterObj->valuestring)
                 {
-                    rc1 = strcpy_s(pValue, strlen(parameterObj->valuestring) + 1, parameterObj->valuestring);
+                    if (pValue == NULL || pUlSize == NULL)
+                    {
+                        cJSON_Delete(json);
+                        return ANSC_STATUS_FAILURE;
+                    }
+
+                    rc1 = strcpy_s(pValue, *pUlSize, parameterObj->valuestring);
                     if(rc1 != EOK)
                     {
                         ERR_CHK(rc1);
+                        cJSON_Delete(json);
                         return ANSC_STATUS_FAILURE;
                     }
                     *pUlSize = AnscSizeOfString(pValue);
                 }
                 else
                 {
+                    if (puLong == NULL)
+                    {
+                        cJSON_Delete(json);
+                        return ANSC_STATUS_FAILURE;
+                    }
                     *puLong = (unsigned long) parameterObj->valueint;
                 }
             }
             else
             {
                 CcspTraceWarning(("%s - parameterObj is NULL\n", __FUNCTION__ ));
+                cJSON_Delete(json);
+                return ANSC_STATUS_FAILURE;
             }
             cJSON_Delete(json);
         }
@@ -835,6 +875,18 @@ VOID FreeCosaDmAgent(PCOSA_DATAMODEL_AGENT pMyObject)
         if (pMyObject->pAdvSecTCPTrackerFilterDevices_RFC) {
             AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecTCPTrackerFilterDevices_RFC);
             pMyObject->pAdvSecTCPTrackerFilterDevices_RFC = NULL;
+        }
+        if (pMyObject->pAdvSecDoHBlocking_RFC) {
+            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecDoHBlocking_RFC);
+            pMyObject->pAdvSecDoHBlocking_RFC = NULL;
+        }
+        if (pMyObject->pAdvSecDNSECHBlocking_RFC) {
+            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecDNSECHBlocking_RFC);
+            pMyObject->pAdvSecDNSECHBlocking_RFC = NULL;
+        }
+        if (pMyObject->pAdvNetworkIntelligence_RFC) {
+            AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvNetworkIntelligence_RFC);
+            pMyObject->pAdvNetworkIntelligence_RFC = NULL;
         }
         if (pMyObject->pAdvWifiDataCollection_RFC) {
             AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvWifiDataCollection_RFC);
@@ -994,6 +1046,28 @@ CosaSecurityCreate
         goto mem_alloc_failure;
     }
 
+    pMyObject->pAdvSecDoHBlocking_RFC = (PCOSA_DATAMODEL_ADVSECDOHBLOCKING_RFC)
+                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECDOHBLOCKING_RFC));
+    if ( !pMyObject->pAdvSecDoHBlocking_RFC )
+    {
+        goto mem_alloc_failure;
+    }
+
+    pMyObject->pAdvSecDNSECHBlocking_RFC = (PCOSA_DATAMODEL_ADVSECDNSECHBLOCKING_RFC)
+                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECDNSECHBLOCKING_RFC));
+    if ( !pMyObject->pAdvSecDNSECHBlocking_RFC )
+    {
+        goto mem_alloc_failure;
+    }
+
+    pMyObject->pAdvNetworkIntelligence_RFC = (PCOSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC)
+                                                AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC));
+
+    if ( !pMyObject->pAdvNetworkIntelligence_RFC )
+    {
+        goto mem_alloc_failure;
+    }
+
     pMyObject->pAdvWifiDataCollection_RFC = (PCOSA_DATAMODEL_ADVSECWIFIDATACOLLECTION_RFC)
                                                 AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECWIFIDATACOLLECTION_RFC));
     if ( !pMyObject->pAdvWifiDataCollection_RFC )
@@ -1039,6 +1113,10 @@ CosaSecurityInitialize
     ULONG                   ValueWSA_RFC = 0;
     ULONG                   ValueASOTM_RFC = 0;
     ULONG                   ValueASUSERSPACE_RFC = 0;
+#ifdef NETWORK_INTELLIGENCE
+    ULONG                   ValueNI_RFC = 0;
+    ULONG                   ValueNIML_RFC = 0;
+#endif
 #ifdef WIFI_DATA_COLLECTION
     ULONG                   ValueASWIFIDCL_RFC = 0;
     ULONG                   ValueLEVL_RFC = 0;
@@ -1050,6 +1128,8 @@ CosaSecurityInitialize
     ULONG                   ValueASCUJOTELEMETRY_RFC = 0;
     ULONG                   ValueASSATE_RFC = 0;
     ULONG                   ValueASTCPTrackerFilterDevices_RFC = 0;
+    ULONG                   ValueASDoHBlocking_RFC = 0;
+    ULONG                   ValueASDNSECHBlocking_RFC = 0;
     ULONG                   ValueRAPTR_RFC = 0;
     ULONG                   ValueRML = 0;
     ULONG                   ValueRMCS = 0;
@@ -1148,30 +1228,34 @@ CosaSecurityInitialize
         if(rc < EOK)
         {
             ERR_CHK(rc);
+            rbus_close(rbus_handle);
             sleep(30);
-            exit(0);
+            exit(1);
         }
         CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
     }
     else
     {
         CcspTraceError(("CcspAdvSecurity: Unable to get MACAdress\n"));
+        rbus_close(rbus_handle);
         sleep(30);
-        exit(0);
+        exit(1);
     }
 #elif defined(PON_GATEWAY)
     // For PON gateway, always use HAL API
     char deviceMACStr[32] = {0};
-    if (platform_hal_GetBaseMacAddress(deviceMACStr) == 0)
+    rc = platform_hal_GetBaseMacAddress(deviceMACStr);
+    if ( rc == 0 && deviceMACStr[0] != '\0' )
     {
-        AnscMacToLower(deviceMac, deviceMACStr, sizeof(deviceMac));
+        strcpy_s(deviceMac, sizeof(deviceMac), deviceMACStr);
         CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
     }
     else
     {
         CcspTraceError(("CcspAdvSecurity: Failed to get BaseMacAddress from HAL API\n"));
+        rbus_close(rbus_handle);
         sleep(30);
-        exit(0);
+        exit(1);
     }
 #else
     char isEthEnabled[64]={'\0'};
@@ -1183,7 +1267,7 @@ CosaSecurityInitialize
         /* Coverity Fix CID : 125132,125510 PRINTF_ARGS */
         CcspTraceError(("CcspAdvSecurity: Failed to get sysevent fd %d\n", fd));
         /* CID 59050: Improper use of negative value */
-	/* exit with error code 1 */
+        rbus_close(rbus_handle);
         exit(1);
     }
 
@@ -1209,8 +1293,9 @@ CosaSecurityInitialize
         {
             ERR_CHK(rc);
             sysevent_close(fd, token);
+            rbus_close(rbus_handle);
             sleep(30);
-            exit(0);
+            exit(1);
         }
         CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
     }
@@ -1226,8 +1311,9 @@ CosaSecurityInitialize
               {
                   ERR_CHK(rc);
                   sysevent_close(fd, token);
+                  rbus_close(rbus_handle);
                   sleep(30);
-                  exit(0);
+                  exit(1);
               }
               CcspTraceInfo(("CcspAdvSecurity: deviceMac [%s]\n", deviceMac));
           }
@@ -1235,8 +1321,9 @@ CosaSecurityInitialize
           {
               CcspTraceWarning(("CcspAdvSecurity: Unable to get MACAdress or HAL not ready\n"));
               sysevent_close(fd, token);
+              rbus_close(rbus_handle);
               sleep(30);
-              exit(0);
+              exit(1);
           }
     }
 #endif
@@ -1244,8 +1331,9 @@ CosaSecurityInitialize
     {
         CcspTraceWarning(("CcspAdvSecurity: Unable to get MACAdress or HAL not ready\n"));
         sysevent_close(fd, token);
+        rbus_close(rbus_handle);
         sleep(30);
-        exit(0);
+        exit(1);
     }
     /* close this session with syseventd */
     sysevent_close(fd, token);
@@ -1275,6 +1363,10 @@ CosaSecurityInitialize
     CosaGetSysCfgUlong(g_WSDiscoveryAnalysisEnabled, &ValueWSA_RFC);
     CosaGetSysCfgUlong(g_AdvSecOTMEnabled, &ValueASOTM_RFC);
     CosaGetSysCfgUlong(g_AdvSecUserSpaceEnabled, &ValueASUSERSPACE_RFC);
+#ifdef NETWORK_INTELLIGENCE
+    CosaGetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, &ValueNI_RFC);
+    CosaGetSysCfgUlong(g_NetworkIntelligenceMemoryLimit, &ValueNIML_RFC);
+#endif
 #ifdef WIFI_DATA_COLLECTION
     CosaGetSysCfgUlong(g_AdvWifiDataCollection, &ValueASWIFIDCL_RFC);
     CosaGetSysCfgUlong(g_LevlEnabled, &ValueLEVL_RFC);
@@ -1286,6 +1378,8 @@ CosaSecurityInitialize
     CosaGetSysCfgUlong(g_AdvSecCujoTelemetryEnabled, &ValueASCUJOTELEMETRY_RFC);
     CosaGetSysCfgUlong(g_AdvSecSATEEnabled, &ValueASSATE_RFC);
     CosaGetSysCfgUlong(g_AdvSecTCPTrackerFilterDevicesEnabled, &ValueASTCPTrackerFilterDevices_RFC);
+    CosaGetSysCfgUlong(g_AdvSecDoHBlockingEnabled, &ValueASDoHBlocking_RFC);
+    CosaGetSysCfgUlong(g_AdvSecDNSECHBlockingEnabled, &ValueASDNSECHBlocking_RFC);
     CosaGetSysCfgUlong(g_RaptrEnabled, &ValueRAPTR_RFC);
     CosaGetSysCfgUlong(g_RabidMemoryLimit, &ValueRML);
     CosaGetSysCfgUlong(g_RabidMacCacheSize, &ValueRMCS);
@@ -1316,6 +1410,12 @@ CosaSecurityInitialize
     {
         g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = ValueASUSERSPACE_RFC;
     }
+#ifdef NETWORK_INTELLIGENCE
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = ValueNI_RFC;
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit = ValueNIML_RFC;
+#else
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = FALSE;
+#endif
 #ifdef WIFI_DATA_COLLECTION
     g_pAdvSecAgent->pLevl_RFC->bEnable = ValueLEVL_RFC;
 
@@ -1373,6 +1473,8 @@ CosaSecurityInitialize
     g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable = ValueASCUJOTELEMETRY_RFC;
     g_pAdvSecAgent->pAdvSecSATE_RFC->bEnable = ValueASSATE_RFC;
     g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC->bEnable = ValueASTCPTrackerFilterDevices_RFC;
+    g_pAdvSecAgent->pAdvSecDoHBlocking_RFC->bEnable = ValueASDoHBlocking_RFC;
+    g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC->bEnable = ValueASDNSECHBlocking_RFC;
     g_pAdvSecAgent->pRaptr_RFC->bEnable = ValueRAPTR_RFC;
     g_pAdvSecAgent->pRabid->uMemoryLimit = ValueRML;
     g_pAdvSecAgent->pRabid->uMacCacheSize = ValueRMCS;
@@ -1399,6 +1501,7 @@ CosaSecurityInitialize
     rc = strcpy_s(prevWanIfname, sizeof(prevWanIfname), ADVSEC_PRIMARY_WAN_IF_NAME);
     ERR_CHK(rc);
     advsec_start_logger_thread();
+    advsec_start_log_monitor_thread();
     advsec_handle_sysevent_async();
 
 #ifdef WAN_FAILOVER_SUPPORTED
@@ -1445,11 +1548,18 @@ ANSC_STATUS CosaGetSysCfgUlong(char* setting, ULONG* value)
 
     if(ANSC_STATUS_SUCCESS == (ret = syscfg_get( NULL, setting, buf, sizeof(buf))))
     {
-        *value = atol(buf);
+        char *endptr = NULL;
+        errno = 0;
+        *value = strtoul(buf, &endptr, 10);
+        if(errno != 0 || endptr == buf)
+        {
+            CcspTraceError(("syscfg_get: invalid numeric value for [%s]\n", setting));
+            *value = 0;
+        }
     }
     else
     {
-        CcspTraceError(("syscfg_get failed\n"));
+        CcspTraceError(("syscfg_get failed for [%s]\n", setting));
     }
 
     return ret;
@@ -1469,7 +1579,7 @@ ANSC_STATUS CosaSetSysCfgUlong(char* setting, ULONG value)
     }
     if(ANSC_STATUS_SUCCESS != (ret = syscfg_set( NULL, setting, buf)))
     {
-        CcspTraceError(("syscfg_set failed\n"));
+        CcspTraceError(("syscfg_set failed for [%s]\n", setting));
     }
     else
     {
@@ -1481,6 +1591,63 @@ ANSC_STATUS CosaSetSysCfgUlong(char* setting, ULONG value)
 
     return ret;
 }
+
+#ifdef NETWORK_INTELLIGENCE
+ANSC_STATUS CosaAdvSecNetworkIntelligenceInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    if (g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable == TRUE) {
+        returnStatus = CosaSetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, 1);
+        if (ANSC_STATUS_SUCCESS != returnStatus)
+        {
+            CcspTraceWarning(("%s: syscfg_set failure.", __FUNCTION__));
+            return returnStatus;
+        }
+
+        g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = TRUE;
+
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableNI &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+           CcspTraceError(("%s: -enableNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
+    }
+    else
+    {
+        CcspTraceWarning(("Userspace RFC not enabled\n"));
+        returnStatus = ANSC_STATUS_FAILURE;
+    }
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecNetworkIntelligenceDeInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, 0);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceWarning(("%s: syscfg_set failure.", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = FALSE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableNI &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: disableNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceWarning(("Adv_AdvSecNetworkIntelligenceRFCEnable:FALSE\n"));
+    return returnStatus;
+}
+#endif
 
 #ifdef WIFI_DATA_COLLECTION
 ANSC_STATUS CosaAdvWifiDataConsumerInit(void)
@@ -1745,6 +1912,130 @@ static void advsec_start_logger_thread(void)
       {
           CcspTraceError(("%s: create logger thread error!\n", __FUNCTION__));
       }
+    }
+}
+
+/* Generic log rotation function using logrotate binary */
+void rotate_log_file(const char *log_file, const char *log_name, const char *config_file)
+{
+    struct stat st;
+    int result;
+
+    if (stat(log_file, &st) != 0)
+    {
+        return;
+    }
+
+    if (st.st_size < ADVSEC_AGENT_LOG_MAX_SIZE)
+    {
+        return;
+    }
+
+    CcspTraceInfo(("%s log reached %ld bytes, calling logrotate...\n", log_name, st.st_size));
+
+    result = v_secure_system("%s %s",
+                             LOGROTATE_BINARY, config_file);
+    if (result != 0)
+    {
+        CcspTraceError(("Logrotate failed with return code: %d\n", result));
+    }
+    else
+    {
+        CcspTraceInfo(("Logrotate completed successfully\n"));
+    }
+}
+
+/* Log rotation function for agent.txt */
+void rotate_agent_log(void)
+{
+    rotate_log_file(ADVSEC_AGENT_LOG_FILE, "Advsec Agent", ADVSEC_AGENT_LOGROTATE_CONF);
+}
+
+#ifdef NETWORK_INTELLIGENCE
+/* Log rotation function for cujo-ni.txt */
+void rotate_ni_log(void)
+{
+    rotate_log_file(ADVSEC_NI_LOG_FILE, "Network Intelligence", ADVSEC_NI_LOGROTATE_CONF);
+}
+#endif
+
+/* Callback function for agent.txt libev stat watcher */
+void agent_log_stat_cb(EV_P_ ev_stat *w, int revents)
+{
+    (void)loop;
+    (void)revents;
+
+    if (w->attr.st_nlink)
+    {
+        rotate_agent_log();
+    }
+}
+
+#ifdef NETWORK_INTELLIGENCE
+/* Callback function for cujo-ni.txt libev stat watcher */
+void ni_log_stat_cb(EV_P_ ev_stat *w, int revents)
+{
+    (void)loop;
+    (void)revents;
+
+    if (w->attr.st_nlink)
+    {
+        rotate_ni_log();
+    }
+}
+#endif
+
+/* Thread function to run libev event loop for log monitoring */
+void* advsec_log_monitor_thread(void* arg)
+{
+    (void)arg;
+
+    struct ev_loop *loop = NULL;
+    static ev_stat agent_stat_watcher;
+#ifdef NETWORK_INTELLIGENCE
+    static ev_stat ni_stat_watcher;
+#endif
+
+    CcspTraceDebug(("Starting log monitor thread\n"));
+
+    loop = ev_loop_new(0);
+    if (!loop)
+    {
+        CcspTraceError(("Failed to create libev event loop\n"));
+        return NULL;
+    }
+
+    /* Monitor agent.txt */
+    ev_stat_init(&agent_stat_watcher, agent_log_stat_cb, ADVSEC_AGENT_LOG_FILE, ADVSEC_LOG_MONITOR_INTERVAL);
+    ev_stat_start(loop, &agent_stat_watcher);
+    CcspTraceInfo(("Advsec Agent log monitoring started on %s\n", ADVSEC_AGENT_LOG_FILE));
+
+#ifdef NETWORK_INTELLIGENCE
+    /* Monitor cujo-ni.txt - file may not exist yet, libev handles this safely */
+    ev_stat_init(&ni_stat_watcher, ni_log_stat_cb, ADVSEC_NI_LOG_FILE, ADVSEC_LOG_MONITOR_INTERVAL);
+    ev_stat_start(loop, &ni_stat_watcher);
+    CcspTraceInfo(("Network Intelligence log monitoring started on %s\n", ADVSEC_NI_LOG_FILE));
+#endif
+
+    ev_run(loop, 0);
+    ev_loop_destroy(loop);
+    return NULL;
+}
+
+static void advsec_start_log_monitor_thread(void)
+{
+    int err;
+    pthread_t log_monitor_tid;
+
+    err = pthread_create(&log_monitor_tid, NULL, advsec_log_monitor_thread, NULL);
+    if (err != 0)
+    {
+        CcspTraceError(("%s: Failed to create log monitor thread\n", __FUNCTION__));
+    }
+    else
+    {
+        pthread_detach(log_monitor_tid);
+        CcspTraceDebug(("%s: Log monitor thread created successfully\n", __FUNCTION__));
     }
 }
 
@@ -2677,6 +2968,23 @@ ANSC_STATUS CosaRabidSetDNSCacheSize(ANSC_HANDLE hThisObject, ULONG uValue)
     return returnStatus;
 }
 
+ANSC_STATUS CosaNetworkIntelligenceSetMemoryLimit(ANSC_HANDLE hThisObject, ULONG uValue)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS                 returnStatus = ANSC_STATUS_SUCCESS;
+
+#ifdef NETWORK_INTELLIGENCE
+    returnStatus = CosaSetSysCfgUlong(g_NetworkIntelligenceMemoryLimit, uValue);
+    if ( returnStatus == ANSC_STATUS_SUCCESS )
+    {
+        g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit = uValue;
+    }
+#else
+    UNREFERENCED_PARAMETER(uValue);
+#endif
+    return returnStatus;
+}
+
 ANSC_STATUS
 CosaAdvPCInit
     (
@@ -3504,6 +3812,106 @@ ANSC_STATUS CosaAdvSecTCPTrackerFilterDevicesDeInit(ANSC_HANDLE hThisObject)
     }
 
     CcspTraceWarning (("AdvSecTCPTrackerFilterDevices_RFCEnable:FALSE\n"));
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecDoHBlockingInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_AdvSecDoHBlockingEnabled, 1);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pAdvSecDoHBlocking_RFC->bEnable = TRUE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableDoHBlocking &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceWarning (("AdvSecDoHBlocking_RFCEnable:TRUE\n"));
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecDoHBlockingDeInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_AdvSecDoHBlockingEnabled, 0);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pAdvSecDoHBlocking_RFC->bEnable = FALSE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableDoHBlocking &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceWarning (("AdvSecDoHBlocking_RFCEnable:FALSE\n"));
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecDNSECHBlockingInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_AdvSecDNSECHBlockingEnabled, 1);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC->bEnable = TRUE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableDNSECHBlocking &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceWarning (("AdvSecDNSECHBlocking_RFCEnable:TRUE\n"));
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecDNSECHBlockingDeInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_AdvSecDNSECHBlockingEnabled, 0);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC->bEnable = FALSE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableDNSECHBlocking &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceWarning (("AdvSecDNSECHBlocking_RFCEnable:FALSE\n"));
     return returnStatus;
 }
 

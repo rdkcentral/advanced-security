@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 ##########################################################################
 #
 # Copyright 2018 Comcast Cable Communications Management, LLC
@@ -20,10 +20,10 @@
 
 source $(dirname $(realpath ${0}))/advsec.sh
 
-bridge_mode=`syscfg get bridge_mode`
+bridge_mode=$(syscfg get bridge_mode)
 if [ "${bridge_mode}" = "2" ]; then
-        #Advsec Agent doesn't run in Bridge mode.
-        exit 0
+    #Advsec Agent doesn't run in Bridge mode.
+    exit 0
 fi
 
 KB=1024
@@ -37,9 +37,20 @@ MAX_MEM_SECOND_SOFT_LIMIT=45
 MAX_MEM_HARD_LIMIT=50
 
 #syscfg contains value in MB.
-max_rss=`syscfg get Advsecurity_RabidMemoryLimit`
+max_rss=$(syscfg get Advsecurity_RabidMemoryLimit)
 if [ "$max_rss" != "" ]; then
     MAX_MEM_HARD_LIMIT=$max_rss
+fi
+
+NI_ENABLE=$(dmcli eRT retv Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.NetworkIntelligence.Enable)
+
+# Default NI memory hard limit in MB
+NI_MEM_HARD_LIMIT=15
+
+#syscfg contains value in MB.
+ni_max_rss=$(syscfg get Advsecurity_NetworkIntelligenceMemoryLimit)
+if [ "$ni_max_rss" != "" ]; then
+    NI_MEM_HARD_LIMIT=$ni_max_rss
 fi
 
 MIN_RSS_FIRST_THRESHOLD=$(($MAX_MEM_FIRST_SOFT_LIMIT * $KB)) #kb
@@ -56,31 +67,36 @@ if [ "$2" != "" ]; then
 fi
 
 if [ "$3" != "" ]; then
-        MAX_RSS_THRESHOLD=$3
+    MAX_RSS_THRESHOLD=$3
 fi
 
 get_agent_pid_list()
 {
 	AGENT_PROC=${CUJO_AGENT}
+
+	# Print the list of agents before iterating
+    echo "Agent processes: ${AGENT_PROC}"
+
 	for agent in ${AGENT_PROC}; do
-		PID=`pidof $agent`
+		PID=$(pidof "$agent")
 		if [ "$PID" != "" ]; then
 			PID_LIST="$PID_LIST $PID"
 		fi
 	done
 }
 
-get_agent_cpu_time_spent()
+get_cpu_time_spent()
 {
 #14 utime - CPU time spent in user code, measured in clock ticks
 #15 stime - CPU time spent in kernel code, measured in clock ticks
+	local pid_list="$@"
 	total_time=0
-	for pid in ${PID_LIST}; do
+	for pid in ${pid_list}; do
 		sfile=/proc/$pid/stat
-		if [ -e $sfile ]; then
-			utime=`cat $sfile| awk '{print $14}'`
-			ctime=`cat $sfile| awk '{print $15}'`
-			total_time=`expr $total_time + $utime + $ctime`
+		if [ -e "$sfile" ]; then
+			utime=$(awk '{print $14}' "$sfile")
+			ctime=$(awk '{print $15}' "$sfile")
+			total_time=$(( total_time + utime + ctime ))
 		fi
 	done
 	echo "$total_time"
@@ -97,22 +113,71 @@ get_total_cpu_usage()
 #8 softirq: servicing softirqs
 #9 steal: involuntary wait
 #10 guest: running a normal guest
-	total_cpu_usage=`grep '^cpu ' /proc/stat | awk '{sum=$2+$3+$4+$5+$6+$7+$8+$9+$10; print sum}'`
+	total_cpu_usage=$(awk '/^cpu /{sum=$2+$3+$4+$5+$6+$7+$8+$9+$10; print sum}' /proc/stat)
 	echo "$total_cpu_usage"
 }
 
 log_agent_cpu_statistics()
 {
 	#Log all agent processes cpu stats before clearing them.
-	agent_cpu_stats=`top -bn1 | grep -e ${CUJO_AGENT} | grep -v grep`
+	agent_cpu_stats=$(top -bn1 | grep -e ${CUJO_AGENT} | grep -v grep)
 	echo "####Advsec Agent CPU stats####" >> $ADVSEC_AGENT_LOG_PATH
 	echo_t "$agent_cpu_stats" >> $ADVSEC_AGENT_LOG_PATH
 	echo "##############################" >> $ADVSEC_AGENT_LOG_PATH
 }
 
+check_networkintelligence_mem_recovery()
+{
+    if [ ! -f ${ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH} ]; then
+        return
+    fi
+
+    echo "NI processes: ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}"
+    NI_MAX_RSS_THRESHOLD=$(($NI_MEM_HARD_LIMIT * $KB))
+    NI_PID_LIST=""
+    for ni_proc in ${CUJO_AGENT_QOSD} ${CUJO_AGENT_FPING} ${CUJO_TWAMP_LIGHT}; do
+        pids=$(pidof "$ni_proc")
+        if [ "$pids" != "" ]; then
+            NI_PID_LIST="$NI_PID_LIST $pids"
+        fi
+    done
+
+    if [ "$NI_PID_LIST" = "" ]; then
+        return
+    fi
+
+    echo "####Network Intelligence RSS/PSS MEM stats####" >> $ADVSEC_AGENT_LOG_PATH
+    ni_rss=0
+    ni_pss=0
+    for pid in ${NI_PID_LIST}; do
+        sfile=/proc/$pid/smaps_rollup
+        if [ -e "$sfile" ]; then
+            rss=$(awk '/^Rss:/{print $2}' "$sfile")
+            pss=$(awk '/^Pss:/{print $2}' "$sfile")
+            proc_name=$(tr '\0' ' ' < /proc/$pid/cmdline | sed 's/[[:space:]]*$//')
+            echo_t "$pid:$proc_name : RSS=$rss kB PSS=$pss kB" >> $ADVSEC_AGENT_LOG_PATH
+            if [ ${ni_rss} -eq 0 ]; then
+                ni_rss=$rss
+                ni_pss=$pss
+            fi
+        fi
+    done
+
+    t2ValNotify "NI_RSS_MEM_kB_split" "$ni_rss"
+    t2ValNotify "NI_PSS_MEM_kB_split" "$ni_pss"
+    echo_t "NI_RSS_MEM:$ni_rss kB" >> $ADVSEC_AGENT_LOG_PATH
+    echo_t "NI_PSS_MEM:$ni_pss kB" >> $ADVSEC_AGENT_LOG_PATH
+    echo "##############################################" >> $ADVSEC_AGENT_LOG_PATH
+
+    if [ "$ni_rss" -ge "$NI_MAX_RSS_THRESHOLD" ]; then
+        echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$ni_rss kB, restarting cujo-ni" >> $ADVSEC_AGENT_LOG_PATH
+        systemctl restart cujo-ni
+    fi
+}
+
 advsec_agent_multiple_processes_recovery()
 {
-    AGENT_PS_COUNT=$(echo "$PID_LIST" | wc -w)
+    AGENT_PS_COUNT=$(pidof ${CUJO_AGENT} | wc -w)
     if [ "$AGENT_PS_COUNT" -gt "$AGENT_PS_COUNT_THRESHOLD" ]; then
         echo_t "Advsec Agent multiple processes detected, count=$AGENT_PS_COUNT" >> $ADVSEC_AGENT_LOG_PATH
         advsec_restart_agent "MultipleProcesses"
@@ -122,32 +187,39 @@ advsec_agent_multiple_processes_recovery()
 
 log_agent_mem_statistics()
 {
-	echo "####Advsec Agent RSS MEM stats####" >> $ADVSEC_AGENT_LOG_PATH
+	echo "####Advsec Agent RSS/PSS MEM stats####" >> $ADVSEC_AGENT_LOG_PATH
 	total_rss_mem=0
+	total_pss_mem=0
 	for pid in ${PID_LIST}; do
-		sfile=/proc/$pid/status
-		proc_name=`cat /proc/$pid/cmdline`
-		if [ -e $sfile ]; then
-                        rss=`cat $sfile | grep VmRSS | awk '{print $2}'`
-			echo_t "$pid:$proc_name : $rss kb" >> $ADVSEC_AGENT_LOG_PATH
-                        total_rss_mem=`expr $total_rss_mem + $rss`
-		fi
-        done
-        echo_t "ADVSEC_PROCESS_TOTAL_RSS_MEM:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
-	echo "######################################################" >> $ADVSEC_AGENT_LOG_PATH
-
-	if [ "$total_rss_mem" -ge "$MAX_RSS_THRESHOLD" ]; then
-                echo_t "Warning !!! Reached hard limit of $MAX_MEM_HARD_LIMIT MB, current memory:$total_rss_mem which is HighRSS Memory, restarting $CUJO_AGENT" >> $ADVSEC_AGENT_LOG_PATH
-		advsec_restart_agent "HighRSS"
-		exit
-	elif [ "$total_rss_mem" -ge "$MIN_RSS_SECOND_THRESHOLD" ]; then
-                echo_t "Warning !!! Reached Soft limit of $MAX_MEM_SECOND_SOFT_LIMIT MB, current memory:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
-	elif [ "$total_rss_mem" -ge "$MIN_RSS_FIRST_THRESHOLD" ]; then
-                echo_t "Warning !!! Reached Soft limit of $MAX_MEM_FIRST_SOFT_LIMIT MB, current memory:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
+		sfile=/proc/$pid/smaps_rollup
+		# Get process command line (replace NULLs with spaces)
+        proc_name=$(tr '\0' ' ' < /proc/$pid/cmdline | sed 's/[[:space:]]*$//')
+		if [ -e "$sfile" ]; then
+            rss=$(awk '/^Rss:/{print $2}' "$sfile")
+            pss=$(awk '/^Pss:/{print $2}' "$sfile")
+            echo_t "$pid:$proc_name : RSS=$rss kB PSS=$pss kB" >> $ADVSEC_AGENT_LOG_PATH
+            total_rss_mem=$(( total_rss_mem + rss ))
+            total_pss_mem=$(( total_pss_mem + pss ))
         fi
+    done
+    t2ValNotify "ADVSEC_AGENT_RSS_MEM_kB_split" "$total_rss_mem"
+    t2ValNotify "ADVSEC_AGENT_PSS_MEM_kB_split" "$total_pss_mem"
+    echo_t "ADVSEC_AGENT_RSS_MEM:$total_rss_mem kB" >> $ADVSEC_AGENT_LOG_PATH
+    echo_t "ADVSEC_AGENT_PSS_MEM:$total_pss_mem kB" >> $ADVSEC_AGENT_LOG_PATH
+    echo "######################################" >> $ADVSEC_AGENT_LOG_PATH
+
+    if [ "$total_rss_mem" -ge "$MAX_RSS_THRESHOLD" ]; then
+        echo_t "Warning !!! Reached hard limit of $MAX_MEM_HARD_LIMIT MB, current memory:$total_rss_mem which is HighRSS Memory, restarting $CUJO_AGENT" >> $ADVSEC_AGENT_LOG_PATH
+        advsec_restart_agent "HighRSS"
+        exit
+    elif [ "$total_rss_mem" -ge "$MIN_RSS_SECOND_THRESHOLD" ]; then
+        echo_t "Warning !!! Reached Soft limit of $MAX_MEM_SECOND_SOFT_LIMIT MB, current memory:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
+    elif [ "$total_rss_mem" -ge "$MIN_RSS_FIRST_THRESHOLD" ]; then
+        echo_t "Warning !!! Reached Soft limit of $MAX_MEM_FIRST_SOFT_LIMIT MB, current memory:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
+    fi
 
 	if [ "$BOX_TYPE" = "XF3" ]; then
-		lowfree_mem=`cat /proc/meminfo | grep -i lowfree | awk '{ print $2 }'`
+		lowfree_mem=$(awk '/[Ll]ow[Ff]ree/{print $2}' /proc/meminfo)
 		if [ $lowfree_mem -le $LOWFREE_MEM_THRESHOLD ]; then
 			echo_t "ADVSEC Lowfree Memory threshold recovery" >> $ADVSEC_AGENT_LOG_PATH
 			advsec_restart_agent "LowFreeMem"
@@ -156,10 +228,10 @@ log_agent_mem_statistics()
 	fi
 
 	if [ ! -e ${ADVSEC_USERSPACE_ENABLED_PATH} ]; then
-		tracer_interval=`${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e 'return cujo.config.tracer_interval'`
+		tracer_interval=$(${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e 'return cujo.config.tracer_interval')
 		if [ "x${tracer_interval}" = "x" ]; then
 			${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e 'cujo.nf.dostring([[print("nfluamem:"..collectgarbage("count"))]])'
-			nflua_rss=`dmesg | grep nfluamem: | tail -1 | cut -d':' -f2`
+			nflua_rss=$(dmesg | grep nfluamem: | tail -1 | cut -d':' -f2)
 			if [ "${nflua_rss}" = "" ]; then
 				nflua_rss=0
 			fi
@@ -209,18 +281,33 @@ advsec_agent_multiple_processes_recovery
 
 log_agent_mem_statistics
 
-total_cpu_time_before=$( get_agent_cpu_time_spent )
+if [ "$NI_ENABLE" = "true" ]; then
+    check_networkintelligence_mem_recovery
+fi
+
+agent_cpu_time_before=$( get_cpu_time_spent $(pidof ${CUJO_AGENT}) )
+if [ "$NI_ENABLE" = "true" ]; then
+    ni_cpu_time_before=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
+fi
 total_cpu_usage_before=$( get_total_cpu_usage )
 
 sleep $SAMPLING_TIME
 
-total_cpu_time_after=$( get_agent_cpu_time_spent )
+agent_cpu_time_after=$( get_cpu_time_spent $(pidof ${CUJO_AGENT}) )
 total_cpu_usage_after=$( get_total_cpu_usage )
 
-cpu_time_diff=`expr $total_cpu_time_after - $total_cpu_time_before`
-cpu_usage_diff=`expr $total_cpu_usage_after - $total_cpu_usage_before`
+agent_cpu_time_diff=$(( agent_cpu_time_after - agent_cpu_time_before ))
+cpu_usage_diff=$(( total_cpu_usage_after - total_cpu_usage_before ))
 
-CPU=`expr $cpu_time_diff \* 100 / $cpu_usage_diff`
+agent_CPU=$(awk "BEGIN {printf \"%.2f\", ($agent_cpu_time_diff * 100.0) / $cpu_usage_diff}")
 
-echo_t "Advsec total_CPU_usage=$CPU %" >> $ADVSEC_AGENT_LOG_PATH
+t2ValNotify "ADVSEC_AGENT_CPU_USAGE_PERCENTAGE_split" "$agent_CPU"
+echo_t "Advsec Agent CPU_usage=$agent_CPU %" >> $ADVSEC_AGENT_LOG_PATH
 
+if [ "$NI_ENABLE" = "true" ]; then
+    ni_cpu_time_after=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
+    ni_cpu_time_diff=$(( ni_cpu_time_after - ni_cpu_time_before ))
+    ni_CPU=$(awk "BEGIN {printf \"%.2f\", ($ni_cpu_time_diff * 100.0) / $cpu_usage_diff}")
+    t2ValNotify "NI_CPU_USAGE_PERCENTAGE_split" "$ni_CPU"
+    echo_t "NetworkIntelligence CPU_usage=$ni_CPU %" >> $ADVSEC_AGENT_LOG_PATH
+fi
