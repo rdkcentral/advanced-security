@@ -2030,3 +2030,78 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecAgentRaptrDeInit)
     free(g_pAdvSecAgent->pRaptr_RFC);
     free(g_pAdvSecAgent);
 }
+
+TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecApplyRfcDefaultTrue_GetFailure_DefaultsToTrue)
+{
+    const char *AdvSecCujoTracerEnabled = "Adv_AdvSecCujoTracerRFCEnable";
+    BOOL enable = FALSE;
+
+    EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecCujoTracerEnabled), _))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
+        .WillOnce(Return(0));
+
+    ANSC_STATUS status = CosaAdvSecApplyRfcDefaultTrue(
+        (char*)AdvSecCujoTracerEnabled,
+        ANSC_STATUS_FAILURE,
+        0,
+        &enable,
+        "AdvSecCujoTracer_RFCEnable");
+
+    EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
+    EXPECT_EQ(enable, TRUE);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecApplyRfcDefaultTrue_ZeroValue_DefaultsToTrue)
+{
+    const char *AdvSecCujoTelemetryEnabled = "Adv_AdvSecCujoTelemetryRFCEnable";
+    BOOL enable = FALSE;
+
+    EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecCujoTelemetryEnabled), _))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
+        .WillOnce(Return(0));
+
+    ANSC_STATUS status = CosaAdvSecApplyRfcDefaultTrue(
+        (char*)AdvSecCujoTelemetryEnabled,
+        ANSC_STATUS_SUCCESS,
+        0,
+        &enable,
+        "AdvSecCujoTelemetry_RFCEnable");
+
+    EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
+    EXPECT_EQ(enable, TRUE);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecApplyRfcDefaultTrue_EnabledValue_NoDefaultWrite)
+{
+    const char *AdvSecCujoTracerEnabled = "Adv_AdvSecCujoTracerRFCEnable";
+    BOOL enable = FALSE;
+
+    EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecCujoTracerEnabled), _))
+        .Times(0);
+    EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(0);
+    EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(0);
+
+    ANSC_STATUS status = CosaAdvSecApplyRfcDefaultTrue(
+        (char*)AdvSecCujoTracerEnabled,
+        ANSC_STATUS_SUCCESS,
+        1,
+        &enable,
+        "AdvSecCujoTracer_RFCEnable");
+
+    EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
+    EXPECT_EQ(enable, TRUE);
+}

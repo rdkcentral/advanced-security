@@ -1027,6 +1027,8 @@ CosaSecurityInitialize
 {
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS             returnStatus        = ANSC_STATUS_SUCCESS;
+    ANSC_STATUS             getCujoTracerRfcStatus = ANSC_STATUS_FAILURE;
+    ANSC_STATUS             getCujoTelemetryRfcStatus = ANSC_STATUS_FAILURE;
     ULONG                   Value = 0;
     ULONG                   ValueSB = 0;
     ULONG                   ValueSF = 0;
@@ -1282,8 +1284,8 @@ CosaSecurityInitialize
     CosaGetSysCfgUlong(g_AdvSecAgentEnabled, &ValueASAGENT_RFC);
     CosaGetSysCfgUlong(g_AdvSecSafeBrowsingEnabled, &ValueASSAFEBROWSING_RFC);
     CosaGetSysCfgUlong(g_AdvSecCujoTelemetryWiFiFPEnabled, &ValueASCUJOTELEMETRYWIFIFP_RFC);
-    CosaGetSysCfgUlong(g_AdvSecCujoTracerEnabled, &ValueASCUJOTRACER_RFC);
-    CosaGetSysCfgUlong(g_AdvSecCujoTelemetryEnabled, &ValueASCUJOTELEMETRY_RFC);
+    getCujoTracerRfcStatus = CosaGetSysCfgUlong(g_AdvSecCujoTracerEnabled, &ValueASCUJOTRACER_RFC);
+    getCujoTelemetryRfcStatus = CosaGetSysCfgUlong(g_AdvSecCujoTelemetryEnabled, &ValueASCUJOTELEMETRY_RFC);
     CosaGetSysCfgUlong(g_AdvSecSATEEnabled, &ValueASSATE_RFC);
     CosaGetSysCfgUlong(g_AdvSecTCPTrackerFilterDevicesEnabled, &ValueASTCPTrackerFilterDevices_RFC);
     CosaGetSysCfgUlong(g_RaptrEnabled, &ValueRAPTR_RFC);
@@ -1301,21 +1303,21 @@ CosaSecurityInitialize
     g_pAdvSecAgent->pDFIcmpv6_RFC->bEnable = ValueDFIcmpv6_RFC;
     g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC->bEnable = ValueWSA_RFC;
     g_pAdvSecAgent->pAdvSecOTM_RFC->bEnable = ValueASOTM_RFC;
-    if (ValueASUSERSPACE_RFC == 0)
-    {
-        // Enable user-space feature
-        returnStatus = CosaSetSysCfgUlong(g_AdvSecUserSpaceEnabled, 1);
-        if (returnStatus != ANSC_STATUS_SUCCESS)
-        {
-            CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
-        }
-        g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = TRUE;
-        CcspTraceInfo(("AdvSecUserSpace_RFCEnable:TRUE\n"));
-    }
-    else
-    {
-        g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = ValueASUSERSPACE_RFC;
-    }
+    g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = ValueASUSERSPACE_RFC;
+
+    returnStatus = CosaAdvSecApplyRfcDefaultTrue(
+        g_AdvSecCujoTracerEnabled,
+        getCujoTracerRfcStatus,
+        ValueASCUJOTRACER_RFC,
+        &g_pAdvSecAgent->pAdvSecCujoTracer_RFC->bEnable,
+        "AdvSecCujoTracer_RFCEnable");
+
+    returnStatus = CosaAdvSecApplyRfcDefaultTrue(
+        g_AdvSecCujoTelemetryEnabled,
+        getCujoTelemetryRfcStatus,
+        ValueASCUJOTELEMETRY_RFC,
+        &g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable,
+        "AdvSecCujoTelemetry_RFCEnable");
 #ifdef WIFI_DATA_COLLECTION
     g_pAdvSecAgent->pLevl_RFC->bEnable = ValueLEVL_RFC;
 
@@ -1369,8 +1371,6 @@ CosaSecurityInitialize
     g_pAdvSecAgent->pAdvSecAgent_RFC->bEnable = ValueASAGENT_RFC;
     g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC->bEnable = ValueASSAFEBROWSING_RFC;
     g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC->bEnable = ValueASCUJOTELEMETRYWIFIFP_RFC;
-    g_pAdvSecAgent->pAdvSecCujoTracer_RFC->bEnable = ValueASCUJOTRACER_RFC;
-    g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable = ValueASCUJOTELEMETRY_RFC;
     g_pAdvSecAgent->pAdvSecSATE_RFC->bEnable = ValueASSATE_RFC;
     g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC->bEnable = ValueASTCPTrackerFilterDevices_RFC;
     g_pAdvSecAgent->pRaptr_RFC->bEnable = ValueRAPTR_RFC;
@@ -1479,6 +1479,34 @@ ANSC_STATUS CosaSetSysCfgUlong(char* setting, ULONG value)
         }
     }
 
+    return ret;
+}
+
+ANSC_STATUS
+CosaAdvSecApplyRfcDefaultTrue
+    (
+        char* setting,
+        ANSC_STATUS getStatus,
+        ULONG value,
+        BOOL* pEnable,
+        const char* featureLogName
+    )
+{
+    ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
+
+    if ((getStatus != ANSC_STATUS_SUCCESS) || (value == 0))
+    {
+        ret = CosaSetSysCfgUlong(setting, 1);
+        if (ret != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
+        }
+        *pEnable = TRUE;
+        CcspTraceInfo(("%s:TRUE\n", featureLogName));
+        return ret;
+    }
+
+    *pEnable = value;
     return ret;
 }
 
