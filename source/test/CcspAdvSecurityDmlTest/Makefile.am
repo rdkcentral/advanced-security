@@ -33,7 +33,7 @@ CcspAdvSecurityDmlTest_gtest_bin_CPPFLAGS = -I$(PKG_CONFIG_SYSROOT_DIR)$(include
                                             -I${top_srcdir}/source \
                                             -I${top_srcdir}/source/AdvSecurityDml \
                                             -I${top_srcdir}/source/include \
-                                            -DUNIT_TEST_DOCKER_SUPPORT
+                                            -DUNIT_TEST_DOCKER_SUPPORT \
                                             -DNETWORK_INTELLIGENCE
 
 CcspAdvSecurityDmlTest_gtest_bin_SOURCES = CcspAdvSecurityMock.cpp \
