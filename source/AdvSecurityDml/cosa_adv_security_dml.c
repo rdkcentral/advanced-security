@@ -37,7 +37,7 @@ extern COSA_DATAMODEL_AGENT* g_pAdvSecAgent;
 extern pthread_mutex_t logMutex;
 
 #ifdef NETWORK_INTELLIGENCE
-static char *g_AdvNetworkIntelligence = "Adv_NetworkIntelligenceRFCEnable";
+static char *g_AdvNetworkIntelligence = "Adv_AdvSecNetworkIntelligenceRFCEnable";
 #endif
 
 #ifdef WIFI_DATA_COLLECTION

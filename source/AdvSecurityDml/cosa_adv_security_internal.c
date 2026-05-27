@@ -1558,7 +1558,7 @@ ANSC_STATUS CosaGetSysCfgUlong(char* setting, ULONG* value)
     }
     else
     {
-        CcspTraceError(("syscfg_get failed\n"));
+        CcspTraceError(("syscfg_get failed for [%s]\n", setting));
     }
 
     return ret;
@@ -1578,7 +1578,7 @@ ANSC_STATUS CosaSetSysCfgUlong(char* setting, ULONG value)
     }
     if(ANSC_STATUS_SUCCESS != (ret = syscfg_set( NULL, setting, buf)))
     {
-        CcspTraceError(("syscfg_set failed\n"));
+        CcspTraceError(("syscfg_set failed for [%s]\n", setting));
     }
     else
     {
