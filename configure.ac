@@ -109,6 +109,17 @@ AC_ARG_ENABLE([downloadmodule],
 esac],[DOWNLOADMODULE=false])
 AM_CONDITIONAL([DOWNLOADMODULE], [test x$DOWNLOADMODULE = xtrue])
 
+AC_ARG_ENABLE([networkintel],
+AS_HELP_STRING([--enable-networkintel],
+               [enable Network Intelligence tools]),
+[case "${enableval}" in
+    yes) networkintel=true ;;
+    no) networkintel=false ;;
+    *) AC_MSG_ERROR([bad value ${enableval} for --enable-networkintel]) ;;
+esac],
+[networkintel=false])
+AM_CONDITIONAL([NETWORK_INTELLIGENCE], [test x$networkintel = xtrue])
+
 AC_ARG_ENABLE([wifidcl],
 AS_HELP_STRING([--enable-wifidcl],
                [enable wifi data collection]),
