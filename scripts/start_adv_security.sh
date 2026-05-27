@@ -182,11 +182,13 @@ then
             #This is a workaround for an issue in firewall utility, where cujo related rules are not added.
             #To be removed once firewall utility issue is fixed!
             sleep 20s
-            ipt4=$(grep -c CUJO /tmp/.ipt)
-            ipt6=$(grep -c CUJO /tmp/.ipt_v6)
+            ipt4=$(grep -c CUJO /tmp/.ipt 2>/dev/null)
+            ipt4=${ipt4:-0}
+            ipt6=$(grep -c CUJO /tmp/.ipt_v6 2>/dev/null)
+            ipt6=${ipt6:-0}
             ip4=$(iptables-save | grep -c CUJO)
             ip6=$(ip6tables-save | grep -c CUJO)
-            if [ ${ipt4} != ${ip4} ] || [ ${ipt6} != ${ip6} ]; then
+            if [ "${ipt4}" != "${ip4}" ] || [ "${ipt6}" != "${ip6}" ]; then
                 do_firewall_restart "wait"
             else
                 echo_t "Rules are loaded correctly" >> ${ADVSEC_AGENT_LOG_PATH}
