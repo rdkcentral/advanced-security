@@ -18,62 +18,7 @@
 
 #include "CcspAdvSecurityMock.h"
 
-class CcspAdvSecurityInternalTestFixture : public ::testing::Test {
-protected:
-    void SetUp() override {
-
-       g_syscfgMock = new SyscfgMock();
-        g_securewrapperMock = new SecureWrapperMock();
-        g_msgpackMock = new msgpackMock();
-        g_usertimeMock = new UserTimeMock();
-        g_safecLibMock = new SafecLibMock();
-        g_anscMemoryMock = new AnscMemoryMock();
-        g_baseapiMock = new BaseAPIMock();
-        g_traceMock = new TraceMock();
-        g_base64Mock = new base64Mock();
-        g_rbusMock = new rbusMock();
-        g_cmHALMock = new CmHalMock();
-        g_platformHALMock = new PlatformHalMock();
-        g_cjsonMock = new cjsonMock();
-        g_syseventMock = new SyseventMock();
-        g_webconfigFwMock = new webconfigFwMock();
-        g_anscWrapperApiMock = new AnscWrapperApiMock();
-    }
-
-    void TearDown() override {
-        delete g_syscfgMock;
-        delete g_securewrapperMock;
-        delete g_msgpackMock;
-        delete g_usertimeMock;
-        delete g_safecLibMock;
-        delete g_anscMemoryMock;
-        delete g_baseapiMock;
-        delete g_traceMock;
-        delete g_base64Mock;
-        delete g_rbusMock;
-        delete g_cmHALMock;
-        delete g_platformHALMock;
-        delete g_cjsonMock;
-        delete g_syseventMock;
-        delete g_webconfigFwMock;
-        delete g_anscWrapperApiMock;
-        g_syscfgMock = nullptr;
-        g_securewrapperMock = nullptr;
-        g_msgpackMock = nullptr;
-        g_usertimeMock = nullptr;
-        g_safecLibMock = nullptr;
-        g_anscMemoryMock = nullptr;
-        g_baseapiMock = nullptr;
-        g_traceMock = nullptr;
-        g_base64Mock = nullptr;
-        g_rbusMock = nullptr;
-        g_cmHALMock = nullptr;
-        g_platformHALMock = nullptr;
-        g_cjsonMock = nullptr;
-        g_syseventMock = nullptr;
-        g_webconfigFwMock = nullptr;
-        g_anscWrapperApiMock = nullptr;
-    }
+class CcspAdvSecurityInternalTestFixture : public CcspAdvSecurityBaseFixture {
 };
 
 TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_start_features_sb) {
@@ -83,12 +28,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_start_features_sb) {
     int val = 0;
     FILE* file = NULL;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = FALSE;
     g_pAdvSecAgent->bEnable = TRUE;
@@ -125,9 +65,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_start_features_sb) {
 
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
 
-    free(g_pAdvSecAgent->pAdvSec->pSafeBrows);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_start_features_sf) {
@@ -137,12 +75,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_start_features_sf) {
     int val = 0;
     FILE* file = NULL;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSoftFlowd = (COSA_DATAMODEL_SOFTFLOWD *)malloc(sizeof(COSA_DATAMODEL_SOFTFLOWD));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSoftFlowd, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable = FALSE;
     g_pAdvSecAgent->bEnable = TRUE;
@@ -179,9 +112,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_start_features_sf) {
 
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
 
-    free(g_pAdvSecAgent->pAdvSec->pSoftFlowd);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_start_features_sb_sf) {
@@ -192,14 +123,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_start_features_sb_sf) {
     int val = 0;
     FILE* file = NULL;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSoftFlowd = (COSA_DATAMODEL_SOFTFLOWD *)malloc(sizeof(COSA_DATAMODEL_SOFTFLOWD));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSoftFlowd, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = FALSE;
     g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable = FALSE;
@@ -244,10 +168,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_start_features_sb_sf) {
         }
     }
 
-    free(g_pAdvSecAgent->pAdvSec->pSafeBrows);
-    free(g_pAdvSecAgent->pAdvSec->pSoftFlowd);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_stop_features_sb) {
@@ -257,12 +178,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_stop_features_sb) {
     int val = 0;
     FILE* file = NULL;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = TRUE;
     g_pAdvSecAgent->bEnable = TRUE;
@@ -305,21 +221,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_stop_features_sb) {
         }
     }
 
-    free(g_pAdvSecAgent->pAdvSec->pSafeBrows);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_stop_features_sf) {
     const advsec_feature_type type = ADVSEC_SOFTFLOWD;
     const char *AdvSecuritySFEnabled = "Advsecurity_Softflowd";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSoftFlowd = (COSA_DATAMODEL_SOFTFLOWD *)malloc(sizeof(COSA_DATAMODEL_SOFTFLOWD));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSoftFlowd, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable = TRUE;
     g_pAdvSecAgent->bEnable = TRUE;
@@ -342,9 +251,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_stop_features_sf) {
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSec->pSoftFlowd);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_stop_features_sb_sf) {
@@ -352,14 +259,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_stop_features_sb_sf) {
     const char *AdvSecuritySBEnabled = "Advsecurity_SafeBrowsing";
     const char *AdvSecuritySFEnabled = "Advsecurity_Softflowd";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSoftFlowd = (COSA_DATAMODEL_SOFTFLOWD *)malloc(sizeof(COSA_DATAMODEL_SOFTFLOWD));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSoftFlowd, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = TRUE;
     g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable = TRUE;
@@ -387,19 +287,13 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_advsec_stop_features_sb_sf) {
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pAdvSec->pSoftFlowd->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSec->pSafeBrows);
-    free(g_pAdvSecAgent->pAdvSec->pSoftFlowd);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, Cosa_AdvSec_Agent_Raptr_Init) {
     const char *RaptrEnabled = "Adv_RaptrRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pRaptr_RFC = (COSA_DATAMODEL_RAPTR_RFC *)malloc(sizeof(COSA_DATAMODEL_RAPTR_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pRaptr_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pRaptr_RFC->bEnable = TRUE;
 
@@ -421,17 +315,13 @@ TEST_F(CcspAdvSecurityInternalTestFixture, Cosa_AdvSec_Agent_Raptr_Init) {
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pRaptr_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pRaptr_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, Cosa_AdvSec_Agent_Raptr_DeInit) {
     const char *RaptrEnabled = "Adv_RaptrRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pRaptr_RFC = (COSA_DATAMODEL_RAPTR_RFC *)malloc(sizeof(COSA_DATAMODEL_RAPTR_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pRaptr_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pRaptr_RFC->bEnable = FALSE;
 
@@ -453,8 +343,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, Cosa_AdvSec_Agent_Raptr_DeInit) {
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pRaptr_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pRaptr_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_start_privacy_protection) {
@@ -464,10 +353,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_start_privacy_protection) {
     int val = 0;
     FILE* file = NULL;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pPrivProt = (COSA_DATAMODEL_PRIVACYPROTECTION *)malloc(sizeof(COSA_DATAMODEL_PRIVACYPROTECTION));
-    ASSERT_NE(g_pAdvSecAgent->pPrivProt, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pPrivProt->bEnable = TRUE;
 
@@ -504,8 +390,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_start_privacy_protection) {
         }
     }
 
-    free(g_pAdvSecAgent->pPrivProt);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_stop_privacy_protection) {
@@ -515,10 +400,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_stop_privacy_protection) {
     int val = 0;
     FILE* file = NULL;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pPrivProt = (COSA_DATAMODEL_PRIVACYPROTECTION *)malloc(sizeof(COSA_DATAMODEL_PRIVACYPROTECTION));
-    ASSERT_NE(g_pAdvSecAgent->pPrivProt, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pPrivProt->bEnable = FALSE;
 
@@ -560,15 +442,13 @@ TEST_F(CcspAdvSecurityInternalTestFixture, ccsp_stop_privacy_protection) {
         }
     }
 
-    free(g_pAdvSecAgent->pPrivProt);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecInit_Success)
 {
     const char *DeviceFingerPrintEnabled = "Advsecurity_DeviceFingerPrint";
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->bEnable = TRUE;
 
@@ -590,14 +470,13 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecInit_Success)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(g_pAdvSecAgent->bEnable, TRUE);
 
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecDeInit_Success)
 {
     const char *DeviceFingerPrintEnabled = "Advsecurity_DeviceFingerPrint";
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->bEnable = FALSE;
 
@@ -618,7 +497,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecDeInit_Success)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(g_pAdvSecAgent->bEnable, FALSE);
 
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaStartAdvParentalControl_Success)
@@ -628,10 +507,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaStartAdvParentalControl_Success)
     int val = 0;
     FILE* file = NULL;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvPC = (COSA_DATAMODEL_ADVPARENTALCONTROL *)malloc(sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
-    ASSERT_NE(g_pAdvSecAgent->pAdvPC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvPC->bEnable = TRUE;
 
@@ -673,8 +549,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaStartAdvParentalControl_Success)
         }
     }
 
-    free(g_pAdvSecAgent->pAdvPC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaStopAdvParentalControl_Success)
@@ -684,10 +559,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaStopAdvParentalControl_Success)
     int val = 0;
     FILE* file = NULL;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvPC = (COSA_DATAMODEL_ADVPARENTALCONTROL *)malloc(sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
-    ASSERT_NE(g_pAdvSecAgent->pAdvPC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvPC->bEnable = FALSE;
 
@@ -729,8 +601,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaStopAdvParentalControl_Success)
         }
     }
 
-    free(g_pAdvSecAgent->pAdvPC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_fingerprint_enable)
@@ -750,18 +621,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_fingerpr
     feature.parental_control_activate = false;
     feature.privacy_protection_activate = false;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSoftFlowd = (COSA_DATAMODEL_SOFTFLOWD *)malloc(sizeof(COSA_DATAMODEL_SOFTFLOWD));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSoftFlowd, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
-    g_pAdvSecAgent->pAdvPC = (COSA_DATAMODEL_ADVPARENTALCONTROL *)malloc(sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
-    ASSERT_NE(g_pAdvSecAgent->pAdvPC, nullptr);
-    g_pAdvSecAgent->pPrivProt = (COSA_DATAMODEL_PRIVACYPROTECTION *)malloc(sizeof(COSA_DATAMODEL_PRIVACYPROTECTION));
-    ASSERT_NE(g_pAdvSecAgent->pPrivProt, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->bEnable = TRUE;
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = TRUE;
@@ -805,12 +665,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_fingerpr
         }
     }
 
-    free(g_pAdvSecAgent->pAdvSec->pSafeBrows);
-    free(g_pAdvSecAgent->pAdvSec->pSoftFlowd);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent->pAdvPC);
-    free(g_pAdvSecAgent->pPrivProt);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_fingerprint_disable)
@@ -831,18 +686,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_fingerpr
     feature.parental_control_activate = false;
     feature.privacy_protection_activate = false;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSoftFlowd = (COSA_DATAMODEL_SOFTFLOWD *)malloc(sizeof(COSA_DATAMODEL_SOFTFLOWD));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSoftFlowd, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
-    g_pAdvSecAgent->pAdvPC = (COSA_DATAMODEL_ADVPARENTALCONTROL *)malloc(sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
-    ASSERT_NE(g_pAdvSecAgent->pAdvPC, nullptr);
-    g_pAdvSecAgent->pPrivProt = (COSA_DATAMODEL_PRIVACYPROTECTION *)malloc(sizeof(COSA_DATAMODEL_PRIVACYPROTECTION));
-    ASSERT_NE(g_pAdvSecAgent->pPrivProt, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->bEnable = TRUE;
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = TRUE;
@@ -886,12 +730,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_fingerpr
         }
     }
 
-    free(g_pAdvSecAgent->pAdvSec->pSafeBrows);
-    free(g_pAdvSecAgent->pAdvSec->pSoftFlowd);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent->pAdvPC);
-    free(g_pAdvSecAgent->pPrivProt);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_configure_feature)
@@ -912,18 +751,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_configur
     feature.parental_control_activate = false;
     feature.privacy_protection_activate = false;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSoftFlowd = (COSA_DATAMODEL_SOFTFLOWD *)malloc(sizeof(COSA_DATAMODEL_SOFTFLOWD));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSoftFlowd, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
-    g_pAdvSecAgent->pAdvPC = (COSA_DATAMODEL_ADVPARENTALCONTROL *)malloc(sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
-    ASSERT_NE(g_pAdvSecAgent->pAdvPC, nullptr);
-    g_pAdvSecAgent->pPrivProt = (COSA_DATAMODEL_PRIVACYPROTECTION *)malloc(sizeof(COSA_DATAMODEL_PRIVACYPROTECTION));
-    ASSERT_NE(g_pAdvSecAgent->pPrivProt, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->bEnable = TRUE;
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = TRUE;
@@ -967,12 +795,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_configur
         }
     }
 
-    free(g_pAdvSecAgent->pAdvSec->pSafeBrows);
-    free(g_pAdvSecAgent->pAdvSec->pSoftFlowd);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent->pAdvPC);
-    free(g_pAdvSecAgent->pPrivProt);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecGetLoggingPeriod)
@@ -1058,12 +881,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecGetLookupTimeout)
     const char *AdvSecurityLookupTimeout = "Advsecurity_LookupTimeout";
     const char LookupTimeout[] = "350";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
+    AllocateAdvSecAgent();
 
     EXPECT_CALL(*g_syscfgMock, syscfg_get(_, StrEq(AdvSecurityLookupTimeout), _, _))
         .WillOnce(DoAll(
@@ -1076,9 +894,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecGetLookupTimeout)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(g_pAdvSecAgent->pAdvSec->pSafeBrows->ulLookupTimeout, 3);
 
-    free(g_pAdvSecAgent->pAdvSec->pSafeBrows);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecSetLookupTimeout)
@@ -1086,12 +902,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecSetLookupTimeout)
     const char *AdvSecurityLookupTimeout = "Advsecurity_LookupTimeout";
     ULONG value = 3;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSec = (COSA_DATAMODEL_ADVSEC *)malloc(sizeof(COSA_DATAMODEL_ADVSEC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec, nullptr);
-    g_pAdvSecAgent->pAdvSec->pSafeBrows = (COSA_DATAMODEL_SB *)malloc(sizeof(COSA_DATAMODEL_SB));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSec->pSafeBrows, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSec->pSafeBrows->bEnable = TRUE;
 
@@ -1113,9 +924,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecSetLookupTimeout)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(g_pAdvSecAgent->pAdvSec->pSafeBrows->ulLookupTimeout, value);
 
-    free(g_pAdvSecAgent->pAdvSec->pSafeBrows);
-    free(g_pAdvSecAgent->pAdvSec);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 
@@ -1258,12 +1067,9 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCInit)
     int val = 0;
     FILE* file = NULL;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
+    AllocateAdvSecAgent();
     g_pAdvSecAgent->bEnable = TRUE;
 
-    g_pAdvSecAgent->pAdvPC_RFC = (COSA_DATAMODEL_ADVPC_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVPC_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvPC_RFC, nullptr);
     g_pAdvSecAgent->pAdvPC_RFC->bEnable = TRUE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
@@ -1286,9 +1092,6 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCInit)
         fclose(file);
         val = 1;
     }
-
-    g_pAdvSecAgent->pAdvPC = (COSA_DATAMODEL_ADVPARENTALCONTROL *)malloc(sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
-    ASSERT_NE(g_pAdvSecAgent->pAdvPC, nullptr);
 
     g_pAdvSecAgent->pAdvPC->bEnable = TRUE;
 
@@ -1319,9 +1122,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCInit)
         }
     }
 
-    free(g_pAdvSecAgent->pAdvPC_RFC);
-    free(g_pAdvSecAgent->pAdvPC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCDeInit)
@@ -1332,12 +1133,9 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCDeInit)
     int val = 0;
     FILE* file = NULL;
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
+    AllocateAdvSecAgent();
     g_pAdvSecAgent->bEnable = TRUE;
 
-    g_pAdvSecAgent->pAdvPC_RFC = (COSA_DATAMODEL_ADVPC_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVPC_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvPC_RFC, nullptr);
     g_pAdvSecAgent->pAdvPC_RFC->bEnable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
@@ -1360,9 +1158,6 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCDeInit)
         fclose(file);
         val = 1;
     }
-
-    g_pAdvSecAgent->pAdvPC = (COSA_DATAMODEL_ADVPARENTALCONTROL *)malloc(sizeof(COSA_DATAMODEL_ADVPARENTALCONTROL));
-    ASSERT_NE(g_pAdvSecAgent->pAdvPC, nullptr);
 
     g_pAdvSecAgent->pAdvPC->bEnable = FALSE;
 
@@ -1390,19 +1185,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCDeInit)
         }
     }
 
-    free(g_pAdvSecAgent->pAdvPC_RFC);
-    free(g_pAdvSecAgent->pAdvPC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvDFIcmpv6Init)
 {
     const char *DeviceFingerPrintICMPv6Enabled = "Adv_DFICMPv6RFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pDFIcmpv6_RFC = (COSA_DATAMODEL_DEVICEFINGERPRINTICMPv6_RFC *)malloc(sizeof(COSA_DATAMODEL_DEVICEFINGERPRINTICMPv6_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pDFIcmpv6_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pDFIcmpv6_RFC->bEnable = TRUE;
 
@@ -1424,18 +1214,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvDFIcmpv6Init)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pDFIcmpv6_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pDFIcmpv6_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvDFIcmpv6DeInit)
 {
     const char *DeviceFingerPrintICMPv6Enabled = "Adv_DFICMPv6RFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pDFIcmpv6_RFC = (COSA_DATAMODEL_DEVICEFINGERPRINTICMPv6_RFC *)malloc(sizeof(COSA_DATAMODEL_DEVICEFINGERPRINTICMPv6_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pDFIcmpv6_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pDFIcmpv6_RFC->bEnable = FALSE;
 
@@ -1457,18 +1243,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvDFIcmpv6DeInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pDFIcmpv6_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pDFIcmpv6_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaWSDisInit)
 {
     const char *WSDiscoveryAnalysisEnabled = "Adv_WSDisAnaRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC = (COSA_DATAMODEL_WSDISCOVERYANALYSIS_RFC *)malloc(sizeof(COSA_DATAMODEL_WSDISCOVERYANALYSIS_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC->bEnable = TRUE;
 
@@ -1490,18 +1272,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaWSDisInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaWSDisDeInit)
 {
     const char *WSDiscoveryAnalysisEnabled = "Adv_WSDisAnaRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC = (COSA_DATAMODEL_WSDISCOVERYANALYSIS_RFC *)malloc(sizeof(COSA_DATAMODEL_WSDISCOVERYANALYSIS_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC->bEnable = FALSE;
 
@@ -1523,18 +1301,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaWSDisDeInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecOTMInit)
 {
     const char *AdvSecOTMEnabled = "Adv_AdvSecOTMRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecOTM_RFC = (COSA_DATAMODEL_ADVSECOTM_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECOTM_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecOTM_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecOTM_RFC->bEnable = TRUE;
 
@@ -1556,18 +1330,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecOTMInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pAdvSecOTM_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecOTM_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecOTMDeInit)
 {
     const char *AdvSecOTMEnabled = "Adv_AdvSecOTMRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecOTM_RFC = (COSA_DATAMODEL_ADVSECOTM_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECOTM_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecOTM_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecOTM_RFC->bEnable = FALSE;
 
@@ -1589,18 +1359,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecOTMDeInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pAdvSecOTM_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecOTM_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecUserSpaceInit)
 {
     const char *AdvSecUserSpaceEnabled = "Adv_AdvSecUserSpaceRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecUserSpace_RFC = (COSA_DATAMODEL_ADVSECUSERSPACE_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECUSERSPACE_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecUserSpace_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = TRUE;
 
@@ -1622,53 +1388,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecUserSpaceInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecUserSpace_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
-
-/*
-TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecUserSpaceDeInit)
-{
-    const char *AdvSecUserSpaceEnabled = "Adv_AdvSecUserSpaceRFCEnable";
-
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecUserSpace_RFC = (COSA_DATAMODEL_ADVSECUSERSPACE_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECUSERSPACE_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecUserSpace_RFC, nullptr);
-
-    g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = FALSE;
-
-    EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
-        .Times(1)
-        .WillOnce(Return(0));
-    EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecUserSpaceEnabled), _))
-        .Times(1)
-        .WillOnce(Return(0));
-    EXPECT_CALL(*g_syscfgMock, syscfg_commit())
-        .Times(1)
-        .WillOnce(Return(0));
-    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disableUS &"), _))
-        .Times(1)
-        .WillOnce(Return(0));
-
-    ANSC_STATUS status = CosaAdvSecUserSpaceDeInit(NULL);
-
-    EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
-    EXPECT_EQ(FALSE, g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable);
-
-    free(g_pAdvSecAgent->pAdvSecUserSpace_RFC);
-    free(g_pAdvSecAgent);
-}
-*/
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecAgentInit)
 {
     const char *AdvSecAgentEnabled = "Adv_AdvSecAgentRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecAgent_RFC = (COSA_DATAMODEL_ADVSECAGENT_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECAGENT_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecAgent_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecAgent_RFC->bEnable = TRUE;
 
@@ -1690,8 +1417,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecAgentInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pAdvSecAgent_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecAgent_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 
@@ -1699,10 +1425,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecAgentDeInit)
 {
     const char *AdvSecAgentEnabled = "Adv_AdvSecAgentRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecAgent_RFC = (COSA_DATAMODEL_ADVSECAGENT_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECAGENT_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecAgent_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecAgent_RFC->bEnable = FALSE;
 
@@ -1724,18 +1447,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecAgentDeInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pAdvSecAgent_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecAgent_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecSafeBrowsingInit)
 {
     const char *AdvSecSafeBrowsingEnabled = "Adv_AdvSecSafeBrowsingRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC = (COSA_DATAMODEL_ADVSECSAFEBROWSING_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECSAFEBROWSING_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC->bEnable = TRUE;
 
@@ -1757,18 +1476,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecSafeBrowsingInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecSafeBrowsingDeInit)
 {
     const char *AdvSecSafeBrowsingEnabled = "Adv_AdvSecSafeBrowsingRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC = (COSA_DATAMODEL_ADVSECSAFEBROWSING_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECSAFEBROWSING_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC->bEnable = FALSE;
 
@@ -1790,18 +1505,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecSafeBrowsingDeInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTelemetryWiFiFPInit)
 {
     const char *AdvSecCujoTelemetryWiFiFPEnabled = "Adv_AdvSecCujoTelemetryWiFiFPRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC = (COSA_DATAMODEL_ADVSECCUJOTELEMETRYWIFIFP_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECCUJOTELEMETRYWIFIFP_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC->bEnable = TRUE;
 
@@ -1823,18 +1534,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTelemetryWiFiFPInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTelemetryWiFiFPDeInit)
 {
     const char *AdvSecCujoTelemetryWiFiFPEnabled = "Adv_AdvSecCujoTelemetryWiFiFPRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC = (COSA_DATAMODEL_ADVSECCUJOTELEMETRYWIFIFP_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECCUJOTELEMETRYWIFIFP_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC->bEnable = FALSE;
 
@@ -1856,18 +1563,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTelemetryWiFiFPDeInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTracerInit)
 {
     const char *AdvSecCujoTracerEnabled = "Adv_AdvSecCujoTracerRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecCujoTracer_RFC = (COSA_DATAMODEL_ADVSECCUJOTRACER_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECCUJOTRACER_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecCujoTracer_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecCujoTracer_RFC->bEnable = TRUE;
 
@@ -1889,18 +1592,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTracerInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pAdvSecCujoTracer_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecCujoTracer_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTracerDeInit)
 {
     const char *AdvSecCujoTracerEnabled = "Adv_AdvSecCujoTracerRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecCujoTracer_RFC = (COSA_DATAMODEL_ADVSECCUJOTRACER_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECCUJOTRACER_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecCujoTracer_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecCujoTracer_RFC->bEnable = FALSE;
 
@@ -1922,18 +1621,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTracerDeInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pAdvSecCujoTracer_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecCujoTracer_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTelemetryInit)
 {
     const char *AdvSecCujoTelemetryEnabled = "Adv_AdvSecCujoTelemetryRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC = (COSA_DATAMODEL_ADVSECCUJOTELEMETRY_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECCUJOTELEMETRY_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable = TRUE;
 
@@ -1955,18 +1650,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTelemetryInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTelemetryDeInit)
 {
     const char *AdvSecCujoTelemetryEnabled = "Adv_AdvSecCujoTelemetryRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC = (COSA_DATAMODEL_ADVSECCUJOTELEMETRY_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECCUJOTELEMETRY_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable = FALSE;
 
@@ -1988,18 +1679,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecCujoTelemetryDeInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecAgentRaptrInit)
 {
     const char *RaptrEnabled = "Adv_RaptrRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pRaptr_RFC = (COSA_DATAMODEL_RAPTR_RFC *)malloc(sizeof(COSA_DATAMODEL_RAPTR_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pRaptr_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pRaptr_RFC->bEnable = TRUE;
 
@@ -2021,18 +1708,14 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecAgentRaptrInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(TRUE, g_pAdvSecAgent->pRaptr_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pRaptr_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecAgentRaptrDeInit)
 {
     const char *RaptrEnabled = "Adv_RaptrRFCEnable";
 
-    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
-    ASSERT_NE(g_pAdvSecAgent, nullptr);
-    g_pAdvSecAgent->pRaptr_RFC = (COSA_DATAMODEL_RAPTR_RFC *)malloc(sizeof(COSA_DATAMODEL_RAPTR_RFC));
-    ASSERT_NE(g_pAdvSecAgent->pRaptr_RFC, nullptr);
+    AllocateAdvSecAgent();
 
     g_pAdvSecAgent->pRaptr_RFC->bEnable = FALSE;
 
@@ -2054,6 +1737,5 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecAgentRaptrDeInit)
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
     EXPECT_EQ(FALSE, g_pAdvSecAgent->pRaptr_RFC->bEnable);
 
-    free(g_pAdvSecAgent->pRaptr_RFC);
-    free(g_pAdvSecAgent);
+    DeallocateAdvSecAgent();
 }
