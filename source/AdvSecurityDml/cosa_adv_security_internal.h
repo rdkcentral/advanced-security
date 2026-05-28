@@ -330,6 +330,16 @@ CosaSetSysCfgUlong
         ULONG value
     );
 
+    ANSC_STATUS
+CosaAdvSecApplyRfcDefaultTrue
+    (
+        char* setting,
+        ANSC_STATUS getStatus,
+        ULONG value,
+        BOOL* pEnable,
+        const char* featureLogName
+    );
+
 ANSC_STATUS
 CosaAdvSecGetCustomURL
     (
