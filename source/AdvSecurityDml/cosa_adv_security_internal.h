@@ -478,13 +478,11 @@ CosaAdvSecUserSpaceInit
         ANSC_HANDLE hThisObject
     );
 
-/*
 ANSC_STATUS
 CosaAdvSecUserSpaceDeInit
     (
         ANSC_HANDLE hThisObject
     );
-*/
 
 ANSC_STATUS
 CosaLevlInit

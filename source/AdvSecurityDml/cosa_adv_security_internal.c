@@ -1103,6 +1103,7 @@ CosaSecurityInitialize
     ANSC_STATUS             returnStatus        = ANSC_STATUS_SUCCESS;
     ANSC_STATUS             getCujoTracerRfcStatus = ANSC_STATUS_FAILURE;
     ANSC_STATUS             getCujoTelemetryRfcStatus = ANSC_STATUS_FAILURE;
+    ANSC_STATUS             getUserSpaceRfcStatus = ANSC_STATUS_FAILURE;
     ULONG                   Value = 0;
     ULONG                   ValueSB = 0;
     ULONG                   ValueSF = 0;
@@ -1363,7 +1364,7 @@ CosaSecurityInitialize
     CosaGetSysCfgUlong(g_DeviceFingerPrintICMPv6Enabled, &ValueDFIcmpv6_RFC);
     CosaGetSysCfgUlong(g_WSDiscoveryAnalysisEnabled, &ValueWSA_RFC);
     CosaGetSysCfgUlong(g_AdvSecOTMEnabled, &ValueASOTM_RFC);
-    CosaGetSysCfgUlong(g_AdvSecUserSpaceEnabled, &ValueASUSERSPACE_RFC);
+    getUserSpaceRfcStatus = CosaGetSysCfgUlong(g_AdvSecUserSpaceEnabled, &ValueASUSERSPACE_RFC);
 #ifdef NETWORK_INTELLIGENCE
     CosaGetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, &ValueNI_RFC);
     CosaGetSysCfgUlong(g_NetworkIntelligenceMemoryLimit, &ValueNIML_RFC);
@@ -1396,7 +1397,6 @@ CosaSecurityInitialize
     g_pAdvSecAgent->pDFIcmpv6_RFC->bEnable = ValueDFIcmpv6_RFC;
     g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC->bEnable = ValueWSA_RFC;
     g_pAdvSecAgent->pAdvSecOTM_RFC->bEnable = ValueASOTM_RFC;
-    g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = ValueASUSERSPACE_RFC;
 
     returnStatus = CosaAdvSecApplyRfcDefaultTrue(
         g_AdvSecCujoTracerEnabled,
@@ -1411,21 +1411,13 @@ CosaSecurityInitialize
         ValueASCUJOTELEMETRY_RFC,
         &g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable,
         "AdvSecCujoTelemetry_RFCEnable");
-    if (ValueASUSERSPACE_RFC == 0)
-    {
-        // Enable user-space feature
-        returnStatus = CosaSetSysCfgUlong(g_AdvSecUserSpaceEnabled, 1);
-        if (returnStatus != ANSC_STATUS_SUCCESS)
-        {
-            CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
-        }
-        g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = TRUE;
-        CcspTraceInfo(("AdvSecUserSpace_RFCEnable:TRUE\n"));
-    }
-    else
-    {
-        g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = ValueASUSERSPACE_RFC;
-    }
+
+    returnStatus = CosaAdvSecApplyRfcDefaultTrue(
+        g_AdvSecUserSpaceEnabled,
+        getUserSpaceRfcStatus,
+        ValueASUSERSPACE_RFC,
+        &g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable,
+        "AdvSecUserSpace_RFCEnable");
 #ifdef NETWORK_INTELLIGENCE
     g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = ValueNI_RFC;
     g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit = ValueNIML_RFC;
@@ -1618,7 +1610,7 @@ CosaAdvSecApplyRfcDefaultTrue
 {
     ANSC_STATUS ret = ANSC_STATUS_SUCCESS;
 
-    if ((getStatus != ANSC_STATUS_SUCCESS) || (value == 0))
+    if (getStatus != ANSC_STATUS_SUCCESS)
     {
         ret = CosaSetSysCfgUlong(setting, 1);
         if (ret != ANSC_STATUS_SUCCESS)
@@ -3269,7 +3261,6 @@ ANSC_STATUS CosaAdvSecUserSpaceInit(ANSC_HANDLE hThisObject)
     return returnStatus;
 }
 
-/*
 ANSC_STATUS CosaAdvSecUserSpaceDeInit(ANSC_HANDLE hThisObject)
 {
     UNREFERENCED_PARAMETER(hThisObject);
@@ -3294,7 +3285,6 @@ ANSC_STATUS CosaAdvSecUserSpaceDeInit(ANSC_HANDLE hThisObject)
     CcspTraceWarning (("AdvSecUserSpace_RFCEnable:FALSE\n"));
     return returnStatus;
 }
-*/
 
 #ifdef WIFI_DATA_COLLECTION
 ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)

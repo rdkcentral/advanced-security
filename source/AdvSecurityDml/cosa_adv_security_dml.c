@@ -3114,11 +3114,7 @@ AdvanceSecurityUserSpace_RFC_SetParamBoolValue
         if( bValue )
                 returnStatus = CosaAdvSecUserSpaceInit(g_pAdvSecAgent->pAdvSecUserSpace_RFC);
         else
-        {
-                //returnStatus = CosaAdvSecUserSpaceDeInit(g_pAdvSecAgent->pAdvSecUserSpace_RFC);
-                CcspTraceInfo(("AdvSecUserSpace_RFC is defaulted to TRUE, cannot be set to FALSE \n"));
-                return FALSE;
-        }
+                returnStatus = CosaAdvSecUserSpaceDeInit(g_pAdvSecAgent->pAdvSecUserSpace_RFC);
 
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
