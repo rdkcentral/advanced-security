@@ -150,6 +150,7 @@ pthread_mutex_t logMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t logCond = PTHREAD_COND_INITIALIZER;
 static BOOL logReady = FALSE;
 static char prevWanIfname[MAX_INTERFACE_SIZE] = {0};
+STATIC char prevBridgeMode[2] = {0};
 
 void advsec_handle_sysevent_async(void);
 static void advsec_start_logger_thread(void);
@@ -2350,6 +2351,22 @@ void advsec_handle_sysevent_notification(char *event, char *val)
     {
         if(type == SYSEVENT_BRIDGE_MODE_EVENT)
         {
+            BOOL updatePrevMode = FALSE;
+
+            if((val[0] == '\0') || (val[1] != '\0'))
+            {
+                CcspTraceWarning(("CcspAdvSecurity: Invalid sysevent bridge_mode value '%s'\n", val));
+                return;
+            }
+
+            rc = strcmp_s(prevBridgeMode, sizeof(prevBridgeMode), val, &ind);
+            ERR_CHK(rc);
+            if((rc == EOK) && (ind == 0))
+            {
+                CcspTraceInfo(("CcspAdvSecurity: sysevent bridge_mode unchanged '%s', no action needed\n", val));
+                return;
+            }
+            
             if((val[0] == '0') && (val[1] == '\0'))
             {
                 CcspTraceWarning(("CcspAdvSecurity: Received Bridge Mode Off\n"));
@@ -2358,13 +2375,17 @@ void advsec_handle_sysevent_notification(char *event, char *val)
                 {
                       CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
                 }
+                else
+                {
+                    updatePrevMode = TRUE;
+                }
 
             }
 
 #ifndef _XF3_PRODUCT_REQ_
-            if((val[0] == '2') && (val[1] == '\0'))
+            else if((val[0] == '2') && (val[1] == '\0'))
 #else
-            if((val[0] == '3') && (val[1] == '\0'))
+            else if((val[0] == '3') && (val[1] == '\0'))
 #endif
             {
                 CcspTraceWarning(("CcspAdvSecurity: Received Bridge Mode On\n"));
@@ -2373,6 +2394,21 @@ void advsec_handle_sysevent_notification(char *event, char *val)
                 {
                       CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
                 }
+                else
+                {
+                    updatePrevMode = TRUE;
+                }
+
+            }
+            else
+            {
+                updatePrevMode = TRUE;
+            }
+
+            if(updatePrevMode)
+            {
+                rc = strcpy_s(prevBridgeMode, sizeof(prevBridgeMode), val);
+                ERR_CHK(rc);
 
             }
         }
