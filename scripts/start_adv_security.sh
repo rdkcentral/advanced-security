@@ -638,8 +638,8 @@ enable_networkintelligence()
 {
     touch $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    if systemctl list-unit-files cujo-ni.service | grep -q cujo-ni; then
-        systemctl start cujo-ni
+    if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
+        systemctl start cujo-ni.service
     fi
 
     if [ "$1" = "RR" ]; then
@@ -655,8 +655,8 @@ disable_networkintelligence()
 {
     rm -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    if systemctl list-unit-files cujo-ni.service | grep -q cujo-ni; then
-        systemctl stop cujo-ni
+    if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
+        systemctl stop cujo-ni.service
     fi
 
     if [ "$1" = "RR" ]; then
