@@ -129,7 +129,7 @@ then
 
     if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
         enable_networkintelligence
-    elif [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "0" ]; then
+    else
         disable_networkintelligence
     fi
 
@@ -638,7 +638,9 @@ enable_networkintelligence()
 {
     touch $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    systemctl start cujo-ni
+    if systemctl list-unit-files cujo-ni.service | grep -q cujo-ni; then
+        systemctl start cujo-ni
+    fi
 
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "AgentNetworkIntelligence_RFC_Enabled"
@@ -653,7 +655,9 @@ disable_networkintelligence()
 {
     rm -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    systemctl stop cujo-ni
+    if systemctl list-unit-files cujo-ni.service | grep -q cujo-ni; then
+        systemctl stop cujo-ni
+    fi
 
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "AgentNetworkIntelligence_RFC_Disabled"
