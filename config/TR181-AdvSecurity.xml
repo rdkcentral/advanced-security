@@ -427,6 +427,62 @@
                 </parameters>
             </object>
             <object>
+              <name>AdvSecDoHBlocking</name>
+              <objectType>object</objectType>
+                <functions>
+                  <func_GetParamBoolValue>AdvSecDoHBlocking_RFC_GetParamBoolValue</func_GetParamBoolValue>
+                  <func_SetParamBoolValue>AdvSecDoHBlocking_RFC_SetParamBoolValue</func_SetParamBoolValue>
+                </functions>
+                <parameters>
+                  <parameter>
+                    <name>Enable</name>
+                    <type>boolean</type>
+                    <syntax>bool</syntax>
+                    <writable>true</writable>
+                  </parameter>
+                </parameters>
+            </object>
+            <object>
+              <name>AdvSecDNSECHBlocking</name>
+              <objectType>object</objectType>
+                <functions>
+                  <func_GetParamBoolValue>AdvSecDNSECHBlocking_RFC_GetParamBoolValue</func_GetParamBoolValue>
+                  <func_SetParamBoolValue>AdvSecDNSECHBlocking_RFC_SetParamBoolValue</func_SetParamBoolValue>
+                </functions>
+                <parameters>
+                  <parameter>
+                    <name>Enable</name>
+                    <type>boolean</type>
+                    <syntax>bool</syntax>
+                    <writable>true</writable>
+                  </parameter>
+                </parameters>
+            </object>
+            <object>
+              <name>NetworkIntelligence</name>
+              <objectType>object</objectType>
+                <functions>
+                  <func_GetParamBoolValue>NetworkIntelligence_RFC_GetParamBoolValue</func_GetParamBoolValue>
+                  <func_SetParamBoolValue>NetworkIntelligence_RFC_SetParamBoolValue</func_SetParamBoolValue>
+                  <func_GetParamUlongValue>NetworkIntelligence_RFC_GetParamUlongValue</func_GetParamUlongValue>
+                  <func_SetParamUlongValue>NetworkIntelligence_RFC_SetParamUlongValue</func_SetParamUlongValue>
+                </functions>
+                <parameters>
+                  <parameter>
+                    <name>Enable</name>
+                    <type>boolean</type>
+                    <syntax>bool</syntax>
+                    <writable>true</writable>
+                  </parameter>
+                  <parameter>
+                    <name>MemoryLimit</name>
+                    <type>unsignedInt</type>
+                    <syntax>uint32</syntax>
+                    <writable>true</writable>
+                  </parameter>
+                </parameters>
+            </object>
+            <object>
               <name>WifiDataCollection</name>
               <objectType>object</objectType>
                 <functions>

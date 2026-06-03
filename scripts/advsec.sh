@@ -20,6 +20,16 @@ source /etc/device.properties
 source /etc/log_timestamp.sh
 source /usr/bin/cujo-agent-sh-env
 
+T2_MSG_CLIENT=/usr/bin/telemetry2_0_client
+
+t2ValNotify() {
+    if [ -f $T2_MSG_CLIENT ]; then
+        marker=$1
+        shift
+        $T2_MSG_CLIENT "$marker" "$*"
+    fi
+}
+
 export RUNTIME_DIR="/usr"
 if [ "$DEVICE_MODEL" = "TCHXB3" ]; then
     export RUNTIME_DIR="/tmp/cujo_dnld/usr"
@@ -30,6 +40,9 @@ CUJO_AGENT_SH="cujo-agent --ctl"
 CUJO_AGENT_LOG="CujoAgent"
 CUJO_AGENT_USER_NAME="_cujo-agent"
 CUJO_AGENT_STATUS="cujo-agent-status"
+CUJO_AGENT_QOSD="cujo-qosd"
+CUJO_AGENT_FPING="cujo-fpingdq"
+CUJO_TWAMP_LIGHT="twamp-light-client"
 
 if [ "$BOX_TYPE" = "XB3" ] || [ "$BOX_TYPE" = "XF3" ]; then
     CUJO_AGENT="rabid"
@@ -85,8 +98,11 @@ export ADVSEC_RAPTR_ENABLED_PATH=/tmp/advsec_raptr_enabled
 export ADVSEC_USERSPACE_ENABLED_PATH=/tmp/advsec_userspace_enabled
 export ADVSEC_CUJOTRACER_ENABLED_PATH=/tmp/advsec_cujotracer_enabled
 export ADVSEC_CUJOTELEMETRY_ENABLED_PATH=/tmp/advsec_cujotelemetry_enabled
+export ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH=/tmp/advsec_networkintelligence_enabled
 export ADVSEC_SATE_ENABLED_PATH=/tmp/advsec_sate_enabled
 export ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH=/tmp/advsec_tcptracker_filter_devices_enabled
+export ADVSEC_DOH_BLOCKING_ENABLED_PATH=/tmp/advsec_doh_blocking_enabled
+export ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH=/tmp/advsec_dns_ech_blocking_enabled
 export ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH=/tmp/advsec_wifidatacollection_enabled
 export ADVSEC_LEVL_ENABLED_PATH=/tmp/advsec_levl_enabled
 export ADVSEC_AGENT_ENABLED_PATH=/tmp/advsec_agent_enabled
@@ -97,29 +113,32 @@ export ADVSEC_WIFIDCL_INIT_PATH=/tmp/advsec_wifidcl_init
 export CUJO_AGENT_RULES_V4_PATH=/tmp/.cujo-agent-rules
 export CUJO_AGENT_RULES_V6_PATH=/tmp/.cujo-agent-rules_v6
 
-export DF_ENABLED=`syscfg get Advsecurity_DeviceFingerPrint`
-export ADVSEC_SB_ENABLED=`syscfg get Advsecurity_SafeBrowsing`
-export ADVSEC_SF_ENABLED=`syscfg get Advsecurity_Softflowd`
-export ADV_PC_ENABLED=`syscfg get Adv_PCActivate`
-export PRIVACY_PROTECTION_ENABLED=`syscfg get Adv_PPActivate`
-export ADV_PC_RFC_ENABLED=`syscfg get Adv_PCRFCEnable`
-export PRIVACY_PROTECTION_RFC_ENABLED=`syscfg get Adv_PrivProtRFCEnable`
+export DF_ENABLED=$(syscfg get Advsecurity_DeviceFingerPrint)
+export ADVSEC_SB_ENABLED=$(syscfg get Advsecurity_SafeBrowsing)
+export ADVSEC_SF_ENABLED=$(syscfg get Advsecurity_Softflowd)
+export ADV_PC_ENABLED=$(syscfg get Adv_PCActivate)
+export PRIVACY_PROTECTION_ENABLED=$(syscfg get Adv_PPActivate)
+export ADV_PC_RFC_ENABLED=$(syscfg get Adv_PCRFCEnable)
+export PRIVACY_PROTECTION_RFC_ENABLED=$(syscfg get Adv_PrivProtRFCEnable)
 if [ "$BOX_TYPE" != "XB3" ] && [ "$BOX_TYPE" != "XF3" ]; then
-export DF_ICMPv6_RFC_ENABLED=`syscfg get Adv_DFICMPv6RFCEnable`
+export DF_ICMPv6_RFC_ENABLED=$(syscfg get Adv_DFICMPv6RFCEnable)
 fi
-export ADVSEC_OTM_RFC_ENABLED=`syscfg get Adv_AdvSecOTMRFCEnable`
-export ADVSEC_WS_DISCOVERY_RFC_ENABLED=`syscfg get Adv_WSDisAnaRFCEnable`
-export ADVSEC_RAPTR_RFC_ENABLED=`syscfg get Adv_RaptrRFCEnable`
-export ADVSEC_USERSPACE_RFC_ENABLED=`syscfg get Adv_AdvSecUserSpaceRFCEnable`
-export ADVSEC_CUJOTRACER_RFC_ENABLED=`syscfg get Adv_AdvSecCujoTracerRFCEnable`
-export ADVSEC_CUJOTELEMETRY_RFC_ENABLED=`syscfg get Adv_AdvSecCujoTelemetryRFCEnable`
-export ADVSEC_SATE_RFC_ENABLED=`syscfg get Adv_SATERFCEnable`
-export ADVSEC_TCPTRACKER_FILTER_DEVICES_RFC_ENABLED=`syscfg get Adv_TCPTrackerFilterDevicesRFCEnable`
-export ADVSEC_WIFIDATACOLLECTION_RFC_ENABLED=`syscfg get Adv_WifiDataCollectionRFCEnable`
-export ADVSEC_LEVL_RFC_ENABLED=`syscfg get Adv_LevlRFCEnable`
-export ADVSEC_AGENT_RFC_ENABLED=`syscfg get Adv_AdvSecAgentRFCEnable`
-export ADVSEC_SAFEBROWSING_RFC_ENABLED=`syscfg get Adv_AdvSecSafeBrowsingRFCEnable`
-export ADVSEC_CUJOTELEMETRYWIFIFP_RFC_ENABLED=`syscfg get Adv_AdvSecCujoTelemetryWiFiFPRFCEnable`
+export ADVSEC_OTM_RFC_ENABLED=$(syscfg get Adv_AdvSecOTMRFCEnable)
+export ADVSEC_WS_DISCOVERY_RFC_ENABLED=$(syscfg get Adv_WSDisAnaRFCEnable)
+export ADVSEC_RAPTR_RFC_ENABLED=$(syscfg get Adv_RaptrRFCEnable)
+export ADVSEC_USERSPACE_RFC_ENABLED=$(syscfg get Adv_AdvSecUserSpaceRFCEnable)
+export ADVSEC_CUJOTRACER_RFC_ENABLED=$(syscfg get Adv_AdvSecCujoTracerRFCEnable)
+export ADVSEC_CUJOTELEMETRY_RFC_ENABLED=$(syscfg get Adv_AdvSecCujoTelemetryRFCEnable)
+export ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED=$(syscfg get Adv_AdvSecNetworkIntelligenceRFCEnable)
+export ADVSEC_SATE_RFC_ENABLED=$(syscfg get Adv_SATERFCEnable)
+export ADVSEC_TCPTRACKER_FILTER_DEVICES_RFC_ENABLED=$(syscfg get Adv_TCPTrackerFilterDevicesRFCEnable)
+export ADVSEC_DOH_BLOCKING_RFC_ENABLED=$(syscfg get Adv_DoHBlockingRFCEnable)
+export ADVSEC_DNS_ECH_BLOCKING_RFC_ENABLED=$(syscfg get Adv_DNSECHBlockingRFCEnable)
+export ADVSEC_WIFIDATACOLLECTION_RFC_ENABLED=$(syscfg get Adv_WifiDataCollectionRFCEnable)
+export ADVSEC_LEVL_RFC_ENABLED=$(syscfg get Adv_LevlRFCEnable)
+export ADVSEC_AGENT_RFC_ENABLED=$(syscfg get Adv_AdvSecAgentRFCEnable)
+export ADVSEC_SAFEBROWSING_RFC_ENABLED=$(syscfg get Adv_AdvSecSafeBrowsingRFCEnable)
+export ADVSEC_CUJOTELEMETRYWIFIFP_RFC_ENABLED=$(syscfg get Adv_AdvSecCujoTelemetryWiFiFPRFCEnable)
 
 export ADV_PARENTAL_CONTROL_ACTIVATED_LOG=ADVANCED_PARENTAL_CONTROL_ACTIVATED
 export ADV_PARENTAL_CONTROL_DEACTIVATED_LOG=ADVANCED_PARENTAL_CONTROL_DEACTIVATED
@@ -146,6 +165,8 @@ export ADV_RAPTR_RFC_ENABLE_LOG=ADVANCE_SECURITY_RAPTR_ENABLED
 export ADV_RAPTR_RFC_DISABLE_LOG=ADVANCE_SECURITY_RAPTR_DISABLED
 export ADV_USERSPACE_RFC_ENABLE_LOG=ADVANCE_SECURITY_USERSPACE_ENABLED
 export ADV_USERSPACE_RFC_DISABLE_LOG=ADVANCE_SECURITY_USERSPACE_DISABLED
+export ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG=ADVANCE_SECURITY_NETWORKINTELLIGENCE_ENABLED
+export ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG=ADVANCE_SECURITY_NETWORKINTELLIGENCE_DISABLED
 export ADV_WIFIDATACOLLECTION_RFC_ENABLE_LOG=ADVANCE_SECURITY_WIFIDATACOLLECTION_ENABLED
 export ADV_WIFIDATACOLLECTION_RFC_DISABLE_LOG=ADVANCE_SECURITY_WIFIDATACOLLECTION_DISABLED
 export ADV_LEVL_RFC_ENABLE_LOG=ADVANCE_SECURITY_LEVL_ENABLED
@@ -164,6 +185,10 @@ export ADV_SATE_RFC_ENABLE_LOG=ADVANCE_SECURITY_SENTRY_AT_THE_EDGE_ENABLED
 export ADV_SATE_RFC_DISABLE_LOG=ADVANCE_SECURITY_SENTRY_AT_THE_EDGE_DISABLED
 export ADV_TCPTRACKER_FILTER_DEVICES_RFC_ENABLE_LOG=ADVANCE_SECURITY_TCPTRACKER_FILTER_DEVICES_ENABLED
 export ADV_TCPTRACKER_FILTER_DEVICES_RFC_DISABLE_LOG=ADVANCE_SECURITY_TCPTRACKER_FILTER_DEVICES_DISABLED
+export ADV_DOH_BLOCKING_RFC_ENABLE_LOG=ADVANCE_SECURITY_DOH_BLOCKING_ENABLED
+export ADV_DOH_BLOCKING_RFC_DISABLE_LOG=ADVANCE_SECURITY_DOH_BLOCKING_DISABLED
+export ADV_DNS_ECH_BLOCKING_RFC_ENABLE_LOG=ADVANCE_SECURITY_DNS_ECH_BLOCKING_ENABLED
+export ADV_DNS_ECH_BLOCKING_RFC_DISABLE_LOG=ADVANCE_SECURITY_DNS_ECH_BLOCKING_DISABLED
 
 export ADVSEC_SAFEBRO_SETTING="${RW_DIR}/safebro.json"
 
@@ -182,7 +207,7 @@ advsec_is_agent_installed()
 
 advsec_start_agent()
 {
-    ADV_AGENT_PID=`advsec_is_alive ${CUJO_AGENT}`
+    ADV_AGENT_PID=$(advsec_is_alive ${CUJO_AGENT})
     if [ "${ADV_AGENT_PID}" = "" ] ; then
         echo_t "Starting ${CUJO_AGENT_LOG}..."
         echo_t "[ADVSEC_LOG_START]" >> $ADVSEC_AGENT_LOG_PATH
@@ -209,7 +234,7 @@ advsec_wait_for_agent()
         sleep 5s
         ${RUNTIME_DIR}/bin/cujo-agent-status running
         EXIT_STATUS=$?
-        RETRY_CNT=$(expr $RETRY_CNT - 1)
+        (( RETRY_CNT-- ))
     done
 }
 
@@ -346,14 +371,14 @@ advsec_module_load()
 		echo_t "[ADVSEC] Load nfnetlink_queue kernel module manually" >> $ADVSEC_AGENT_LOG_PATH
 		insmod $NF_NETLINK_QUEUE_MODULE_PATH 2>> $ADVSEC_AGENT_LOG_PATH
 		STATUS=$?
-		if [ ${STATUS} ]; then
+		if [ ${STATUS} -eq 0 ]; then
 			echo_t "[ADVSEC] kernel module nfnetlink_queue successfully loaded" >> $ADVSEC_AGENT_LOG_PATH
 		else
                 	echo_t "[ADVSEC] Unable to load nfnetlink_queue kernel module" >> $ADVSEC_AGENT_LOG_PATH
 		fi
 	fi
 
-        if [ "$ADVSEC_USERSPACE_RFC_ENABLED" -eq 0 ]; then
+        if [ "${ADVSEC_USERSPACE_RFC_ENABLED:-0}" -eq 0 ]; then
             # unload userspace kernel module - switching from userspace to nflua mode
             if [ "$ADV_PC_RFC_ENABLED" = "1" ]; then
                 advsec_kernel_module_unload $PUMASTATS_MODULE_PATH
@@ -397,7 +422,7 @@ advsec_module_unload()
                 fi
         fi
 
-        if [ "$ADVSEC_USERSPACE_RFC_ENABLED" -eq 0 ]; then
+        if [ "${ADVSEC_USERSPACE_RFC_ENABLED:-0}" -eq 0 ]; then
             advsec_kernel_module_unload $NFLUA_MODULE_PATH
             advsec_kernel_module_unload $LUAPUMA_MODULE_PATH
             advsec_kernel_module_unload $LUACONNTRACK_MODULE_PATH
@@ -418,10 +443,10 @@ advsec_module_unload()
 
 advsec_kernel_module_load()
 {
-    if [ -e $1 ]; then
-        insmod $1 2>> $ADVSEC_AGENT_LOG_PATH
+    if [ -e "$1" ]; then
+        insmod "$1" 2>> $ADVSEC_AGENT_LOG_PATH
         STATUS=$?
-        if [ ${STATUS} ]; then
+        if [ ${STATUS} -eq 0 ]; then
             echo_t "[ADVSEC] NFLua kernel module $1 successfully loaded"  >> $ADVSEC_AGENT_LOG_PATH
         else
             echo_t "[ADVSEC] Unable to load $1 kernel module"  >> $ADVSEC_AGENT_LOG_PATH
@@ -431,12 +456,12 @@ advsec_kernel_module_load()
 
 advsec_kernel_module_unload()
 {
-    if [ -e $1 ]; then
+    if [ -e "$1" ]; then
         module_name=$(basename "$1" | cut -d . -f1)
         if lsmod | grep -q "^$module_name"; then
-            rmmod $1 2>> $ADVSEC_AGENT_LOG_PATH
+            rmmod "$1" 2>> $ADVSEC_AGENT_LOG_PATH
             STATUS=$?
-            if [ ${STATUS} ]; then
+            if [ ${STATUS} -eq 0 ]; then
                 echo_t "[ADVSEC] kernel module $1 successfully unloaded"  >> $ADVSEC_AGENT_LOG_PATH
             else
                 echo_t "[ADVSEC] Unable to unload $1 kernel module"  >> $ADVSEC_AGENT_LOG_PATH
@@ -456,12 +481,13 @@ advsec_initialize_nfq_ct()
 advsec_agent_create_ipsets()
 {
     if [ -f $ADVSEC_RAPTR_ENABLED_PATH ]; then
-        raptr set -n | grep ipset | bash
+        raptr set -n | grep ipset | sh
     else
-        ipset create cujo_fingerprint hash:mac -exist
         ipset create cujo_iotblock_mac hash:mac -exist
         ipset create cujo_iotblock_ip4 hash:ip family inet -exist
         ipset create cujo_iotblock_ip6 hash:ip family inet6 -exist
+        ipset create cujo_iotblock_ip4_mac hash:ip,mac family inet -exist
+        ipset create cujo_iotblock_ip6_mac hash:ip,mac family inet6 -exist
     fi
     touch ${ADVSEC_IPSETLIST_CREATED}
 }
@@ -469,10 +495,11 @@ advsec_agent_create_ipsets()
 advsec_agent_flush_ipsets()
 {
     ipset flush
-    ipset destroy cujo_fingerprint
     ipset destroy cujo_iotblock_mac
     ipset destroy cujo_iotblock_ip4
     ipset destroy cujo_iotblock_ip6
+    ipset destroy cujo_iotblock_ip4_mac
+    ipset destroy cujo_iotblock_ip6_mac
     rm -f ${ADVSEC_IPSETLIST_CREATED}
 }
 
@@ -482,11 +509,11 @@ advsec_agent_restart_needed()
 	#Check for cloud socket connection
 	if [ -e ${SOFTFLOWD_ENABLE} ] || [ -e ${ADV_PARENTAL_CONTROL_PATH} ]; then
 		if [ -e ${ADVSEC_CLOUD_IP} ] && [ -e ${ADVSEC_ASSOC_SUCCESS} ]; then
-			ip_port=`cat ${ADVSEC_CLOUD_IP}`
+			ip_port=$(cat "${ADVSEC_CLOUD_IP}")
 			if [ "${ip_port}" != "" ]; then
-				stat=`sysevent get wan-status`
+				stat=$(sysevent get wan-status)
 				if [ "${stat}" = "started" ]; then
-					res=`netstat -an | grep ${ip_port} | grep "ESTABLISHED"`
+					res=$(netstat -an | grep -F "${ip_port}" | grep "ESTABLISHED")
 					if [ "${res}" = "" ]; then
 						result="1"
 						touch ${ADVSEC_AGENT_SHUTDOWN}
@@ -505,25 +532,21 @@ advsec_is_alive() {
 
 	if [ "$1" = "${CUJO_AGENT}" ]
 	then
-		PROCESS_PID=`pidof ${CUJO_AGENT}`
+        PROCESS_PID=$(pidof ${CUJO_AGENT})
 	fi
 	echo $PROCESS_PID
 }
 
 advsec_stop_process() {
-	ADVSEC_RDK_LOG_FILE=""
 	echo_t "Stopping process " $1
 	if [ "$1" = "${CUJO_AGENT}" ]
 	then
-		PROCESS_PID=`pidof ${CUJO_AGENT}`
-		ADVSEC_RDK_LOG_FILE=$ADVSEC_AGENT_LOG_PATH
+		PROCESS_PID=$(pidof ${CUJO_AGENT})
 	fi
 	if [ "$PROCESS_PID" != "" ]; then
 		kill -TERM $PROCESS_PID
 	fi
-	if [ "$ADVSEC_RDK_LOG_FILE" != "" ]; then
-		echo_t "[ADVSEC_LOG_STOP]" >> $ADVSEC_RDK_LOG_FILE
-	fi
+	echo_t "[ADVSEC_LOG_STOP]" >> $ADVSEC_AGENT_LOG_PATH
 }
 
 advsec_cleanup_config() {
@@ -624,11 +647,11 @@ advsec_restart_agent() {
 
 advsec_get_agent_group_name() 
 {
-        agent_pid=`pidof cujo-agent`
+        agent_pid=$(pidof cujo-agent)
         if [ -n "$agent_pid" ]
         then
-         agent_uid=`cat /proc/"$agent_pid"/status | grep -i uid | awk '{print $NF}'`
-         agentuser=`cat /etc/passwd | grep ":$agent_uid:" | cut -d: -f1`
+         agent_uid=$(awk '/[Uu][Ii][Dd]/{print $NF; exit}' /proc/"$agent_pid"/status)
+         agentuser=$(awk -F: -v uid="$agent_uid" '$3 == uid {print $1; exit}' /etc/passwd)
          echo $agentuser
         fi
 
@@ -636,7 +659,7 @@ advsec_get_agent_group_name()
 
 advsec_agent_loglevel()
 {
-      get_agentloglevel=`${RUNTIME_DIR}/bin/cujo-agent-log | awk '{print $NF}'`
+      get_agentloglevel=$(${RUNTIME_DIR}/bin/cujo-agent-log | awk '{print $NF}')
       if [ "$get_agentloglevel" != "$1" ]; then
          set_agentloglevel="${RUNTIME_DIR}/bin/cujo-agent-log $1"
          ${set_agentloglevel}
@@ -646,7 +669,7 @@ advsec_agent_loglevel()
 
 advsec_agent_get_safebro_config()
 {
-    safebro_json=`${RUNTIME_DIR}/bin/${CUJO_AGENT_STATUS} safebro-config`
+    safebro_json=$(${RUNTIME_DIR}/bin/${CUJO_AGENT_STATUS} safebro-config)
     echo $safebro_json > ${ADVSEC_SAFEBRO_SETTING}
 }
 
@@ -654,12 +677,12 @@ wait_for_lanip()
 {
     ip_retry_limit=6
     while [ ${ip_retry_limit} -gt 0 ]; do
-        lanipv6addr=`ip -6 a s brlan0 | grep global | cut -d " " -f 6`
-        lanipv4addr=`ip -4 a s brlan0 | grep global | cut -d " " -f 6`
+        lanipv6addr=$(ip -6 a s brlan0 | grep global | cut -d " " -f 6)
+        lanipv4addr=$(ip -4 a s brlan0 | grep global | cut -d " " -f 6)
         if [ "$lanipv6addr" = "" ] || [ "$lanipv4addr" = "" ]; then
              echo_t "Waiting for LAN ipv6 and ipv4 address..." >> ${ADVSEC_AGENT_LOG_PATH}
              sleep 10
-             ip_retry_limit=$(expr $ip_retry_limit - 1)
+             (( ip_retry_limit-- ))
         else
              echo_t "LAN IPv6 Address: $lanipv6addr and IPv4 Address: $lanipv4addr" >> ${ADVSEC_AGENT_LOG_PATH}
              break

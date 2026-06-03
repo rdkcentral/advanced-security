@@ -28,7 +28,7 @@ start_device_services()
 if [ "$1" = "-enable" ]
 then
 
-    bridge_mode=`syscfg get bridge_mode`
+    bridge_mode=$(syscfg get bridge_mode)
     if [ "$bridge_mode" = "2" ]; then
         echo_t "Advanced Security : Device is in Bridge Mode, do not launch agent!" >> ${ADVSEC_AGENT_LOG_PATH}
         exit 0
@@ -127,6 +127,12 @@ then
             disable_raptr
     fi
 
+    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
+        enable_networkintelligence
+    else
+        disable_networkintelligence
+    fi
+
     if [ "$ADVSEC_WIFIDATACOLLECTION_RFC_ENABLED" = "1" ]; then
             enable_wifidatacollection
     else
@@ -174,11 +180,13 @@ then
             #This is a workaround for an issue in firewall utility, where cujo related rules are not added.
             #To be removed once firewall utility issue is fixed!
             sleep 20s
-            ipt4=`cat /tmp/.ipt | grep CUJO | wc -l`
-            ipt6=`cat /tmp/.ipt_v6 | grep CUJO | wc -l`
-            ip4=`iptables-save | grep CUJO | wc -l`
-            ip6=`ip6tables-save | grep CUJO | wc -l`
-            if [ ${ipt4} != ${ip4} ] || [ ${ipt6} != ${ip6} ]; then
+            ipt4=$(grep -c CUJO /tmp/.ipt 2>/dev/null)
+            ipt4=${ipt4:-0}
+            ipt6=$(grep -c CUJO /tmp/.ipt_v6 2>/dev/null)
+            ipt6=${ipt6:-0}
+            ip4=$(iptables-save | grep -c CUJO)
+            ip6=$(ip6tables-save | grep -c CUJO)
+            if [ "${ipt4}" != "${ip4}" ] || [ "${ipt6}" != "${ip6}" ]; then
                 do_firewall_restart "wait"
             else
                 echo_t "Rules are loaded correctly" >> ${ADVSEC_AGENT_LOG_PATH}
@@ -186,7 +194,7 @@ then
         fi
     fi
 
-    AGENT_USER=`advsec_get_agent_group_name`
+    AGENT_USER=$(advsec_get_agent_group_name)
     if [ "${AGENT_USER}" = "root" ]; then
         echo_t ${AGENT_RUNNING_AS_ROOT_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
     elif [ "${AGENT_USER}" = "${CUJO_AGENT_USER_NAME}" ]; then
@@ -260,6 +268,8 @@ then
         rm $ADVSEC_CUJOTRACER_ENABLED_PATH
     fi
 
+    rm -f ${ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH}
+
     if [ -f $ADVSEC_CUJOTELEMETRY_ENABLED_PATH ]; then
         rm $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
     fi
@@ -270,6 +280,14 @@ then
 
     if [ -f $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH ]; then
         rm $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_DOH_BLOCKING_ENABLED_PATH ]; then
+        rm $ADVSEC_DOH_BLOCKING_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH ]; then
+        rm $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH
     fi
 
     if [ -f $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH ]; then
@@ -329,8 +347,8 @@ stop_agent_services()
             echo_t "${CUJO_AGENT_LOG} triggering firewall restart..." >> ${ADVSEC_AGENT_LOG_PATH}
             sysevent set firewall-restart
             sleep 10s
-            ip4=`iptables-save | grep CUJO | wc -l`
-            ip6=`ip6tables-save | grep CUJO | wc -l`
+            ip4=$(iptables-save | grep -c CUJO)
+            ip6=$(ip6tables-save | grep -c CUJO)
             if [ $ip4 = "0" ] && [ $ip6 = "0" ]; then
                 break
             else
@@ -470,190 +488,264 @@ disable_wsdiscovery()
 
 enable_otm()
 {
-   echo_t ${ADV_OTM_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-   if [ "$1" = "RR" ]; then
-       advsec_restart_agent "OTM_RFC_Enabled"
-   fi
+    echo_t ${ADV_OTM_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "OTM_RFC_Enabled"
+    fi
 }
 
 disable_otm()
 {
-   echo_t ${ADV_OTM_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-   if [ "$1" = "RR" ]; then
-       advsec_restart_agent "OTM_RFC_Disabled"
-   fi
+    echo_t ${ADV_OTM_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "OTM_RFC_Disabled"
+    fi
 }
 
 enable_userspace()
 {
-   touch $ADVSEC_USERSPACE_ENABLED_PATH
-   echo_t ${ADV_USERSPACE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_USERSPACE_ENABLED_PATH
+    echo_t ${ADV_USERSPACE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
-   if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentUserSpace_RFC_Enabled"
-   fi
-   if [ "$2" = "FR" ]; then
-       do_firewall_restart
-   fi
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentUserSpace_RFC_Enabled"
+    fi
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
 }
 
 disable_userspace()
 {
-   rm -f $ADVSEC_USERSPACE_ENABLED_PATH
-   echo_t ${ADV_USERSPACE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_USERSPACE_ENABLED_PATH
+    echo_t ${ADV_USERSPACE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentUserSpace_RFC_Disabled"
+        advsec_restart_agent "AgentUserSpace_RFC_Disabled"
     fi
     if [ "$2" = "FR" ]; then
-       do_firewall_restart
+        do_firewall_restart
     fi
 }
 
 enable_agent()
 {
-   touch $ADVSEC_AGENT_ENABLED_PATH
-   echo_t ${ADV_AGENT_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_AGENT_ENABLED_PATH
+    echo_t ${ADV_AGENT_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AdvSecAgent_RFC_Enabled"
-   fi
+        advsec_restart_agent "AdvSecAgent_RFC_Enabled"
+    fi
 }
 
 disable_agent()
 {
-   rm -f $ADVSEC_AGENT_ENABLED_PATH
-   echo_t ${ADV_AGENT_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_AGENT_ENABLED_PATH
+    echo_t ${ADV_AGENT_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AdvSecAgent_RFC_Disabled"
-   fi
+        advsec_restart_agent "AdvSecAgent_RFC_Disabled"
+    fi
 }
 
 enable_safebro_iprules()
 {
-   touch $ADVSEC_SAFEBROWSING_ENABLED_PATH
-   echo_t ${ADV_SAFEBROWSING_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_SAFEBROWSING_ENABLED_PATH
+    echo_t ${ADV_SAFEBROWSING_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSafeBrowsing_RFC_Enabled"
-   fi
-   if [ "$2" = "FR" ]; then
-       do_firewall_restart
-   fi
+        advsec_restart_agent "AgentSafeBrowsing_RFC_Enabled"
+    fi
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
 }
 
 disable_safebro_iprules()
 {
-   rm -f $ADVSEC_SAFEBROWSING_ENABLED_PATH
-   echo_t ${ADV_SAFEBROWSING_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_SAFEBROWSING_ENABLED_PATH
+    echo_t ${ADV_SAFEBROWSING_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSafeBrowsing_RFC_Disabled"
-   fi
-   if [ "$2" = "FR" ]; then
-       do_firewall_restart
-   fi
+        advsec_restart_agent "AgentSafeBrowsing_RFC_Disabled"
+    fi
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
 }
 
 enable_cujotelemetrywififp()
 {
-   touch $ADVSEC_CUJOTELEMETRYWIFIFP_ENABLED_PATH
-   echo_t ${ADV_CUJOTELEMETRYWIFIFP_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_CUJOTELEMETRYWIFIFP_ENABLED_PATH
+    echo_t ${ADV_CUJOTELEMETRYWIFIFP_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTelemetryWiFiFP_RFC_Enabled"
-   fi
+        advsec_restart_agent "AgentCujoTelemetryWiFiFP_RFC_Enabled"
+    fi
 }
 
 disable_cujotelemetrywififp()
 {
-   rm -f $ADVSEC_CUJOTELEMETRYWIFIFP_ENABLED_PATH
-   echo_t ${ADV_CUJOTELEMETRYWIFIFP_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_CUJOTELEMETRYWIFIFP_ENABLED_PATH
+    echo_t ${ADV_CUJOTELEMETRYWIFIFP_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTelemetryWiFiFP_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentCujoTelemetryWiFiFP_RFC_Disabled"
+    fi
 }
 
 enable_cujotracer()
 {
-   touch $ADVSEC_CUJOTRACER_ENABLED_PATH
-   echo_t ${ADV_CUJOTRACER_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_CUJOTRACER_ENABLED_PATH
+    echo_t ${ADV_CUJOTRACER_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTracer_RFC_Enabled"
-   fi
+        advsec_restart_agent "AgentCujoTracer_RFC_Enabled"
+    fi
 }
 
 disable_cujotracer()
 {
-   rm -f $ADVSEC_CUJOTRACER_ENABLED_PATH
-   echo_t ${ADV_CUJOTRACER_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_CUJOTRACER_ENABLED_PATH
+    echo_t ${ADV_CUJOTRACER_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTracer_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentCujoTracer_RFC_Disabled"
+    fi
 }
 
 enable_cujotelemetry()
 {
-   touch $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
-   echo_t ${ADV_CUJOTELEMETRY_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
+    echo_t ${ADV_CUJOTELEMETRY_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTelemetry_RFC_Enabled"
-   fi
+        advsec_restart_agent "AgentCujoTelemetry_RFC_Enabled"
+    fi
 }
 
 disable_cujotelemetry()
 {
-   rm -f $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
-   echo_t ${ADV_CUJOTELEMETRY_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
+    echo_t ${ADV_CUJOTELEMETRY_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentCujoTelemetry_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentCujoTelemetry_RFC_Disabled"
+    fi
+}
+
+enable_networkintelligence()
+{
+    touch $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
+    echo_t ${ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
+        systemctl start cujo-ni.service
+    fi
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentNetworkIntelligence_RFC_Enabled"
+    fi
+
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
+}
+
+disable_networkintelligence()
+{
+    rm -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
+    echo_t ${ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
+        systemctl stop cujo-ni.service
+    fi
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentNetworkIntelligence_RFC_Disabled"
+    fi
+
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
 }
 
 enable_sate()
 {
-   touch $ADVSEC_SATE_ENABLED_PATH
-   echo_t ${ADV_SATE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_SATE_ENABLED_PATH
+    echo_t ${ADV_SATE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSentryAtTheEdge_RFC_Enabled"
-   fi
+        advsec_restart_agent "AgentSentryAtTheEdge_RFC_Enabled"
+    fi
 }
 
 disable_sate()
 {
-   rm -f $ADVSEC_SATE_ENABLED_PATH
-   echo_t ${ADV_SATE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_SATE_ENABLED_PATH
+    echo_t ${ADV_SATE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentSentryAtTheEdge_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentSentryAtTheEdge_RFC_Disabled"
+    fi
 }
 
 enable_tcptracker_filter_devices()
 {
-   touch $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
-   echo_t ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
+    echo_t ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentTCPTrackerFilterDevices_RFC_Enabled"
-   fi
+        advsec_restart_agent "AgentTCPTrackerFilterDevices_RFC_Enabled"
+    fi
 }
 
 disable_tcptracker_filter_devices()
 {
-   rm -f $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
-   echo_t ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH
+    echo_t ${ADV_TCPTRACKER_FILTER_DEVICES_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentTCPTrackerFilterDevices_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentTCPTrackerFilterDevices_RFC_Disabled"
+    fi
+}
+
+enable_doh_blocking()
+{
+    touch $ADVSEC_DOH_BLOCKING_ENABLED_PATH
+    echo_t ${ADV_DOH_BLOCKING_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDoHBlocking_RFC_Enabled"
+    fi
+}
+
+disable_doh_blocking()
+{
+    rm -f $ADVSEC_DOH_BLOCKING_ENABLED_PATH
+    echo_t ${ADV_DOH_BLOCKING_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDoHBlocking_RFC_Disabled"
+    fi
+}
+
+enable_dns_ech_blocking()
+{
+    touch $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH
+    echo_t ${ADV_DNS_ECH_BLOCKING_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDNSECHBlocking_RFC_Enabled"
+    fi
+}
+
+disable_dns_ech_blocking()
+{
+    rm -f $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH
+    echo_t ${ADV_DNS_ECH_BLOCKING_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDNSECHBlocking_RFC_Disabled"
+    fi
 }
 
 enable_wifidatacollection()
@@ -670,12 +762,12 @@ enable_wifidatacollection()
 
 disable_wifidatacollection()
 {
-   rm -rf $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH
-   echo_t ${ADV_WIFIDATACOLLECTION_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -rf $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH
+    echo_t ${ADV_WIFIDATACOLLECTION_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-       advsec_restart_agent "AgentWifiDataCollection_RFC_Disabled"
-   fi
+        advsec_restart_agent "AgentWifiDataCollection_RFC_Disabled"
+    fi
 }
 
 enable_levl()
@@ -727,8 +819,8 @@ disable_raptr()
 do_firewall_restart()
 {
     if [ -f $ADVSEC_RAPTR_ENABLED_PATH ]; then
-        raptr -n -4 set | grep -v \'ipset\' > $CUJO_AGENT_RULES_V4_PATH
-        raptr -n -6 set | grep -v \'ipset\' > $CUJO_AGENT_RULES_V6_PATH
+        raptr -n -4 set | grep -v ipset > $CUJO_AGENT_RULES_V4_PATH
+        raptr -n -6 set | grep -v ipset > $CUJO_AGENT_RULES_V6_PATH
     else
         if [ -f $CUJO_AGENT_RULES_V4_PATH ]; then
             rm $CUJO_AGENT_RULES_V4_PATH
@@ -743,7 +835,7 @@ do_firewall_restart()
     if [ "$1" = "wait" ]; then
         fw_retries=10
         while [ ${fw_retries} -gt 0 ]; do
-            fw_stat=`sysevent get firewall-status`
+            fw_stat=$(sysevent get firewall-status)
             if [ "${fw_stat}" = "starting" ]; then
                 echo_t "starting firewall" >> ${ADVSEC_AGENT_LOG_PATH}
                 break
@@ -755,7 +847,7 @@ do_firewall_restart()
 
         fw_retries=20
         while [ ${fw_retries} -gt 0 ]; do
-            fw_stat=`sysevent get firewall-status`
+            fw_stat=$(sysevent get firewall-status)
             if [ "${fw_stat}" = "started" ]; then
                 break
             else
@@ -898,6 +990,14 @@ if [ "$1" = "-disableUS" ]; then
     disable_userspace "RR" "FR"
 fi
 
+if [ "$1" = "-enableNI" ]; then
+    enable_networkintelligence "RR" "FR"
+fi
+
+if [ "$1" = "-disableNI" ]; then
+    disable_networkintelligence "RR" "FR"
+fi
+
 if [ "$1" = "-enableWifiDCL" ]; then
     enable_wifidatacollection "RR"
 fi
@@ -975,6 +1075,22 @@ fi
 
 if [ "$1" = "-disableTCPTrackerFilterDevices" ]; then
     disable_tcptracker_filter_devices "RR"
+fi
+
+if [ "$1" = "-enableDoHBlocking" ]; then
+    enable_doh_blocking "RR"
+fi
+
+if [ "$1" = "-disableDoHBlocking" ]; then
+    disable_doh_blocking "RR"
+fi
+
+if [ "$1" = "-enableDNSECHBlocking" ]; then
+    enable_dns_ech_blocking "RR"
+fi
+
+if [ "$1" = "-disableDNSECHBlocking" ]; then
+    disable_dns_ech_blocking "RR"
 fi
 
 if [ "$1" = "-enableWSDiscovery" ]; then
