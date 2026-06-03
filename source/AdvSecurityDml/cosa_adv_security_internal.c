@@ -1102,6 +1102,7 @@ CosaSecurityInitialize
 {
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS             returnStatus        = ANSC_STATUS_SUCCESS;
+    ANSC_STATUS             applyRfcStatus      = ANSC_STATUS_SUCCESS;
     ANSC_STATUS             getCujoTracerRfcStatus = ANSC_STATUS_FAILURE;
     ANSC_STATUS             getCujoTelemetryRfcStatus = ANSC_STATUS_FAILURE;
     ANSC_STATUS             getUserSpaceRfcStatus = ANSC_STATUS_FAILURE;
@@ -1399,26 +1400,38 @@ CosaSecurityInitialize
     g_pAdvSecAgent->pWSDiscoveryAnalysis_RFC->bEnable = ValueWSA_RFC;
     g_pAdvSecAgent->pAdvSecOTM_RFC->bEnable = ValueASOTM_RFC;
 
-    returnStatus = CosaAdvSecApplyRfcDefaultTrue(
+    applyRfcStatus = CosaAdvSecApplyRfcDefaultTrue(
         g_AdvSecCujoTracerEnabled,
         getCujoTracerRfcStatus,
         ValueASCUJOTRACER_RFC,
         &g_pAdvSecAgent->pAdvSecCujoTracer_RFC->bEnable,
         "AdvSecCujoTracer_RFCEnable");
+    if ((returnStatus == ANSC_STATUS_SUCCESS) && (applyRfcStatus != ANSC_STATUS_SUCCESS))
+    {
+        returnStatus = applyRfcStatus;
+    }
 
-    returnStatus = CosaAdvSecApplyRfcDefaultTrue(
+    applyRfcStatus = CosaAdvSecApplyRfcDefaultTrue(
         g_AdvSecCujoTelemetryEnabled,
         getCujoTelemetryRfcStatus,
         ValueASCUJOTELEMETRY_RFC,
         &g_pAdvSecAgent->pAdvSecCujoTelemetry_RFC->bEnable,
         "AdvSecCujoTelemetry_RFCEnable");
+    if ((returnStatus == ANSC_STATUS_SUCCESS) && (applyRfcStatus != ANSC_STATUS_SUCCESS))
+    {
+        returnStatus = applyRfcStatus;
+    }
 
-    returnStatus = CosaAdvSecApplyRfcDefaultTrue(
+    applyRfcStatus = CosaAdvSecApplyRfcDefaultTrue(
         g_AdvSecUserSpaceEnabled,
         getUserSpaceRfcStatus,
         ValueASUSERSPACE_RFC,
         &g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable,
         "AdvSecUserSpace_RFCEnable");
+    if ((returnStatus == ANSC_STATUS_SUCCESS) && (applyRfcStatus != ANSC_STATUS_SUCCESS))
+    {
+        returnStatus = applyRfcStatus;
+    }
 #ifdef NETWORK_INTELLIGENCE
     g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = ValueNI_RFC;
     g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit = ValueNIML_RFC;

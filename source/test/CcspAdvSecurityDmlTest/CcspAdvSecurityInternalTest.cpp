@@ -2279,20 +2279,17 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecApplyRfcDefaultTrue_GetFail
     EXPECT_EQ(enable, TRUE);
 }
 
-TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecApplyRfcDefaultTrue_ZeroValue_DefaultsToTrue)
+TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecApplyRfcDefaultTrue_ZeroValue_NoDefaultWrite)
 {
     const char *AdvSecCujoTelemetryEnabled = "Adv_AdvSecCujoTelemetryRFCEnable";
     BOOL enable = FALSE;
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
-        .Times(1)
-        .WillOnce(Return(0));
+        .Times(0);
     EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecCujoTelemetryEnabled), _))
-        .Times(1)
-        .WillOnce(Return(0));
+        .Times(0);
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
-        .Times(1)
-        .WillOnce(Return(0));
+        .Times(0);
 
     ANSC_STATUS status = CosaAdvSecApplyRfcDefaultTrue(
         (char*)AdvSecCujoTelemetryEnabled,
@@ -2302,7 +2299,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecApplyRfcDefaultTrue_ZeroVal
         "AdvSecCujoTelemetry_RFCEnable");
 
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
-    EXPECT_EQ(enable, TRUE);
+    EXPECT_EQ(enable, FALSE);
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecApplyRfcDefaultTrue_EnabledValue_NoDefaultWrite)
