@@ -1629,7 +1629,8 @@ CosaAdvSecApplyRfcDefaultTrue
         ret = CosaSetSysCfgUlong(setting, 1);
         if (ret != ANSC_STATUS_SUCCESS)
         {
-            CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
+            CcspTraceError(("%s: %s default-to-true persist failed\n", __FUNCTION__, featureLogName));
+            return ret;
         }
         *pEnable = TRUE;
         CcspTraceInfo(("%s:TRUE\n", featureLogName));
