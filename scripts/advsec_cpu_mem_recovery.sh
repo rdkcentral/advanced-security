@@ -168,7 +168,7 @@ check_networkintelligence_mem_recovery()
     echo "##############################################" >> $ADVSEC_AGENT_LOG_PATH
 
     if [ "$total_ni_rss" -ge "$NI_MAX_RSS_THRESHOLD" ]; then
-        echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$total_ni_rss kB, restarting cujo-ni" >> $ADVSEC_AGENT_LOG_PATH
+        echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$total_ni_rss kB, restarting cujo-ni service" >> $ADVSEC_AGENT_LOG_PATH
         systemctl restart cujo-ni
     fi
 }

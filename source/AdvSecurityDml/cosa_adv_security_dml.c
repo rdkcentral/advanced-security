@@ -4127,7 +4127,7 @@ NetworkIntelligence_RFC_SetParamUlongValue
         if(uValue == g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit)
             return TRUE;
 
-        if (uValue <= MIN_NI_MEMORY_HARD_LIMIT)
+        if (uValue < MIN_NI_MEMORY_HARD_LIMIT)
             return FALSE;
 
         returnStatus = CosaNetworkIntelligenceSetMemoryLimit(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC, uValue);
