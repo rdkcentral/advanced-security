@@ -45,7 +45,7 @@ fi
 NI_ENABLE=$(dmcli eRT retv Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.NetworkIntelligence.Enable)
 
 # Default NI memory hard limit in MB
-NI_MEM_HARD_LIMIT=15
+NI_MEM_HARD_LIMIT=25
 
 #syscfg contains value in MB.
 ni_max_rss=$(syscfg get Advsecurity_NetworkIntelligenceMemoryLimit)
@@ -147,8 +147,8 @@ check_networkintelligence_mem_recovery()
     fi
 
     echo "####Network Intelligence RSS/PSS MEM stats####" >> $ADVSEC_AGENT_LOG_PATH
-    ni_rss=0
-    ni_pss=0
+    total_ni_rss=0
+    total_ni_pss=0
     for pid in ${NI_PID_LIST}; do
         sfile=/proc/$pid/smaps_rollup
         if [ -e "$sfile" ]; then
@@ -156,21 +156,19 @@ check_networkintelligence_mem_recovery()
             pss=$(awk '/^Pss:/{print $2}' "$sfile")
             proc_name=$(tr '\0' ' ' < /proc/$pid/cmdline | sed 's/[[:space:]]*$//')
             echo_t "$pid:$proc_name : RSS=$rss kB PSS=$pss kB" >> $ADVSEC_AGENT_LOG_PATH
-            if [ ${ni_rss} -eq 0 ]; then
-                ni_rss=$rss
-                ni_pss=$pss
-            fi
+            total_ni_rss=$(( total_ni_rss + rss ))
+            total_ni_pss=$(( total_ni_pss + pss ))
         fi
     done
 
-    t2ValNotify "NI_RSS_MEM_kB_split" "$ni_rss"
-    t2ValNotify "NI_PSS_MEM_kB_split" "$ni_pss"
-    echo_t "NI_RSS_MEM:$ni_rss kB" >> $ADVSEC_AGENT_LOG_PATH
-    echo_t "NI_PSS_MEM:$ni_pss kB" >> $ADVSEC_AGENT_LOG_PATH
+    t2ValNotify "NI_RSS_MEM_kB_split" "$total_ni_rss"
+    t2ValNotify "NI_PSS_MEM_kB_split" "$total_ni_pss"
+    echo_t "NI_RSS_MEM:$total_ni_rss kB" >> $ADVSEC_AGENT_LOG_PATH
+    echo_t "NI_PSS_MEM:$total_ni_pss kB" >> $ADVSEC_AGENT_LOG_PATH
     echo "##############################################" >> $ADVSEC_AGENT_LOG_PATH
 
-    if [ "$ni_rss" -ge "$NI_MAX_RSS_THRESHOLD" ]; then
-        echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$ni_rss kB, restarting cujo-ni" >> $ADVSEC_AGENT_LOG_PATH
+    if [ "$total_ni_rss" -ge "$NI_MAX_RSS_THRESHOLD" ]; then
+        echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$total_ni_rss kB, restarting cujo-ni service" >> $ADVSEC_AGENT_LOG_PATH
         systemctl restart cujo-ni
     fi
 }
