@@ -31,7 +31,7 @@
 #define MIN_AGENT_MEMORY_HARD_LIMIT 45
 #define MAX_RABID_MACCACHE_SIZE 32768
 #define MAX_RABID_DNSCACHE_SIZE 32768
-#define MIN_NI_MEMORY_HARD_LIMIT 15
+#define MIN_NI_MEMORY_HARD_LIMIT 25
 
 extern COSA_DATAMODEL_AGENT* g_pAdvSecAgent;
 extern pthread_mutex_t logMutex;
@@ -4127,7 +4127,7 @@ NetworkIntelligence_RFC_SetParamUlongValue
         if(uValue == g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit)
             return TRUE;
 
-        if (uValue <= MIN_NI_MEMORY_HARD_LIMIT)
+        if (uValue < MIN_NI_MEMORY_HARD_LIMIT)
             return FALSE;
 
         returnStatus = CosaNetworkIntelligenceSetMemoryLimit(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC, uValue);
