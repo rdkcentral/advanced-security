@@ -45,7 +45,7 @@ fi
 NI_ENABLE=$(dmcli eRT retv Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.NetworkIntelligence.Enable)
 
 # Default NI memory hard limit in MB
-NI_MEM_HARD_LIMIT=25
+NI_MEM_HARD_LIMIT=30
 
 #syscfg contains value in MB.
 ni_max_rss=$(syscfg get Advsecurity_NetworkIntelligenceMemoryLimit)
