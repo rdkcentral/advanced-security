@@ -573,6 +573,8 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
 
     *  NetworkIntelligence_RFC_GetParamBoolValue
     *  NetworkIntelligence_RFC_SetParamBoolValue
+    *  NetworkIntelligence_RFC_GetParamUlongValue
+    *  NetworkIntelligence_RFC_SetParamUlongValue
 
 ***********************************************************************/
 BOOL
@@ -588,6 +590,20 @@ NetworkIntelligence_RFC_SetParamBoolValue
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
         BOOL                        bValue
+    );
+BOOL
+NetworkIntelligence_RFC_GetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG*                      pUlong
+    );
+BOOL
+NetworkIntelligence_RFC_SetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG                       uValue
     );
 /***********************************************************************
 
@@ -632,6 +648,54 @@ AdvSecTCPTrackerFilterDevices_RFC_GetParamBoolValue
     );
 BOOL
 AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecDoHBlocking.
+
+    *  AdvSecDoHBlocking_RFC_GetParamBoolValue
+    *  AdvSecDoHBlocking_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecDoHBlocking_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+AdvSecDoHBlocking_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecDNSECHBlocking.
+
+    *  AdvSecDNSECHBlocking_RFC_GetParamBoolValue
+    *  AdvSecDNSECHBlocking_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecDNSECHBlocking_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+AdvSecDNSECHBlocking_RFC_SetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,

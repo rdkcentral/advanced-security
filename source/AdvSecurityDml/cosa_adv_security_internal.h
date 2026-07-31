@@ -19,6 +19,12 @@
 #ifndef  _COSA_ADV_SEC_INTERNAL_H
 #define  _COSA_ADV_SEC_INTERNAL_H
 
+#ifndef UNIT_TEST_DOCKER_SUPPORT
+#define STATIC static
+#else
+#define STATIC
+#endif
+
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
 
@@ -91,6 +97,7 @@ COSA_DATAMODEL_ADVSECUSERSPACE_RFC,  *PCOSA_DATAMODEL_ADVSECUSERSPACE_RFC;
 typedef struct
 _COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC {
     BOOL            bEnable;
+    ULONG           uMemoryLimit;
 }
 COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC,  *PCOSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC;
 
@@ -147,6 +154,18 @@ _COSA_DATAMODEL_ADVSECTCPTRACKERFILTERDEVICES_RFC {
     BOOL            bEnable;
 }
 COSA_DATAMODEL_ADVSECTCPTRACKERFILTERDEVICES_RFC,  *PCOSA_DATAMODEL_ADVSECTCPTRACKERFILTERDEVICES_RFC;
+
+typedef  struct
+_COSA_DATAMODEL_ADVSECDOHBLOCKING_RFC {
+    BOOL            bEnable;
+}
+COSA_DATAMODEL_ADVSECDOHBLOCKING_RFC,  *PCOSA_DATAMODEL_ADVSECDOHBLOCKING_RFC;
+
+typedef  struct
+_COSA_DATAMODEL_ADVSECDNSECHBLOCKING_RFC {
+    BOOL            bEnable;
+}
+COSA_DATAMODEL_ADVSECDNSECHBLOCKING_RFC,  *PCOSA_DATAMODEL_ADVSECDNSECHBLOCKING_RFC;
 
 typedef  struct
 _COSA_DATAMODEL_RAPTR_RFC {
@@ -209,6 +228,8 @@ _COSA_DATAMODEL_AGENT
     PCOSA_DATAMODEL_ADVSECCUJOTELEMETRY_RFC pAdvSecCujoTelemetry_RFC;
     PCOSA_DATAMODEL_ADVSECSATE_RFC pAdvSecSATE_RFC;
     PCOSA_DATAMODEL_ADVSECTCPTRACKERFILTERDEVICES_RFC pAdvSecTCPTrackerFilterDevices_RFC;
+    PCOSA_DATAMODEL_ADVSECDOHBLOCKING_RFC pAdvSecDoHBlocking_RFC;
+    PCOSA_DATAMODEL_ADVSECDNSECHBLOCKING_RFC pAdvSecDNSECHBlocking_RFC;
     PCOSA_DATAMODEL_RAPTR_RFC pRaptr_RFC;
     PCOSA_DATAMODEL_RABID       pRabid;
     int         	iStatus;
@@ -219,10 +240,11 @@ COSA_DATAMODEL_AGENT,  *PCOSA_DATAMODEL_AGENT;
 /*
     Standard function declaration 
 */
-ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal);
+ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal, size_t retValSize);
 BOOL WifiMgmtFrame_GetActive_Status(void);
 BOOL WifiLevl_GetActive_Status(void);
 int wifidcl_init_precheck(void);
+void advsec_handle_sysevent_notification(char *event, char *val);
 
 ANSC_HANDLE
 CosaSecurityCreate
@@ -352,6 +374,13 @@ CosaAdvSecDeInit
 
 ANSC_STATUS
 CosaRabidSetMemoryLimit
+    (
+        ANSC_HANDLE hThisObject,
+        ULONG uValue
+    );
+
+ANSC_STATUS
+CosaNetworkIntelligenceSetMemoryLimit
     (
         ANSC_HANDLE hThisObject,
         ULONG uValue
@@ -547,6 +576,30 @@ CosaAdvSecTCPTrackerFilterDevicesInit
 
 ANSC_STATUS
 CosaAdvSecTCPTrackerFilterDevicesDeInit
+    (
+        ANSC_HANDLE hThisObject
+    );
+
+ANSC_STATUS
+CosaAdvSecDoHBlockingInit
+    (
+        ANSC_HANDLE hThisObject
+    );
+
+ANSC_STATUS
+CosaAdvSecDoHBlockingDeInit
+    (
+        ANSC_HANDLE hThisObject
+    );
+
+ANSC_STATUS
+CosaAdvSecDNSECHBlockingInit
+    (
+        ANSC_HANDLE hThisObject
+    );
+
+ANSC_STATUS
+CosaAdvSecDNSECHBlockingDeInit
     (
         ANSC_HANDLE hThisObject
     );

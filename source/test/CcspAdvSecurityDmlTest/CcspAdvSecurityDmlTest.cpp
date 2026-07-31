@@ -331,6 +331,23 @@ TEST_F(CcspAdvSecurityDmlTestFixture, CheckDeviceFingerPrint_SetParamStringValue
     EXPECT_EQ(ANSC_STATUS_SUCCESS, returnStatus);
 }
 
+TEST_F(CcspAdvSecurityDmlTestFixture, CheckDeviceFingerPrint_SetParamStringValue_RejectsHttpEndpoint) {
+    char pString[] = "http://www.example.com";
+    const char* ParamName = "EndpointURL";
+    int comparisonResult = 0;
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("EndpointURL"), strlen("EndpointURL"), StrEq(ParamName), _, _, _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<3>(comparisonResult), Return(EOK)));
+
+    EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(_, _)).Times(0);
+    EXPECT_CALL(*g_syscfgMock, syscfg_commit()).Times(0);
+
+    BOOL result = DeviceFingerPrint_SetParamStringValue(NULL, (char*)ParamName, pString);
+
+    EXPECT_FALSE(result);
+}
+
 TEST_F(CcspAdvSecurityDmlTestFixture, SetParamStringValue_Success) {
     const char* ParamName = "Data";
     const char* pString = "encodedData";
@@ -1455,6 +1472,61 @@ TEST_F(CcspAdvSecurityDmlTestFixture, RabidFramework_SetParamUlongValue_DNSCache
     EXPECT_EQ(100, bValue);
 
     free(g_pAdvSecAgent->pRabid);
+    free(g_pAdvSecAgent);
+}
+
+TEST_F(CcspAdvSecurityDmlTestFixture, NetworkIntelligence_RFC_GetParamUlongValue_MemoryLimit) {
+    ULONG resultUlong;
+    const char* ParamName = "MemoryLimit";
+
+    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
+    ASSERT_NE(g_pAdvSecAgent, nullptr);
+
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC = (COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC));
+    ASSERT_NE(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC, nullptr);
+
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit = 100;
+
+    BOOL result = NetworkIntelligence_RFC_GetParamUlongValue(NULL, (char*)ParamName, &resultUlong);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(100, resultUlong);
+
+    free(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC);
+    free(g_pAdvSecAgent);
+}
+
+TEST_F(CcspAdvSecurityDmlTestFixture, NetworkIntelligence_RFC_SetParamUlongValue_MemoryLimit) {
+    const char *ParamName = "MemoryLimit";
+    ULONG bValue = 100;
+    const char *AdvSecurityNetworkIntelligenceMemoryLimit = "Advsecurity_NetworkIntelligenceMemoryLimit";
+
+    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
+    ASSERT_NE(g_pAdvSecAgent, nullptr);
+
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC = (COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC *)malloc(sizeof(COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC));
+    ASSERT_NE(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC, nullptr);
+
+    g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit = 100;
+
+    EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_syscfgMock, syscfg_set_nns(StrEq(AdvSecurityNetworkIntelligenceMemoryLimit), _))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_syscfgMock, syscfg_commit())
+        .Times(1)
+        .WillOnce(Return(0));
+
+    EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaNetworkIntelligenceSetMemoryLimit(NULL, bValue));
+
+    BOOL result = NetworkIntelligence_RFC_SetParamUlongValue(NULL, (char*)ParamName, bValue);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(100, bValue);
+
+    free(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC);
     free(g_pAdvSecAgent);
 }
 

@@ -18,9 +18,14 @@
 
 #include "CcspAdvSecurityMock.h"
 
+static char BRIDGE_MODE_EVENT_NAME[] = "bridge_mode";
+
+extern "C" char prevBridgeMode[2];
+
 class CcspAdvSecurityInternalTestFixture : public ::testing::Test {
 protected:
     void SetUp() override {
+        prevBridgeMode[0] = '\0';
 
        g_syscfgMock = new SyscfgMock();
         g_securewrapperMock = new SecureWrapperMock();
@@ -1163,10 +1168,206 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecGetLookupTimeoutExceededCou
     EXPECT_EQ(CosaAdvSecGetLookupTimeoutExceededCount(), lcount);
 }
 
+TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_InvalidBridgeModeValue)
+{
+    char invalidValue[] = "00";
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("bridge_mode"), _, _, _, _, _))
+        .Times(::testing::AtLeast(1))
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
+        .Times(0);
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, invalidValue);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_IntermediateBridgeModeValueNoFirewallAction)
+{
+    // Bridge mode value "1" is a real state transition .
+    // prevBridgeMode must still be updated so subsequent transitions are
+    // correctly detected, but no firewall command should fire since only
+    // '0' and '2'/'3' trigger enable/disable actions.
+    char intermediateValue[] = "1";
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("bridge_mode"), _, _, _, _, _))
+        .Times(::testing::AtLeast(1))
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, StrEq("1"), _, _, _))
+        .Times(::testing::AtLeast(1))
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(1),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
+        .Times(1)
+        .WillOnce(Return(EOK));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, intermediateValue);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_BridgeModeUnchangedNoAction)
+{
+    char bridgeModeOff[] = "0";
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("bridge_mode"), _, _, _, _, _))
+        .Times(::testing::AtLeast(2))
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, StrEq("0"), _, _, _))
+        .Times(::testing::AtLeast(2))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(1),
+            Return(EOK)
+        ))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ))
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
+        .Times(1)
+        .WillOnce(Return(EOK));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enable &"), _))
+        .Times(1)
+        .WillOnce(Return(0));
+
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_BridgeModeRetryOnCommandFailure)
+{
+    char bridgeModeOff[] = "0";
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("bridge_mode"), _, _, _, _, _))
+        .Times(::testing::AtLeast(2))
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, StrEq("0"), _, _, _))
+        .Times(2)
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(1),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enable &"), _))
+        .Times(2)
+        .WillOnce(Return(1))
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
+        .Times(1)
+        .WillOnce(Return(EOK));
+
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_BridgeModeTransitionActionsOnChangeOnly)
+{
+    char bridgeModeOff[] = "0";
+#ifndef _XF3_PRODUCT_REQ_
+    char bridgeModeOn[] = "2";
+#else
+    char bridgeModeOn[] = "3";
+#endif
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("bridge_mode"), _, _, _, _, _))
+        .Times(::testing::AtLeast(2))
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, StrEq("0"), _, _, _))
+        .Times(2)
+        .WillOnce(DoAll(
+            SetArgPointee<3>(1),
+            Return(EOK)
+        ))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
+        .Times(1)
+        .WillOnce(Return(EOK));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enable &"), _))
+        .Times(1)
+        .WillOnce(Return(0));
+
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+
+    ::testing::Mock::VerifyAndClearExpectations(g_safecLibMock);
+    ::testing::Mock::VerifyAndClearExpectations(g_securewrapperMock);
+
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("bridge_mode"), _, _, _, _, _))
+        .Times(::testing::AtLeast(4))
+        .WillRepeatedly(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, StrEq(bridgeModeOn), _, _, _))
+        .Times(2)
+        .WillOnce(DoAll(
+            SetArgPointee<3>(1),
+            Return(EOK)
+        ))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(_, _, StrEq("0"), _, _, _))
+        .Times(2)
+        .WillOnce(DoAll(
+            SetArgPointee<3>(1),
+            Return(EOK)
+        ))
+        .WillOnce(DoAll(
+            SetArgPointee<3>(0),
+            Return(EOK)
+        ));
+    EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
+        .Times(2)
+        .WillRepeatedly(Return(EOK));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -disable &"), _))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enable &"), _))
+        .Times(1)
+        .WillOnce(Return(0));
+
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOn);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOn);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+    advsec_handle_sysevent_notification(BRIDGE_MODE_EVENT_NAME, bridgeModeOff);
+}
+
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMemoryLimit)
 {
     const char *RabidMemoryLimit = "Advsecurity_RabidMemoryLimit";
     ULONG value = 100;
+
+    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
+    ASSERT_NE(g_pAdvSecAgent, nullptr);
+
+    g_pAdvSecAgent->pRabid = (COSA_DATAMODEL_RABID *)malloc(sizeof(COSA_DATAMODEL_RABID));
+    ASSERT_NE(g_pAdvSecAgent->pRabid, nullptr);
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
         .Times(1)
@@ -1181,12 +1382,21 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMemoryLimit)
     ANSC_STATUS status = CosaRabidSetMemoryLimit(NULL, value);
 
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
+
+    free(g_pAdvSecAgent->pRabid);
+    free(g_pAdvSecAgent);
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMacCacheSize)
 {
     const char *RabidMacCacheSize = "Advsecurity_RabidMacCacheSize";
     ULONG value = 100;
+
+    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
+    ASSERT_NE(g_pAdvSecAgent, nullptr);
+
+    g_pAdvSecAgent->pRabid = (COSA_DATAMODEL_RABID *)malloc(sizeof(COSA_DATAMODEL_RABID));
+    ASSERT_NE(g_pAdvSecAgent->pRabid, nullptr);
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
         .Times(1)
@@ -1201,12 +1411,21 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetMacCacheSize)
     ANSC_STATUS status = CosaRabidSetMacCacheSize(NULL, value);
 
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
+
+    free(g_pAdvSecAgent->pRabid);
+    free(g_pAdvSecAgent);
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetDNSCacheSize)
 {
     const char *RabidDNSCacheSize = "Advsecurity_RabidDNSCacheSize";
     ULONG value = 100;
+
+    g_pAdvSecAgent = (COSA_DATAMODEL_AGENT *)malloc(sizeof(COSA_DATAMODEL_AGENT));
+    ASSERT_NE(g_pAdvSecAgent, nullptr);
+
+    g_pAdvSecAgent->pRabid = (COSA_DATAMODEL_RABID *)malloc(sizeof(COSA_DATAMODEL_RABID));
+    ASSERT_NE(g_pAdvSecAgent->pRabid, nullptr);
 
     EXPECT_CALL(*g_safecLibMock, _sprintf_s_chk(_, _, _, _))
         .Times(1)
@@ -1221,6 +1440,9 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetDNSCacheSize)
     ANSC_STATUS status = CosaRabidSetDNSCacheSize(NULL, value);
 
     EXPECT_EQ(status, ANSC_STATUS_SUCCESS);
+
+    free(g_pAdvSecAgent->pRabid);
+    free(g_pAdvSecAgent);
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCInit)

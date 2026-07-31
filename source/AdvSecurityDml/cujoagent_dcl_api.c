@@ -1560,13 +1560,29 @@ static void cujoagent_new_station_event(
   hash_map_t *assoc_dev_map = NULL;
   assoc_dev_data_t *assoc_dev_data = NULL;
   wifi_interface_name_idex_map_t *iface_map = NULL;
+  int vap_array_index = 0;
 
   /* Count clients across _all_ VAPs of interest */
   *station_update_event_size = sizeof(struct cujo_fpc_wifi_station_event);
   for (unsigned int i = 0; i < consumer->hal_cap.wifi_prop.numRadios; i++) {
     for (unsigned int j = 0; j < consumer->vap_subs_count; j++) {
+      iface_map = cujoagent_iface_property(
+          &consumer->hal_cap.wifi_prop, consumer->vap_subs_indexes[j]);
+      if (!iface_map) {
+        CcspTraceError(("Couldn't find interface map for VAP index [%u]\n",
+                        consumer->vap_subs_indexes[j]));
+        continue;
+      }
+      if (iface_map->rdk_radio_index != i) {
+        continue;
+      }
+      vap_array_index =
+          cujoagent_vap_array_index(&consumer->hal_cap.wifi_prop, iface_map);
+      if (vap_array_index < 0) {
+        continue;
+      }
       assoc_dev_map = consumer->radios[i]
-                          .vaps.rdk_vap_array[consumer->vap_subs_indexes[j]]
+                          .vaps.rdk_vap_array[vap_array_index]
                           .associated_devices_map;
       if (assoc_dev_map) {
         assoc_dev_count = hash_map_count(assoc_dev_map);
@@ -1586,28 +1602,25 @@ static void cujoagent_new_station_event(
   /* Populate the station update event with the list of _all_ connected clients */
   for (unsigned int i = 0, offset = 0; i < consumer->hal_cap.wifi_prop.numRadios; i++) {
     for (unsigned int j = 0; j < consumer->vap_subs_count; j++) {
+      iface_map = cujoagent_iface_property(
+          &consumer->hal_cap.wifi_prop, consumer->vap_subs_indexes[j]);
+      if (!iface_map) {
+        CcspTraceError(("Couldn't find interface map for VAP index [%u]\n",
+                        consumer->vap_subs_indexes[j]));
+        continue;
+      }
+      if (iface_map->rdk_radio_index != i) {
+        continue;
+      }
+      vap_array_index =
+          cujoagent_vap_array_index(&consumer->hal_cap.wifi_prop, iface_map);
+      if (vap_array_index < 0) {
+        continue;
+      }
       assoc_dev_map = consumer->radios[i]
-                          .vaps.rdk_vap_array[consumer->vap_subs_indexes[j]]
+                          .vaps.rdk_vap_array[vap_array_index]
                           .associated_devices_map;
       if (assoc_dev_map) {
-        /* We need the if_name of the VAP each client is connected to, not the
-         * if_name of the VAP where the particular (dis)connect event happened.
-         * Therefore, get the iface_map here rather than passing it as an
-         * argument from the diff map we are processing the particular station
-         * event for. */
-        iface_map = cujoagent_iface_property(
-            &consumer->hal_cap.wifi_prop,
-            consumer->radios[i]
-                .vaps.rdk_vap_array[consumer->vap_subs_indexes[j]]
-                .vap_index);
-        if (!iface_map) {
-          CcspTraceError(("Couldn't find interface map for vap index [%u]\n",
-                          consumer->radios[i]
-                              .vaps.rdk_vap_array[consumer->vap_subs_indexes[j]]
-                              .vap_index));
-          break;
-        }
-
         assoc_dev_count = hash_map_count(assoc_dev_map);
         assoc_dev_data = hash_map_get_first(assoc_dev_map);
         for (unsigned int k = 0; assoc_dev_data; k++) {
@@ -2048,20 +2061,22 @@ cujoagent_process_client_state(client_state_t client_state,
 
   for (unsigned int i = 0; i < consumer->hal_cap.wifi_prop.numRadios; i++) {
     for (unsigned int j = 0; j < consumer->vap_subs_count; j++) {
-      vap_array_index = consumer->vap_subs_indexes[j];
-      iface_map =
-          cujoagent_iface_property(&decoded_params->hal_cap.wifi_prop,
-                                   decoded_params->radios[i]
-                                       .vaps.rdk_vap_array[vap_array_index]
-                                       .vap_index);
+      iface_map = cujoagent_iface_property(
+          &decoded_params->hal_cap.wifi_prop, consumer->vap_subs_indexes[j]);
       if (!iface_map) {
-        CcspTraceError(("Couldn't find interface map for vap index [%u]\n",
-                        decoded_params->radios[i]
-                            .vaps.rdk_vap_array[vap_array_index]
-                            .vap_index));
+        CcspTraceError(("Couldn't find interface map for VAP index [%u]\n",
+                        consumer->vap_subs_indexes[j]));
         continue;
       }
-      radio = &decoded_params->radios[iface_map->rdk_radio_index];
+      if (iface_map->rdk_radio_index != i) {
+        continue;
+      }
+      vap_array_index = cujoagent_vap_array_index(
+          &decoded_params->hal_cap.wifi_prop, iface_map);
+      if (vap_array_index < 0) {
+        continue;
+      }
+      radio = &decoded_params->radios[i];
       vap_info = &radio->vaps.vap_map.vap_array[vap_array_index];
 
       assoc_dev_diff_map = decoded_params->radios[i]

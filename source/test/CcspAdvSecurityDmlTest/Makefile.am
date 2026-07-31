@@ -32,7 +32,9 @@ CcspAdvSecurityDmlTest_gtest_bin_CPPFLAGS = -I$(PKG_CONFIG_SYSROOT_DIR)$(include
                                             -I${top_srcdir}/gtest/include \
                                             -I${top_srcdir}/source \
                                             -I${top_srcdir}/source/AdvSecurityDml \
-                                            -I${top_srcdir}/source/include
+                                            -I${top_srcdir}/source/include \
+                                            -DUNIT_TEST_DOCKER_SUPPORT \
+                                            -DNETWORK_INTELLIGENCE
 
 CcspAdvSecurityDmlTest_gtest_bin_SOURCES = CcspAdvSecurityMock.cpp \
                                            CcspAdvSecurityDmlTest.cpp \
@@ -46,7 +48,7 @@ CcspAdvSecurityDmlTest_gtest_bin_SOURCES = CcspAdvSecurityMock.cpp \
                                            ${top_builddir}/source/AdvSecurityDml/plugin_main.c \
                                            gtest_main.cpp
 
-CcspAdvSecurityDmlTest_gtest_bin_LDFLAGS = -lgtest -lgmock -lgcov -pthread
+CcspAdvSecurityDmlTest_gtest_bin_LDFLAGS = -lgtest -lgmock -lgcov -pthread -lev
 
 CcspAdvSecurityDmlTest_gtest_bin_LDADD = \
     $(HOME)/usr/local/lib/libmock_syscfg.la \

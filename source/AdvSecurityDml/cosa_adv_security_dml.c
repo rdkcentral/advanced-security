@@ -31,12 +31,13 @@
 #define MIN_AGENT_MEMORY_HARD_LIMIT 45
 #define MAX_RABID_MACCACHE_SIZE 32768
 #define MAX_RABID_DNSCACHE_SIZE 32768
+#define MIN_NI_MEMORY_HARD_LIMIT 30
 
 extern COSA_DATAMODEL_AGENT* g_pAdvSecAgent;
 extern pthread_mutex_t logMutex;
 
 #ifdef NETWORK_INTELLIGENCE
-static char *g_AdvNetworkIntelligence = "Adv_NetworkIntelligenceRFCEnable";
+static char *g_AdvNetworkIntelligence = "Adv_AdvSecNetworkIntelligenceRFCEnable";
 #endif
 
 #ifdef WIFI_DATA_COLLECTION
@@ -204,14 +205,14 @@ DeviceFingerPrint_SetParamBoolValue
         if(bValue == pMyObject->bEnable)
                 return TRUE;
         if( bValue )
-                returnStatus = CosaAdvSecInit(pMyObject);
+                returnStatus = CosaAdvSecInit();
         else
-                returnStatus = CosaAdvSecDeInit(pMyObject);
+                returnStatus = CosaAdvSecDeInit();
 
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -1060,7 +1061,7 @@ SafeBrowsing_SetParamUlongValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceError(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2188,7 +2189,7 @@ RabidFramework_SetParamUlongValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2206,7 +2207,7 @@ RabidFramework_SetParamUlongValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2224,7 +2225,7 @@ RabidFramework_SetParamUlongValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2349,7 +2350,7 @@ AdvancedParentalControl_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2474,7 +2475,7 @@ PrivacyProtection_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
 
         return TRUE;
@@ -2604,7 +2605,7 @@ DeviceFingerPrintICMPv6_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
 #else
@@ -2732,7 +2733,7 @@ WS_Discovery_Analysis_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
@@ -2855,7 +2856,7 @@ AdvancedSecurityOTM_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
@@ -3122,7 +3123,7 @@ AdvanceSecurityUserSpace_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
@@ -3743,7 +3744,7 @@ AdvanceSecurityCujoTracer_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
@@ -3866,7 +3867,7 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
-            return  returnStatus;
+            return FALSE;
         }
         return TRUE;
     }
@@ -4008,6 +4009,139 @@ NetworkIntelligence_RFC_SetParamBoolValue
     }
 #else
     UNREFERENCED_PARAMETER(bValue);
+#endif
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.NetworkIntelligence.
+
+    *  NetworkIntelligence_RFC_GetParamUlongValue
+    *  NetworkIntelligence_RFC_SetParamUlongValue
+
+***********************************************************************/
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        NetworkIntelligence_RFC_GetParamUlongValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                ULONG*                      pUlong
+            );
+
+    description:
+
+        This function is called to retrieve unsigned long parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                ULONG*                       pUlong
+                The buffer of returned unsigned long value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+NetworkIntelligence_RFC_GetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG*                      pUlong
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+#ifdef NETWORK_INTELLIGENCE
+    if( AnscEqualString(ParamName, "MemoryLimit", TRUE))
+    {
+        *pUlong = g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit;
+        return TRUE;
+    }
+#else
+    UNREFERENCED_PARAMETER(pUlong);
+#endif
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        NetworkIntelligence_RFC_SetParamUlongValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                ULONG                       uValue
+            );
+
+    description:
+
+        This function is called to set unsigned long parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                ULONG                        uValue
+                The updated ULONG value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+NetworkIntelligence_RFC_SetParamUlongValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        ULONG                       uValue
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+#ifdef NETWORK_INTELLIGENCE
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+
+    if( AnscEqualString(ParamName, "MemoryLimit", TRUE))
+    {
+        if(uValue == g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit)
+            return TRUE;
+
+        if (uValue < MIN_NI_MEMORY_HARD_LIMIT)
+            return FALSE;
+
+        returnStatus = CosaNetworkIntelligenceSetMemoryLimit(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC, uValue);
+
+        if ( returnStatus != ANSC_STATUS_SUCCESS )
+        {
+            CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
+            return FALSE;
+        }
+
+        return TRUE;
+    }
+#else
+    UNREFERENCED_PARAMETER(uValue);
 #endif
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;
@@ -4248,6 +4382,134 @@ AdvSecTCPTrackerFilterDevices_RFC_SetParamBoolValue
                 returnStatus = CosaAdvSecTCPTrackerFilterDevicesInit(g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC);
         else
                 returnStatus = CosaAdvSecTCPTrackerFilterDevicesDeInit(g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC);
+
+        if ( returnStatus != ANSC_STATUS_SUCCESS )
+        {
+            CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecDoHBlocking.
+
+    *  AdvSecDoHBlocking_RFC_GetParamBoolValue
+    *  AdvSecDoHBlocking_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecDoHBlocking_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    if( AnscEqualString(ParamName, "Enable", TRUE))
+    {
+        *pBool = g_pAdvSecAgent->pAdvSecDoHBlocking_RFC->bEnable;
+        return TRUE;
+    }
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+BOOL
+AdvSecDoHBlocking_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+
+    if( AnscEqualString(ParamName, "Enable", TRUE))
+    {
+        if(bValue == g_pAdvSecAgent->pAdvSecDoHBlocking_RFC->bEnable)
+                return TRUE;
+        if( bValue )
+                returnStatus = CosaAdvSecDoHBlockingInit(g_pAdvSecAgent->pAdvSecDoHBlocking_RFC);
+        else
+                returnStatus = CosaAdvSecDoHBlockingDeInit(g_pAdvSecAgent->pAdvSecDoHBlocking_RFC);
+
+        if ( returnStatus != ANSC_STATUS_SUCCESS )
+        {
+            CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
+            return FALSE;
+        }
+        return TRUE;
+    }
+
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.AdvSecDNSECHBlocking.
+
+    *  AdvSecDNSECHBlocking_RFC_GetParamBoolValue
+    *  AdvSecDNSECHBlocking_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+AdvSecDNSECHBlocking_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    if( AnscEqualString(ParamName, "Enable", TRUE))
+    {
+        *pBool = g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC->bEnable;
+        return TRUE;
+    }
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+BOOL
+AdvSecDNSECHBlocking_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+
+    if( AnscEqualString(ParamName, "Enable", TRUE))
+    {
+        if(bValue == g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC->bEnable)
+                return TRUE;
+        if( bValue )
+                returnStatus = CosaAdvSecDNSECHBlockingInit(g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC);
+        else
+                returnStatus = CosaAdvSecDNSECHBlockingDeInit(g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC);
 
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
