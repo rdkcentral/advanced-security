@@ -24,11 +24,10 @@
 
 #include "fingerprint-connection-proto.h"
 
-#define VERSION_MAJOR                   2
+#define VERSION_MAJOR                   3
 #define VERSION_MINOR                   0
 
 #define RBUS_CONSUMER_NAME              "wifi-data-collection-consumer"
-
 
 /* The group name and socket path must match the one in the agent's
  * configuration file. */
@@ -45,6 +44,13 @@
 
 #define WIFI_RADIO_MIN_TEMPERATURE_INTERVAL 5000
 #define WIFI_LEVL_MIN_SOUNDING_DURATION     1000
+#define WIFI_LEVL_MIN_PUBLISH_INTERVAL      100
+
+/* Worst case: "AA:BB:CC:DD:EE:FF;4294967295;4294967295" + NUL = 40 bytes. */
+#define WIFI_LEVL_CSI_MAC_DATA_MAX_LEN      48
+
+/* fc(2) + duration(2) + addr1(6) + addr2(6) + addr3(6) */
+#define MIN_IEEE80211_3ADDR_HDR_LEN         22U
 
 #define DEV_WIFI_EVENTS_RADIO_TEMPERATURE                                          \
   "Device.WiFi.Events.Radio.%d.Temperature"
@@ -54,9 +60,8 @@
 /* Defines moved from common to all wifi_base.h to non staged wifi_levl.h */
 #ifndef WIFI_LEVL_CSI_DATAFIFO
 /* Properties to setup the collection */
-#define WIFI_LEVL_CLIENTMAC             "Device.WiFi.X_RDK_CSI_LEVL.clientMac"
 #define WIFI_LEVL_NUMBEROFENTRIES       "Device.WiFi.X_RDK_CSI_LEVL.maxNumberCSIClients"
-#define WIFI_LEVL_SOUNDING_DURATION     "Device.WiFi.X_RDK_CSI_LEVL.Duration"
+#define WIFI_LEVL_CSI_MAC_DATA          "Device.WiFi.X_RDK_CSI_LEVL.clientMacData"
 /* Events to listen to */
 #define WIFI_LEVL_CSI_DATAFIFO          "Device.WiFi.X_RDK_CSI_LEVL.datafifo"
 #endif
@@ -125,8 +130,8 @@ typedef enum {
   NOTIFY_RADIO_DATA_SENT,
   NOTIFY_STATION_DATA_READY,
   NOTIFY_STATION_DATA_SENT,
-  NOTIFY_BATCH_DATA_READY,
-  NOTIFY_BATCH_DATA_SENT,
+  NOTIFY_WIFI_DATA_EVENT_READY,
+  NOTIFY_WIFI_DATA_EVENT_SENT,
   NOTIFY_CSI_CFO_READY,
   NOTIFY_CSI_CFO_SENT,
   NOTIFY_TEMPERATURE_READY,
