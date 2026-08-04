@@ -3253,12 +3253,6 @@ ANSC_STATUS CosaAdvSecUserSpaceInit(ANSC_HANDLE hThisObject)
 
     g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = TRUE;
 
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableUS &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-    {
-       CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
-    }
-
     CcspTraceWarning (("AdvSecUserSpace_RFCEnable:TRUE\n"));
     return returnStatus;
 }
@@ -3296,7 +3290,6 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
-    bool withUS = FALSE;
     bool wifidcl_inited = FALSE;
     int levl_init_count = 0;
 
@@ -3337,21 +3330,6 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
         }
     }
 
-    // Enable Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecurityUserSpace.Enable if disabled
-    if (g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable == FALSE)
-    {
-        returnStatus = CosaSetSysCfgUlong(g_AdvSecUserSpaceEnabled, 1);
-        if (ANSC_STATUS_SUCCESS != returnStatus)
-        {
-            CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
-            return returnStatus;
-        }
-
-        g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = TRUE;
-        withUS = TRUE;
-        CcspTraceInfo(("AdvSecUserSpace_RFCEnable:TRUE\n"));
-    }
-
     // Enable Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.Enable if disabled
     if (g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable == FALSE)
     {
@@ -3386,15 +3364,7 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     }
 
     g_pAdvSecAgent->pLevl_RFC->bEnable = TRUE;
-    if (withUS)
-    {
-        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableLEVLwithUS &");
-        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-        {
-           CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
-        }
-    }
-    else if (wifidcl_inited)
+    if (wifidcl_inited)
     {
         rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableLEVL &");
         if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
@@ -3930,12 +3900,6 @@ ANSC_STATUS CosaAdvSecAgentRaptrInit(ANSC_HANDLE hThisObject)
 
     g_pAdvSecAgent->pRaptr_RFC->bEnable = TRUE;
 
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableRaptr &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-    {
-       CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
-    }
-
     CcspTraceWarning (("AdvSecAgentRaptr_RFCEnable:TRUE\n"));
     return returnStatus;
 }
@@ -3954,12 +3918,6 @@ ANSC_STATUS CosaAdvSecAgentRaptrDeInit(ANSC_HANDLE hThisObject)
     }
 
     g_pAdvSecAgent->pRaptr_RFC->bEnable = FALSE;
-
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableRaptr &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-    {
-       CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
-    }
 
     CcspTraceWarning (("AdvSecAgentRaptr_RFCEnable:FALSE\n"));
     return returnStatus;

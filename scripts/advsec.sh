@@ -31,9 +31,6 @@ t2ValNotify() {
 }
 
 export RUNTIME_DIR="/usr"
-if [ "$DEVICE_MODEL" = "TCHXB3" ]; then
-    export RUNTIME_DIR="/tmp/cujo_dnld/usr"
-fi
 
 CUJO_AGENT="cujo-agent"
 CUJO_AGENT_SH="cujo-agent --ctl"
@@ -44,24 +41,7 @@ CUJO_AGENT_QOSD="cujo-qosd"
 CUJO_AGENT_FPING="cujo-fpingdq"
 CUJO_TWAMP_LIGHT="twamp-light-client"
 
-if [ "$BOX_TYPE" = "XB3" ] || [ "$BOX_TYPE" = "XF3" ]; then
-    CUJO_AGENT="rabid"
-    CUJO_AGENT_SH="rabidsh"
-    CUJO_AGENT_LOG="Rabid"
-    CUJO_AGENT_USER_NAME="_rabid"
-fi
-
 export APPLIANCE_MODE="EMBEDDED"
-export NFLUA_MODULE_PATH="/lib/modules/$(uname -r)/nflua.ko"
-export LUACONNTRACK_MODULE_PATH="/lib/modules/$(uname -r)/luaconntrack.ko"
-export LUADATA_MODULE_PATH="/lib/modules/$(uname -r)/luadata.ko"
-export LUAJSON_MODULE_PATH="/lib/modules/$(uname -r)/luajson.ko"
-export LUNATIK_MODULE_PATH="/lib/modules/$(uname -r)/lunatik.ko"
-export LUAPUMA_MODULE_PATH="/lib/modules/$(uname -r)/luapuma.ko"
-export PUMASTATS_MODULE_PATH="/lib/modules/$(uname -r)/pumastats.ko"
-export LUAKCRYPTO_MODULE_PATH="/lib/modules/$(uname -r)/luakcrypto.ko"
-export NF_NETLINK_QUEUE_MODULE_PATH="/lib/modules/$(uname -r)/kernel/net/netfilter/nfnetlink_queue.ko"
-export NF_NETLINK_QUEUE_PROC_PATH="/proc/self/net/netfilter/nfnetlink_queue"
 
 export RW_DIR="/tmp"
 export INFO_DIR="${RW_DIR}/advsec"
@@ -83,18 +63,14 @@ export PRIVACY_PROTECTION_PATH=/tmp/adv_privacy_protection
 export ADVSEC_APPBLOCK_PATH=/tmp/advsec_appblocker_enabled
 export ADVSEC_AGENT_LOG_PATH=/rdklogs/logs/agent.txt
 export ADVSEC_LOOKUP_EXCEED_COUNT_FILE="/tmp/advsec_lkup_exceed_cnt"
-export ADVSEC_NFLUA_LOADED=/tmp/advsec_nflua_loaded
 export ADVSEC_CLOUD_IP=/tmp/advsec_cloud_ipv4
 export ADVSEC_CLOUD_HOST=/tmp/advsec_cloud_host
 export ADVSEC_ASSOC_SUCCESS=/tmp/advsec_assoc_success
 export ADVSEC_IPSETLIST_CREATED=/tmp/advsec_ipsetlist_created
 export ADVSEC_DEVICE_CERT=/tmp/cujo_cert.pem
 export ADV_PARENTAL_CONTROL_ACTIVEMACSFILE=/tmp/activemacs
-if [ "$BOX_TYPE" != "XB3" ] && [ "$BOX_TYPE" != "XF3" ]; then
 export ADVSEC_DF_ICMPv6_ENABLED_PATH=/tmp/advsec_df_icmpv6_enabled
-fi
 export ADVSEC_WS_DISCOVERY_ENABLED_PATH=/tmp/advsec_ws_discovery_enabled
-export ADVSEC_RAPTR_ENABLED_PATH=/tmp/advsec_raptr_enabled
 export ADVSEC_USERSPACE_ENABLED_PATH=/tmp/advsec_userspace_enabled
 export ADVSEC_CUJOTRACER_ENABLED_PATH=/tmp/advsec_cujotracer_enabled
 export ADVSEC_CUJOTELEMETRY_ENABLED_PATH=/tmp/advsec_cujotelemetry_enabled
@@ -120,13 +96,9 @@ export ADV_PC_ENABLED=$(syscfg get Adv_PCActivate)
 export PRIVACY_PROTECTION_ENABLED=$(syscfg get Adv_PPActivate)
 export ADV_PC_RFC_ENABLED=$(syscfg get Adv_PCRFCEnable)
 export PRIVACY_PROTECTION_RFC_ENABLED=$(syscfg get Adv_PrivProtRFCEnable)
-if [ "$BOX_TYPE" != "XB3" ] && [ "$BOX_TYPE" != "XF3" ]; then
 export DF_ICMPv6_RFC_ENABLED=$(syscfg get Adv_DFICMPv6RFCEnable)
-fi
 export ADVSEC_OTM_RFC_ENABLED=$(syscfg get Adv_AdvSecOTMRFCEnable)
 export ADVSEC_WS_DISCOVERY_RFC_ENABLED=$(syscfg get Adv_WSDisAnaRFCEnable)
-export ADVSEC_RAPTR_RFC_ENABLED=$(syscfg get Adv_RaptrRFCEnable)
-export ADVSEC_USERSPACE_RFC_ENABLED=$(syscfg get Adv_AdvSecUserSpaceRFCEnable)
 export ADVSEC_CUJOTRACER_RFC_ENABLED=$(syscfg get Adv_AdvSecCujoTracerRFCEnable)
 export ADVSEC_CUJOTELEMETRY_RFC_ENABLED=$(syscfg get Adv_AdvSecCujoTelemetryRFCEnable)
 export ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED=$(syscfg get Adv_AdvSecNetworkIntelligenceRFCEnable)
@@ -146,25 +118,16 @@ export PRIVACY_PROTECTION_ACTIVATED_LOG=PRIVACY_PROTECTION_ACTIVATED
 export PRIVACY_PROTECTION_DEACTIVATED_LOG=PRIVACY_PROTECTION_DEACTIVATED
 export PRIVACY_PROTECTION_RFC_ENABLED_LOG=PRIVACY_PROTECTION_RFC_STATUS_ENABLED
 export PRIVACY_PROTECTION_RFC_DISABLED_LOG=PRIVACY_PROTECTION_RFC_STATUS_DISABLED
-if [ "$BOX_TYPE" != "XB3" ] && [ "$BOX_TYPE" != "XF3" ]; then
-    export AGENT_RUNNING_AS_NON_ROOT_LOG=CUJO_AGENT_RUNNING_AS_NON_ROOT
-    export AGENT_RUNNING_AS_ROOT_LOG=CUJO_AGENT_RUNNING_AS_ROOT
-else
-    export AGENT_RUNNING_AS_NON_ROOT_LOG=RABID_RUNNING_AS_NON_ROOT
-    export AGENT_RUNNING_AS_ROOT_LOG=RABID_RUNNING_AS_ROOT
-fi
-if [ "$BOX_TYPE" != "XB3" ] && [ "$BOX_TYPE" != "XF3" ]; then
+export AGENT_RUNNING_AS_NON_ROOT_LOG=CUJO_AGENT_RUNNING_AS_NON_ROOT
+export AGENT_RUNNING_AS_ROOT_LOG=CUJO_AGENT_RUNNING_AS_ROOT
 export DF_ICMPv6_RFC_ENABLED_LOG=DeviceFingerPrintICMPv6.Enabled
 export DF_ICMPv6_RFC_DISABLED_LOG=DeviceFingerPrintICMPv6.Disabled
-fi
 export ADV_OTM_RFC_ENABLE_LOG=ADVANCE_SECURITY_OTM_ENABLED
 export ADV_OTM_RFC_DISABLE_LOG=ADVANCE_SECURITY_OTM_DISABLED
 export ADV_WS_DISCOVERY_RFC_ENABLE_LOG=ADVANCE_SECURITY_WS_DISCOVERY_ENABLED
 export ADV_WS_DISCOVERY_RFC_DISABLE_LOG=ADVANCE_SECURITY_WS_DISCOVERY_DISABLED
 export ADV_RAPTR_RFC_ENABLE_LOG=ADVANCE_SECURITY_RAPTR_ENABLED
-export ADV_RAPTR_RFC_DISABLE_LOG=ADVANCE_SECURITY_RAPTR_DISABLED
 export ADV_USERSPACE_RFC_ENABLE_LOG=ADVANCE_SECURITY_USERSPACE_ENABLED
-export ADV_USERSPACE_RFC_DISABLE_LOG=ADVANCE_SECURITY_USERSPACE_DISABLED
 export ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG=ADVANCE_SECURITY_NETWORKINTELLIGENCE_ENABLED
 export ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG=ADVANCE_SECURITY_NETWORKINTELLIGENCE_DISABLED
 export ADV_WIFIDATACOLLECTION_RFC_ENABLE_LOG=ADVANCE_SECURITY_WIFIDATACOLLECTION_ENABLED
@@ -356,139 +319,9 @@ stop_iot_blocker()
     ${RUNTIME_DIR}/bin/${CUJO_AGENT}-feature off "iotblocker" 2>&1 >> $ADVSEC_AGENT_LOG_PATH
 }
 
-advsec_module_load()
-{
-	sysfs_mount="0"
-	if [ "$MODEL_NUM" = "TG1682G" ]; then
-		mount -t sysfs none /sys -n
-		if [ "$?" = "0" ]; then
-			sysfs_mount="1"
-		fi
-	fi
-
-	if [ ! -f $NF_NETLINK_QUEUE_PROC_PATH ]; then
-		echo_t "[ADVSEC] $NF_NETLINK_QUEUE_PROC_PATH not present" >> $ADVSEC_AGENT_LOG_PATH
-		echo_t "[ADVSEC] Load nfnetlink_queue kernel module manually" >> $ADVSEC_AGENT_LOG_PATH
-		insmod $NF_NETLINK_QUEUE_MODULE_PATH 2>> $ADVSEC_AGENT_LOG_PATH
-		STATUS=$?
-		if [ ${STATUS} -eq 0 ]; then
-			echo_t "[ADVSEC] kernel module nfnetlink_queue successfully loaded" >> $ADVSEC_AGENT_LOG_PATH
-		else
-                	echo_t "[ADVSEC] Unable to load nfnetlink_queue kernel module" >> $ADVSEC_AGENT_LOG_PATH
-		fi
-	fi
-
-        if [ "${ADVSEC_USERSPACE_RFC_ENABLED:-0}" -eq 0 ]; then
-            # unload userspace kernel module - switching from userspace to nflua mode
-            if [ "$ADV_PC_RFC_ENABLED" = "1" ]; then
-                advsec_kernel_module_unload $PUMASTATS_MODULE_PATH
-            fi
-            advsec_kernel_module_load $LUNATIK_MODULE_PATH
-            advsec_kernel_module_load $LUADATA_MODULE_PATH
-            advsec_kernel_module_load $LUAKCRYPTO_MODULE_PATH
-            advsec_kernel_module_load $LUAJSON_MODULE_PATH
-            advsec_kernel_module_load $LUACONNTRACK_MODULE_PATH
-            advsec_kernel_module_load $NFLUA_MODULE_PATH
-            advsec_kernel_module_load $LUAPUMA_MODULE_PATH
-        else
-            # unload nflua kernel modules - switching from nflua to userspace mode
-            advsec_kernel_module_unload $NFLUA_MODULE_PATH
-            advsec_kernel_module_unload $LUAPUMA_MODULE_PATH
-            advsec_kernel_module_unload $LUACONNTRACK_MODULE_PATH
-            advsec_kernel_module_unload $LUAJSON_MODULE_PATH
-            advsec_kernel_module_unload $LUADATA_MODULE_PATH
-            advsec_kernel_module_unload $LUAKCRYPTO_MODULE_PATH
-            advsec_kernel_module_unload $LUNATIK_MODULE_PATH
-            if [ "$ADV_PC_RFC_ENABLED" = "1" ]; then
-                advsec_kernel_module_load $PUMASTATS_MODULE_PATH
-            fi
-        fi
-
-	if [ "$MODEL_NUM" = "TG1682G" ] && [ "$sysfs_mount" = "1" ]; then
-		umount /sys
-	fi
-
-	touch ${ADVSEC_NFLUA_LOADED}
-}
-
-advsec_module_unload()
-{
-	rm -f ${ADVSEC_NFLUA_LOADED}
-        sysfs_mount="0"
-        if [ "$MODEL_NUM" = "TG1682G" ]; then
-                mount -t sysfs none /sys -n
-                if [ "$?" = "0" ]; then
-                        sysfs_mount="1"
-                fi
-        fi
-
-        if [ "${ADVSEC_USERSPACE_RFC_ENABLED:-0}" -eq 0 ]; then
-            advsec_kernel_module_unload $NFLUA_MODULE_PATH
-            advsec_kernel_module_unload $LUAPUMA_MODULE_PATH
-            advsec_kernel_module_unload $LUACONNTRACK_MODULE_PATH
-            advsec_kernel_module_unload $LUAJSON_MODULE_PATH
-            advsec_kernel_module_unload $LUADATA_MODULE_PATH
-            advsec_kernel_module_unload $LUAKCRYPTO_MODULE_PATH
-            advsec_kernel_module_unload $LUNATIK_MODULE_PATH
-        else
-            if [ "$ADV_PC_RFC_ENABLED" = "1" ]; then
-                advsec_kernel_module_unload $PUMASTATS_MODULE_PATH
-            fi
-        fi
-
-	if [ "$MODEL_NUM" = "TG1682G" ] && [ "$sysfs_mount" = "1" ]; then
-		umount /sys
-	fi
-}
-
-advsec_kernel_module_load()
-{
-    if [ -e "$1" ]; then
-        insmod "$1" 2>> $ADVSEC_AGENT_LOG_PATH
-        STATUS=$?
-        if [ ${STATUS} -eq 0 ]; then
-            echo_t "[ADVSEC] NFLua kernel module $1 successfully loaded"  >> $ADVSEC_AGENT_LOG_PATH
-        else
-            echo_t "[ADVSEC] Unable to load $1 kernel module"  >> $ADVSEC_AGENT_LOG_PATH
-        fi
-    fi
-}
-
-advsec_kernel_module_unload()
-{
-    if [ -e "$1" ]; then
-        module_name=$(basename "$1" | cut -d . -f1)
-        if lsmod | grep -q "^$module_name"; then
-            rmmod "$1" 2>> $ADVSEC_AGENT_LOG_PATH
-            STATUS=$?
-            if [ ${STATUS} -eq 0 ]; then
-                echo_t "[ADVSEC] kernel module $1 successfully unloaded"  >> $ADVSEC_AGENT_LOG_PATH
-            else
-                echo_t "[ADVSEC] Unable to unload $1 kernel module"  >> $ADVSEC_AGENT_LOG_PATH
-            fi
-        fi
-    fi
-}
-
-advsec_initialize_nfq_ct()
-{
-    if [ "$MODEL_NUM" = "PX5001" ]; then
-            echo_t "Initializing nfq_ct data ..."  >> $ADVSEC_AGENT_LOG_PATH
-            conntrack -L >& /dev/null
-    fi
-}
-
 advsec_agent_create_ipsets()
 {
-    if [ -f $ADVSEC_RAPTR_ENABLED_PATH ]; then
-        raptr set -n | grep ipset | sh
-    else
-        ipset create cujo_iotblock_mac hash:mac -exist
-        ipset create cujo_iotblock_ip4 hash:ip family inet -exist
-        ipset create cujo_iotblock_ip6 hash:ip family inet6 -exist
-        ipset create cujo_iotblock_ip4_mac hash:ip,mac family inet -exist
-        ipset create cujo_iotblock_ip6_mac hash:ip,mac family inet6 -exist
-    fi
+    raptr set -n | grep ipset | sh
     touch ${ADVSEC_IPSETLIST_CREATED}
 }
 
@@ -604,10 +437,6 @@ advsec_restart_agent() {
         advsec_cleanup_config_agent
 
         sleep 5
-        if [ ! -e ${ADVSEC_NFLUA_LOADED} ]
-        then
-                advsec_module_load
-        fi
 
         if [ ! -e ${ADVSEC_IPSETLIST_CREATED} ]
         then
