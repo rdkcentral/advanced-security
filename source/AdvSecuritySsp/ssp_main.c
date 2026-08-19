@@ -31,6 +31,7 @@
 #include "stdlib.h"
 #include "webconfig_framework.h"
 #include "safec_lib_common.h"
+#include "mtrace_watcher.h"
 #include <sys/stat.h>
 #define MAX_SUBSYSTEM_SIZE 32
 
@@ -540,6 +541,7 @@ int main(int argc, char* argv[])
 
     if ( bRunAsDaemon )
     {
+        mtrace_watcher_start();
         while(1)
         {
             sleep(30);
