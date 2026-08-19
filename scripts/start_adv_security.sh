@@ -251,6 +251,26 @@ then
         rm $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH
     fi
 
+    if [ -f $ADVSEC_LEVLMLO_ENABLED_PATH ]; then
+        rm $ADVSEC_LEVLMLO_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_DEVICEFINGERPRINTLASTSEEN_ENABLED_PATH ]; then
+        rm $ADVSEC_DEVICEFINGERPRINTLASTSEEN_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_DFDNSSAFESEARCH_ENABLED_PATH ]; then
+        rm $ADVSEC_DFDNSSAFESEARCH_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_DEVICEFINGERPRINTLOCALHTTPUA_ENABLED_PATH ]; then
+        rm $ADVSEC_DEVICEFINGERPRINTLOCALHTTPUA_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_CPEPROTECTIONNETWORK_ENABLED_PATH ]; then
+        rm $ADVSEC_CPEPROTECTIONNETWORK_ENABLED_PATH
+    fi
+
     if [ -f $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH ]; then
         rm $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH
     fi
@@ -660,6 +680,106 @@ disable_dns_ech_blocking()
     fi
 }
 
+enable_levlmlo()
+{
+    touch $ADVSEC_LEVLMLO_ENABLED_PATH
+    echo_t ${ADV_LEVLMLO_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentLevlMLO_RFC_Enabled"
+    fi
+}
+
+disable_levlmlo()
+{
+    rm -f $ADVSEC_LEVLMLO_ENABLED_PATH
+    echo_t ${ADV_LEVLMLO_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentLevlMLO_RFC_Disabled"
+    fi
+}
+
+enable_devicefingerprintlastseen()
+{
+    touch $ADVSEC_DEVICEFINGERPRINTLASTSEEN_ENABLED_PATH
+    echo_t ${ADV_DEVICEFINGERPRINTLASTSEEN_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDeviceFingerPrintLastSeen_RFC_Enabled"
+    fi
+}
+
+disable_devicefingerprintlastseen()
+{
+    rm -f $ADVSEC_DEVICEFINGERPRINTLASTSEEN_ENABLED_PATH
+    echo_t ${ADV_DEVICEFINGERPRINTLASTSEEN_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDeviceFingerPrintLastSeen_RFC_Disabled"
+    fi
+}
+
+enable_dfdnssafesearch()
+{
+    touch $ADVSEC_DFDNSSAFESEARCH_ENABLED_PATH
+    echo_t ${ADV_DFDNSSAFESEARCH_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDFDNSSafeSearch_RFC_Enabled"
+    fi
+}
+
+disable_dfdnssafesearch()
+{
+    rm -f $ADVSEC_DFDNSSAFESEARCH_ENABLED_PATH
+    echo_t ${ADV_DFDNSSAFESEARCH_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDFDNSSafeSearch_RFC_Disabled"
+    fi
+}
+
+enable_devicefingerprintlocalhttpua()
+{
+    touch $ADVSEC_DEVICEFINGERPRINTLOCALHTTPUA_ENABLED_PATH
+    echo_t ${ADV_DEVICEFINGERPRINTLOCALHTTPUA_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDeviceFingerPrintLocalHTTPUA_RFC_Enabled"
+    fi
+}
+
+disable_devicefingerprintlocalhttpua()
+{
+    rm -f $ADVSEC_DEVICEFINGERPRINTLOCALHTTPUA_ENABLED_PATH
+    echo_t ${ADV_DEVICEFINGERPRINTLOCALHTTPUA_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentDeviceFingerPrintLocalHTTPUA_RFC_Disabled"
+    fi
+}
+
+enable_cpeprotectionnetwork()
+{
+    touch $ADVSEC_CPEPROTECTIONNETWORK_ENABLED_PATH
+    echo_t ${ADV_CPEPROTECTIONNETWORK_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentCpeProtectionNetwork_RFC_Enabled"
+    fi
+}
+
+disable_cpeprotectionnetwork()
+{
+    rm -f $ADVSEC_CPEPROTECTIONNETWORK_ENABLED_PATH
+    echo_t ${ADV_CPEPROTECTIONNETWORK_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentCpeProtectionNetwork_RFC_Disabled"
+    fi
+}
+
 enable_wifidatacollection()
 {
     if [ -f $ADVSEC_WIFIDCL_INIT_PATH ]; then
@@ -936,6 +1056,46 @@ fi
 
 if [ "$1" = "-disableDNSECHBlocking" ]; then
     disable_dns_ech_blocking "RR"
+fi
+
+if [ "$1" = "-enableLevlMLO" ]; then
+    enable_levlmlo "RR"
+fi
+
+if [ "$1" = "-disableLevlMLO" ]; then
+    disable_levlmlo "RR"
+fi
+
+if [ "$1" = "-enableDFLastSeen" ]; then
+    enable_devicefingerprintlastseen "RR"
+fi
+
+if [ "$1" = "-disableDFLastSeen" ]; then
+    disable_devicefingerprintlastseen "RR"
+fi
+
+if [ "$1" = "-enableDFDNSSafeSearch" ]; then
+    enable_dfdnssafesearch "RR"
+fi
+
+if [ "$1" = "-disableDFDNSSafeSearch" ]; then
+    disable_dfdnssafesearch "RR"
+fi
+
+if [ "$1" = "-enableDFLocalHTTPUA" ]; then
+    enable_devicefingerprintlocalhttpua "RR"
+fi
+
+if [ "$1" = "-disableDFLocalHTTPUA" ]; then
+    disable_devicefingerprintlocalhttpua "RR"
+fi
+
+if [ "$1" = "-enableCpeProtectionNetwork" ]; then
+    enable_cpeprotectionnetwork "RR"
+fi
+
+if [ "$1" = "-disableCpeProtectionNetwork" ]; then
+    disable_cpeprotectionnetwork "RR"
 fi
 
 if [ "$1" = "-enableWSDiscovery" ]; then

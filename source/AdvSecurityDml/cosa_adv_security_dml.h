@@ -705,6 +705,126 @@ AdvSecDNSECHBlocking_RFC_SetParamBoolValue
 
  APIs for Object:
 
+    X_RDKCENTRAL-COM_RFC.Feature.LevlMLO.
+
+    *  LevlMLO_RFC_GetParamBoolValue
+    *  LevlMLO_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+LevlMLO_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+LevlMLO_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.DeviceFingerPrintLastSeen.
+
+    *  DeviceFingerPrintLastSeen_RFC_GetParamBoolValue
+    *  DeviceFingerPrintLastSeen_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+DeviceFingerPrintLastSeen_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+DeviceFingerPrintLastSeen_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.DeviceFingerPrintDNSSafeSearch.
+
+    *  DeviceFingerPrintDNSSafeSearch_RFC_GetParamBoolValue
+    *  DeviceFingerPrintDNSSafeSearch_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+DeviceFingerPrintDNSSafeSearch_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+DeviceFingerPrintDNSSafeSearch_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.DeviceFingerPrintLocalHTTPUA.
+
+    *  DeviceFingerPrintLocalHTTPUA_RFC_GetParamBoolValue
+    *  DeviceFingerPrintLocalHTTPUA_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+DeviceFingerPrintLocalHTTPUA_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+DeviceFingerPrintLocalHTTPUA_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_RFC.Feature.CpeProtectionNetwork.
+
+    *  CpeProtectionNetwork_RFC_GetParamBoolValue
+    *  CpeProtectionNetwork_RFC_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+CpeProtectionNetwork_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+CpeProtectionNetwork_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+/***********************************************************************
+
+ APIs for Object:
+
     X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.
 
     *  WifiDataCollection_RFC_GetParamBoolValue
