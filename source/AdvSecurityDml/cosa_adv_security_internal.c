@@ -1946,13 +1946,14 @@ static void *advsec_logger_th(void *arg)
                 pthread_mutex_lock(&logMutex);
                 remaining_time = g_pAdvSecAgent->ulLoggingPeriod;
                 pthread_mutex_unlock(&logMutex);
+
+                ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/advsec_log_fp_status.sh check_status &");
+                if(ret !=0)
+                {
+                     CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                }
             }
 
-            ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/advsec_log_fp_status.sh check_status &");
-            if(ret !=0)
-            {
-                 CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
-            }
             ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/advsec_cpu_mem_recovery.sh &");
             if(ret !=0)
             {
