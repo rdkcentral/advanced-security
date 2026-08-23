@@ -275,10 +275,14 @@ COSA_DATAMODEL_AGENT,  *PCOSA_DATAMODEL_AGENT;
 /*
     Standard function declaration 
 */
+
+#ifdef WIFI_DATA_COLLECTION
 ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal, size_t retValSize);
-BOOL WifiMgmtFrame_GetActive_Status(void);
-BOOL WifiLevl_GetActive_Status(void);
+ANSC_STATUS Wifi_SetParameterValue(const char *paramName, bool bValue);
+BOOL Wifi_Get_Status(const char *pParamName);
 int wifidcl_init_precheck(void);
+#endif // WIFI_DATA_COLLECTION
+
 void advsec_handle_sysevent_notification(char *event, char *val);
 
 ANSC_HANDLE
@@ -519,18 +523,6 @@ CosaAdvSecUserSpaceDeInit
 */
 
 ANSC_STATUS
-CosaLevlInit
-    (
-        ANSC_HANDLE hThisObject
-    );
-
-ANSC_STATUS
-CosaLevlDeInit
-    (
-        ANSC_HANDLE hThisObject
-    );
-
-ANSC_STATUS
 CosaAdvSecAgentInit
     (
         ANSC_HANDLE hThisObject
@@ -651,6 +643,7 @@ CosaAdvSecNetworkIntelligenceDeInit
         ANSC_HANDLE hThisObject
     );
 
+#ifdef WIFI_DATA_COLLECTION
 ANSC_STATUS
 CosaAdvWifiDataCollectionInit
     (
@@ -659,6 +652,24 @@ CosaAdvWifiDataCollectionInit
 
 ANSC_STATUS
 CosaAdvWifiDataCollectionDeInit
+    (
+        ANSC_HANDLE hThisObject
+    );
+
+ANSC_STATUS
+CosaAdvWifiDCLEnsureInit
+    (
+        bool *wifidcl_inited
+    );
+
+ANSC_STATUS
+CosaLevlInit
+    (
+        ANSC_HANDLE hThisObject
+    );
+
+ANSC_STATUS
+CosaLevlDeInit
     (
         ANSC_HANDLE hThisObject
     );
@@ -674,6 +685,7 @@ CosaAdvSecDFMLODeInit
     (
         ANSC_HANDLE hThisObject
     );
+#endif // WIFI_DATA_COLLECTION
 
 ANSC_STATUS
 CosaAdvSecDFLastSeenInit

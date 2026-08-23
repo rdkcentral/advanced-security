@@ -526,7 +526,6 @@ int wifidcl_init_precheck()
     }
     return returnStatus;
 }
-#endif
 
 BOOL Wifi_Get_Status(const char *pParamName)
 {
@@ -641,6 +640,7 @@ ANSC_STATUS Wifi_SetParameterValue(const char *paramName, bool bValue)
     rbusValue_Release(value);
     return ANSC_STATUS_SUCCESS;
 }
+#endif // WIFI_DATA_COLLECTION
 
 ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSize, ULONG* puLong)
 {
@@ -1180,6 +1180,7 @@ CosaSecurityInitialize
 #ifdef WIFI_DATA_COLLECTION
     ULONG                   ValueASWIFIDCL_RFC = 0;
     ULONG                   ValueLEVL_RFC = 0;
+    ULONG                   ValueDFMLO_RFC = 0;
 #endif
     ULONG                   ValueASAGENT_RFC = 0;
     ULONG                   ValueASSAFEBROWSING_RFC = 0;
@@ -1190,7 +1191,6 @@ CosaSecurityInitialize
     ULONG                   ValueASTCPTrackerFilterDevices_RFC = 0;
     ULONG                   ValueASDoHBlocking_RFC = 0;
     ULONG                   ValueASDNSECHBlocking_RFC = 0;
-    ULONG                   ValueDFMLO_RFC = 0;
     ULONG                   ValueDFLastSeen_RFC = 0;
     ULONG                   ValueDNSSafeSearch_RFC = 0;
     ULONG                   ValueDFLocalHTTPUA_RFC = 0;
@@ -1435,6 +1435,7 @@ CosaSecurityInitialize
 #ifdef WIFI_DATA_COLLECTION
     CosaGetSysCfgUlong(g_AdvWifiDataCollection, &ValueASWIFIDCL_RFC);
     CosaGetSysCfgUlong(g_LevlEnabled, &ValueLEVL_RFC);
+    CosaGetSysCfgUlong(g_DFMLOEnabled, &ValueDFMLO_RFC);
 #endif
     CosaGetSysCfgUlong(g_AdvSecAgentEnabled, &ValueASAGENT_RFC);
     CosaGetSysCfgUlong(g_AdvSecSafeBrowsingEnabled, &ValueASSAFEBROWSING_RFC);
@@ -1445,7 +1446,6 @@ CosaSecurityInitialize
     CosaGetSysCfgUlong(g_AdvSecTCPTrackerFilterDevicesEnabled, &ValueASTCPTrackerFilterDevices_RFC);
     CosaGetSysCfgUlong(g_AdvSecDoHBlockingEnabled, &ValueASDoHBlocking_RFC);
     CosaGetSysCfgUlong(g_AdvSecDNSECHBlockingEnabled, &ValueASDNSECHBlocking_RFC);
-    CosaGetSysCfgUlong(g_DFMLOEnabled, &ValueDFMLO_RFC);
     CosaGetSysCfgUlong(g_DFLastSeenEnabled, &ValueDFLastSeen_RFC);
     CosaGetSysCfgUlong(g_DFDNSSafeSearchEnabled, &ValueDNSSafeSearch_RFC);
     CosaGetSysCfgUlong(g_DFLocalHTTPUAEnabled, &ValueDFLocalHTTPUA_RFC);
@@ -1532,9 +1532,47 @@ CosaSecurityInitialize
     {
         g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable = FALSE;
     }
+
+    // If DeviceFingerPrintMLO RFC is enabled, ensure WifiDataCollection is enabled
+    g_pAdvSecAgent->pDFMLO_RFC->bEnable = ValueDFMLO_RFC;
+    if (g_pAdvSecAgent->pDFMLO_RFC->bEnable == TRUE)
+    {
+        // Enable Device.WiFi.Levl if disabled (WifiDataCollection depends on it)
+        if (Wifi_Get_Status(LEVL_DML) == FALSE)
+        {
+            returnStatus = Wifi_SetParameterValue(LEVL_DML, TRUE);
+            if (returnStatus != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s:%d %s set failed\n", __FUNCTION__, __LINE__, LEVL_DML));
+            }
+            else
+            {
+                sleep(1);
+            }
+        }
+
+        if (Wifi_Get_Status(LEVL_DML) == TRUE)
+        {
+            // Enable wifidatacollection feature
+            returnStatus = CosaSetSysCfgUlong(g_AdvWifiDataCollection, 1);
+            if (returnStatus != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
+            }
+            ValueASWIFIDCL_RFC = TRUE;
+            g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable = TRUE;
+            CcspTraceInfo(("AdvSecWifiDataCollection_RFCEnable:TRUE (for DeviceFingerPrintMLO)\n"));
+        }
+        else
+        {
+            CcspTraceError(("%s:%d %s is false even after setting to true\n", __FUNCTION__, __LINE__, LEVL_DML));
+        }
+    }
+
 #else
     g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable = FALSE;
     g_pAdvSecAgent->pLevl_RFC->bEnable = FALSE;
+    g_pAdvSecAgent->pDFMLO_RFC->bEnable = FALSE;
 #endif
     g_pAdvSecAgent->pAdvSecAgent_RFC->bEnable = ValueASAGENT_RFC;
     g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC->bEnable = ValueASSAFEBROWSING_RFC;
@@ -1545,7 +1583,6 @@ CosaSecurityInitialize
     g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC->bEnable = ValueASTCPTrackerFilterDevices_RFC;
     g_pAdvSecAgent->pAdvSecDoHBlocking_RFC->bEnable = ValueASDoHBlocking_RFC;
     g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC->bEnable = ValueASDNSECHBlocking_RFC;
-    g_pAdvSecAgent->pDFMLO_RFC->bEnable = ValueDFMLO_RFC;
     g_pAdvSecAgent->pDFLastSeen_RFC->bEnable = ValueDFLastSeen_RFC;
     g_pAdvSecAgent->pDFDNSSafeSearch_RFC->bEnable = ValueDNSSafeSearch_RFC;
     g_pAdvSecAgent->pDFLocalHTTPUA_RFC->bEnable = ValueDFLocalHTTPUA_RFC;
@@ -3360,15 +3397,25 @@ ANSC_STATUS CosaAdvSecUserSpaceDeInit(ANSC_HANDLE hThisObject)
 */
 
 #ifdef WIFI_DATA_COLLECTION
-ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
+/*
+ * CosaAdvWifiDCLEnsureInit - Common helper for enabling LEVL_DML and WifiDataCollection.
+ *
+ * Both CosaLevlInit and CosaAdvSecDFMLOInit require:
+ *   1. wifidcl_init_precheck() passes
+ *   2. Device.WiFi.Levl (LEVL_DML) is active
+ *   3. WifiDataCollection RFC is enabled if it was not already
+ *
+ * @param wifidcl_inited  Set to TRUE if this call newly enabled WifiDataCollection.
+ * @return ANSC_STATUS_SUCCESS on success, ANSC_STATUS_FAILURE otherwise.
+ */
+ANSC_STATUS CosaAdvWifiDCLEnsureInit(bool *wifidcl_inited)
 {
-    UNREFERENCED_PARAMETER(hThisObject);
-    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
-    bool wifidcl_inited = FALSE;
-    int levl_init_count = 0;
-
+    int levl_wait_count = 0;
     int ret = 0;
+
+    *wifidcl_inited = FALSE;
 
     ret = wifidcl_init_precheck();
     if (ret != RBUS_ERROR_SUCCESS)
@@ -3395,17 +3442,18 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     while (Wifi_Get_Status(LEVL_DML) == FALSE)
     {
         CcspTraceInfo(("%s:%d Waiting for levl_init to complete\n", __FUNCTION__, __LINE__));
-        CcspTraceDebug(("%s:%d Levl_init wait time is %d seconds\n", __FUNCTION__, __LINE__,levl_init_count));
+        CcspTraceDebug(("%s:%d Levl wait time is %d seconds\n", __FUNCTION__, __LINE__, levl_wait_count));
         sleep(1);
-        levl_init_count++;
+        levl_wait_count++;
 
-        if(levl_init_count == 10) {
+        if (levl_wait_count == 10)
+        {
             CcspTraceError(("%s:%d %s is false even after setting to true\n", __FUNCTION__, __LINE__, LEVL_DML));
             return ANSC_STATUS_FAILURE;
         }
     }
 
-    // Enable Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.Enable if disabled
+    // Enable WifiDataCollection if not already enabled
     if (g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable == FALSE)
     {
         returnStatus = CosaAdvWifiDataConsumerInit();
@@ -3415,7 +3463,7 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
             return returnStatus;
         }
         rc = v_secure_system("touch " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-        if(!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
         {
             CcspTraceError(("Failed to touch %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
         }
@@ -3427,8 +3475,25 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
         }
 
         g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable = TRUE;
-        wifidcl_inited = TRUE;
+        *wifidcl_inited = TRUE;
         CcspTraceInfo(("AdvSecWifiDataCollection_RFCEnable:TRUE\n"));
+    }
+
+    return returnStatus;
+}
+
+ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+    bool wifidcl_inited = FALSE;
+
+    returnStatus = CosaAdvWifiDCLEnsureInit(&wifidcl_inited);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceError(("%s:%d CosaAdvWifiDCLEnsureInit failed\n", __FUNCTION__, __LINE__));
+        return returnStatus;
     }
 
     returnStatus = CosaSetSysCfgUlong(g_LevlEnabled, 1);
@@ -3460,33 +3525,6 @@ ANSC_STATUS CosaLevlDeInit(ANSC_HANDLE hThisObject)
     errno_t rc = -1;
     bool wifidcl_deinited = FALSE;
 
-    // De-initialize wifidatacollection
-    if (g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable == 1)
-    {
-        returnStatus = CosaAdvWifiDataCollectionDeInit(g_pAdvSecAgent->pAdvWifiDataCollection_RFC);
-        if (returnStatus != ANSC_STATUS_SUCCESS)
-        {
-            CcspTraceError(("%s: wifidatacollection de-init error\n", __FUNCTION__));
-            return returnStatus;
-        }
-        wifidcl_deinited = TRUE;
-    }
-
-    // Disable Device.WiFi.Levl if enabled
-    if (Wifi_Get_Status(LEVL_DML) == TRUE)
-    {
-        returnStatus = Wifi_SetParameterValue(LEVL_DML, FALSE);
-        if (returnStatus != ANSC_STATUS_SUCCESS)
-        {
-            CcspTraceError(("%s:%d %s set failed\n", __FUNCTION__, __LINE__, LEVL_DML));
-            return returnStatus;
-        }
-        else
-        {
-            sleep(1);
-        }
-    }
-
     returnStatus = CosaSetSysCfgUlong(g_LevlEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
@@ -3495,6 +3533,43 @@ ANSC_STATUS CosaLevlDeInit(ANSC_HANDLE hThisObject)
     }
 
     g_pAdvSecAgent->pLevl_RFC->bEnable = FALSE;
+
+    // De-initialize wifidatacollection and disable LEVL_DML only if both
+    // Levl and DeviceFingerPrintMLO are now disabled — both features share
+    // WifiDataCollection and LEVL_DML, so we must not tear them down while
+    // the peer is still active.
+    if (g_pAdvSecAgent->pDFMLO_RFC->bEnable == FALSE)
+    {
+        if (g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable == 1)
+        {
+            returnStatus = CosaAdvWifiDataCollectionDeInit(g_pAdvSecAgent->pAdvWifiDataCollection_RFC);
+            if (returnStatus != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s: wifidatacollection de-init error\n", __FUNCTION__));
+                return returnStatus;
+            }
+            wifidcl_deinited = TRUE;
+        }
+
+        // Disable Device.WiFi.Levl if enabled
+        if (Wifi_Get_Status(LEVL_DML) == TRUE)
+        {
+            returnStatus = Wifi_SetParameterValue(LEVL_DML, FALSE);
+            if (returnStatus != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s:%d %s set failed\n", __FUNCTION__, __LINE__, LEVL_DML));
+                return returnStatus;
+            }
+            else
+            {
+                sleep(1);
+            }
+        }
+    }
+    else
+    {
+        CcspTraceInfo(("%s: DeviceFingerPrintMLO RFC still enabled, skipping WifiDataCollection/LEVL_DML teardown\n", __FUNCTION__));
+    }
 
     if (wifidcl_deinited)
     {
@@ -3960,28 +4035,39 @@ ANSC_STATUS CosaAdvSecDNSECHBlockingDeInit(ANSC_HANDLE hThisObject)
     return returnStatus;
 }
 
+#ifdef WIFI_DATA_COLLECTION
 ANSC_STATUS CosaAdvSecDFMLOInit(ANSC_HANDLE hThisObject)
 {
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
+    bool wifidcl_inited = FALSE;
+
+    returnStatus = CosaAdvWifiDCLEnsureInit(&wifidcl_inited);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceError(("%s:%d CosaAdvWifiDCLEnsureInit failed\n", __FUNCTION__, __LINE__));
+        return returnStatus;
+    }
 
     returnStatus = CosaSetSysCfgUlong(g_DFMLOEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
+        CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
         return returnStatus;
     }
 
     g_pAdvSecAgent->pDFMLO_RFC->bEnable = TRUE;
-
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableDFMLO &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    if (wifidcl_inited)
     {
-       CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableDFMLO &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+           CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
     }
 
-    CcspTraceWarning (("DeviceFingerPrintMLO_RFCEnable:TRUE\n"));
+    CcspTraceInfo(("DeviceFingerPrintMLO_RFCEnable:TRUE\n"));
     return returnStatus;
 }
 
@@ -3990,25 +4076,67 @@ ANSC_STATUS CosaAdvSecDFMLODeInit(ANSC_HANDLE hThisObject)
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
+    bool wifidcl_deinited = FALSE;
 
     returnStatus = CosaSetSysCfgUlong(g_DFMLOEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
+        CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
         return returnStatus;
     }
 
     g_pAdvSecAgent->pDFMLO_RFC->bEnable = FALSE;
 
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableDFMLO &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    // De-initialize wifidatacollection and disable LEVL_DML only if both
+    // DeviceFingerPrintMLO and Levl are now disabled — both features share
+    // WifiDataCollection and LEVL_DML, so we must not tear them down while
+    // the peer is still active.
+    if (g_pAdvSecAgent->pLevl_RFC->bEnable == FALSE)
     {
-       CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        if (g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable == 1)
+        {
+            returnStatus = CosaAdvWifiDataCollectionDeInit(g_pAdvSecAgent->pAdvWifiDataCollection_RFC);
+            if (returnStatus != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s: wifidatacollection de-init error\n", __FUNCTION__));
+                return returnStatus;
+            }
+            wifidcl_deinited = TRUE;
+        }
+
+        // Disable Device.WiFi.Levl if enabled
+        if (Wifi_Get_Status(LEVL_DML) == TRUE)
+        {
+            returnStatus = Wifi_SetParameterValue(LEVL_DML, FALSE);
+            if (returnStatus != ANSC_STATUS_SUCCESS)
+            {
+                CcspTraceError(("%s:%d %s set failed\n", __FUNCTION__, __LINE__, LEVL_DML));
+                return returnStatus;
+            }
+            else
+            {
+                sleep(1);
+            }
+        }
+    }
+    else
+    {
+        CcspTraceInfo(("%s: Levl RFC still enabled, skipping WifiDataCollection/LEVL_DML teardown\n", __FUNCTION__));
     }
 
-    CcspTraceWarning (("DeviceFingerPrintMLO_RFCEnable:FALSE\n"));
+    if (wifidcl_deinited)
+    {
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableDFMLO &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+           CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
+    }
+
+    CcspTraceInfo(("DeviceFingerPrintMLO_RFCEnable:FALSE\n"));
     return returnStatus;
 }
+#endif
 
 ANSC_STATUS CosaAdvSecDFLastSeenInit(ANSC_HANDLE hThisObject)
 {
