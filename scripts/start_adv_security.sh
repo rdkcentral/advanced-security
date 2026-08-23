@@ -251,8 +251,8 @@ then
         rm $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH
     fi
 
-    if [ -f $ADVSEC_LEVLMLO_ENABLED_PATH ]; then
-        rm $ADVSEC_LEVLMLO_ENABLED_PATH
+    if [ -f $ADVSEC_DFMLO_ENABLED_PATH ]; then
+        rm $ADVSEC_DFMLO_ENABLED_PATH
     fi
 
     if [ -f $ADVSEC_DEVICEFINGERPRINTLASTSEEN_ENABLED_PATH ]; then
@@ -680,23 +680,23 @@ disable_dns_ech_blocking()
     fi
 }
 
-enable_levlmlo()
+enable_dfmlo()
 {
-    touch $ADVSEC_LEVLMLO_ENABLED_PATH
-    echo_t ${ADV_LEVLMLO_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    touch $ADVSEC_DFMLO_ENABLED_PATH
+    echo_t ${ADV_DFMLO_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-        advsec_restart_agent "AgentLevlMLO_RFC_Enabled"
+        advsec_restart_agent "AgentDFMLO_RFC_Enabled"
     fi
 }
 
-disable_levlmlo()
+disable_dfmlo()
 {
-    rm -f $ADVSEC_LEVLMLO_ENABLED_PATH
-    echo_t ${ADV_LEVLMLO_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    rm -f $ADVSEC_DFMLO_ENABLED_PATH
+    echo_t ${ADV_DFMLO_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
 
     if [ "$1" = "RR" ]; then
-        advsec_restart_agent "AgentLevlMLO_RFC_Disabled"
+        advsec_restart_agent "AgentDFMLO_RFC_Disabled"
     fi
 }
 
@@ -1058,12 +1058,12 @@ if [ "$1" = "-disableDNSECHBlocking" ]; then
     disable_dns_ech_blocking "RR"
 fi
 
-if [ "$1" = "-enableLevlMLO" ]; then
-    enable_levlmlo "RR"
+if [ "$1" = "-enableDFMLO" ]; then
+    enable_dfmlo "RR"
 fi
 
-if [ "$1" = "-disableLevlMLO" ]; then
-    disable_levlmlo "RR"
+if [ "$1" = "-disableDFMLO" ]; then
+    disable_dfmlo "RR"
 fi
 
 if [ "$1" = "-enableDFLastSeen" ]; then

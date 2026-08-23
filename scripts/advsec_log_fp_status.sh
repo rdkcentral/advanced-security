@@ -138,10 +138,10 @@ check_status()
         print_telemetry_log ${ADV_DNS_ECH_BLOCKING_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
-    if [ -e ${ADVSEC_LEVLMLO_ENABLED_PATH} ]; then
-        print_telemetry_log ${ADV_LEVLMLO_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    if [ -e ${ADVSEC_DFMLO_ENABLED_PATH} ]; then
+        print_telemetry_log ${ADV_DFMLO_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     else
-        print_telemetry_log ${ADV_LEVLMLO_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+        print_telemetry_log ${ADV_DFMLO_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
     if [ -e ${ADVSEC_DEVICEFINGERPRINTLASTSEEN_ENABLED_PATH} ]; then

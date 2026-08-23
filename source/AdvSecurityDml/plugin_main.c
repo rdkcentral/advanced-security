@@ -138,8 +138,8 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecDNSECHBlocking_RFC_GetParamBoolValue", AdvSecDNSECHBlocking_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecDNSECHBlocking_RFC_SetParamBoolValue", AdvSecDNSECHBlocking_RFC_SetParamBoolValue);
 
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "LevlMLO_RFC_GetParamBoolValue", LevlMLO_RFC_GetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "LevlMLO_RFC_SetParamBoolValue", LevlMLO_RFC_SetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintMLO_RFC_GetParamBoolValue", DeviceFingerPrintMLO_RFC_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintMLO_RFC_SetParamBoolValue", DeviceFingerPrintMLO_RFC_SetParamBoolValue);
 
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintLastSeen_RFC_GetParamBoolValue", DeviceFingerPrintLastSeen_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintLastSeen_RFC_SetParamBoolValue", DeviceFingerPrintLastSeen_RFC_SetParamBoolValue);

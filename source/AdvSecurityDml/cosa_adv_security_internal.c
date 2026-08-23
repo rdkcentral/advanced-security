@@ -166,7 +166,7 @@ static char *g_AdvSecSATEEnabled = "Adv_SATERFCEnable";
 static char *g_AdvSecTCPTrackerFilterDevicesEnabled = "Adv_TCPTrackerFilterDevicesRFCEnable";
 static char *g_AdvSecDoHBlockingEnabled = "Adv_DoHBlockingRFCEnable";
 static char *g_AdvSecDNSECHBlockingEnabled = "Adv_DNSECHBlockingRFCEnable";
-static char *g_LevlMLOEnabled = "Adv_LevlMLORFCEnable";
+static char *g_DFMLOEnabled = "Adv_DFMLORFCEnable";
 static char *g_DFLastSeenEnabled = "Adv_DFLastSeenRFCEnable";
 static char *g_DFDNSSafeSearchEnabled = "Adv_DFDNSSafeSearchRFCEnable";
 static char *g_DFLocalHTTPUAEnabled = "Adv_DFLocalHTTPUARFCEnable";
@@ -889,9 +889,9 @@ VOID FreeCosaDmAgent(PCOSA_DATAMODEL_AGENT pMyObject)
             AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecDNSECHBlocking_RFC);
             pMyObject->pAdvSecDNSECHBlocking_RFC = NULL;
         }
-        if (pMyObject->pLevlMLO_RFC) {
-            AnscFreeMemory((ANSC_HANDLE)pMyObject->pLevlMLO_RFC);
-            pMyObject->pLevlMLO_RFC = NULL;
+        if (pMyObject->pDFMLO_RFC) {
+            AnscFreeMemory((ANSC_HANDLE)pMyObject->pDFMLO_RFC);
+            pMyObject->pDFMLO_RFC = NULL;
         }
         if (pMyObject->pDFLastSeen_RFC) {
             AnscFreeMemory((ANSC_HANDLE)pMyObject->pDFLastSeen_RFC);
@@ -1085,9 +1085,9 @@ CosaSecurityCreate
         goto mem_alloc_failure;
     }
 
-    pMyObject->pLevlMLO_RFC = (PCOSA_DATAMODEL_LEVLMLO_RFC)
-                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_LEVLMLO_RFC));
-    if ( !pMyObject->pLevlMLO_RFC )
+    pMyObject->pDFMLO_RFC = (PCOSA_DATAMODEL_DEVICEFINGERPRINTMLO_RFC)
+                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_DEVICEFINGERPRINTMLO_RFC));
+    if ( !pMyObject->pDFMLO_RFC )
     {
         goto mem_alloc_failure;
     }
@@ -1190,7 +1190,7 @@ CosaSecurityInitialize
     ULONG                   ValueASTCPTrackerFilterDevices_RFC = 0;
     ULONG                   ValueASDoHBlocking_RFC = 0;
     ULONG                   ValueASDNSECHBlocking_RFC = 0;
-    ULONG                   ValueLevlMLO_RFC = 0;
+    ULONG                   ValueDFMLO_RFC = 0;
     ULONG                   ValueDFLastSeen_RFC = 0;
     ULONG                   ValueDNSSafeSearch_RFC = 0;
     ULONG                   ValueDFLocalHTTPUA_RFC = 0;
@@ -1445,7 +1445,7 @@ CosaSecurityInitialize
     CosaGetSysCfgUlong(g_AdvSecTCPTrackerFilterDevicesEnabled, &ValueASTCPTrackerFilterDevices_RFC);
     CosaGetSysCfgUlong(g_AdvSecDoHBlockingEnabled, &ValueASDoHBlocking_RFC);
     CosaGetSysCfgUlong(g_AdvSecDNSECHBlockingEnabled, &ValueASDNSECHBlocking_RFC);
-    CosaGetSysCfgUlong(g_LevlMLOEnabled, &ValueLevlMLO_RFC);
+    CosaGetSysCfgUlong(g_DFMLOEnabled, &ValueDFMLO_RFC);
     CosaGetSysCfgUlong(g_DFLastSeenEnabled, &ValueDFLastSeen_RFC);
     CosaGetSysCfgUlong(g_DFDNSSafeSearchEnabled, &ValueDNSSafeSearch_RFC);
     CosaGetSysCfgUlong(g_DFLocalHTTPUAEnabled, &ValueDFLocalHTTPUA_RFC);
@@ -1545,7 +1545,7 @@ CosaSecurityInitialize
     g_pAdvSecAgent->pAdvSecTCPTrackerFilterDevices_RFC->bEnable = ValueASTCPTrackerFilterDevices_RFC;
     g_pAdvSecAgent->pAdvSecDoHBlocking_RFC->bEnable = ValueASDoHBlocking_RFC;
     g_pAdvSecAgent->pAdvSecDNSECHBlocking_RFC->bEnable = ValueASDNSECHBlocking_RFC;
-    g_pAdvSecAgent->pLevlMLO_RFC->bEnable = ValueLevlMLO_RFC;
+    g_pAdvSecAgent->pDFMLO_RFC->bEnable = ValueDFMLO_RFC;
     g_pAdvSecAgent->pDFLastSeen_RFC->bEnable = ValueDFLastSeen_RFC;
     g_pAdvSecAgent->pDFDNSSafeSearch_RFC->bEnable = ValueDNSSafeSearch_RFC;
     g_pAdvSecAgent->pDFLocalHTTPUA_RFC->bEnable = ValueDFLocalHTTPUA_RFC;
@@ -3960,53 +3960,53 @@ ANSC_STATUS CosaAdvSecDNSECHBlockingDeInit(ANSC_HANDLE hThisObject)
     return returnStatus;
 }
 
-ANSC_STATUS CosaAdvSecLevlMLOInit(ANSC_HANDLE hThisObject)
+ANSC_STATUS CosaAdvSecDFMLOInit(ANSC_HANDLE hThisObject)
 {
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
 
-    returnStatus = CosaSetSysCfgUlong(g_LevlMLOEnabled, 1);
+    returnStatus = CosaSetSysCfgUlong(g_DFMLOEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
         CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
-    g_pAdvSecAgent->pLevlMLO_RFC->bEnable = TRUE;
+    g_pAdvSecAgent->pDFMLO_RFC->bEnable = TRUE;
 
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableLevlMLO &");
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableDFMLO &");
     if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
     {
        CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
     }
 
-    CcspTraceWarning (("LevlMLO_RFCEnable:TRUE\n"));
+    CcspTraceWarning (("DeviceFingerPrintMLO_RFCEnable:TRUE\n"));
     return returnStatus;
 }
 
-ANSC_STATUS CosaAdvSecLevlMLODeInit(ANSC_HANDLE hThisObject)
+ANSC_STATUS CosaAdvSecDFMLODeInit(ANSC_HANDLE hThisObject)
 {
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
 
-    returnStatus = CosaSetSysCfgUlong(g_LevlMLOEnabled, 0);
+    returnStatus = CosaSetSysCfgUlong(g_DFMLOEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
         CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
-    g_pAdvSecAgent->pLevlMLO_RFC->bEnable = FALSE;
+    g_pAdvSecAgent->pDFMLO_RFC->bEnable = FALSE;
 
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableLevlMLO &");
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableDFMLO &");
     if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
     {
        CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
     }
 
-    CcspTraceWarning (("LevlMLO_RFCEnable:FALSE\n"));
+    CcspTraceWarning (("DeviceFingerPrintMLO_RFCEnable:FALSE\n"));
     return returnStatus;
 }
 

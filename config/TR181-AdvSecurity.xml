@@ -459,11 +459,11 @@
                  </parameters>
             </object>
             <object>
-              <name>LevlMLO</name>
+              <name>DeviceFingerPrintMLO</name>
               <objectType>object</objectType>
                 <functions>
-                  <func_GetParamBoolValue>LevlMLO_RFC_GetParamBoolValue</func_GetParamBoolValue>
-                  <func_SetParamBoolValue>LevlMLO_RFC_SetParamBoolValue</func_SetParamBoolValue>
+                  <func_GetParamBoolValue>DeviceFingerPrintMLO_RFC_GetParamBoolValue</func_GetParamBoolValue>
+                  <func_SetParamBoolValue>DeviceFingerPrintMLO_RFC_SetParamBoolValue</func_SetParamBoolValue>
                 </functions>
                 <parameters>
                   <parameter>

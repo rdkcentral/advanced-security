@@ -705,21 +705,21 @@ AdvSecDNSECHBlocking_RFC_SetParamBoolValue
 
  APIs for Object:
 
-    X_RDKCENTRAL-COM_RFC.Feature.LevlMLO.
+    X_RDKCENTRAL-COM_RFC.Feature.DeviceFingerPrintMLO.
 
-    *  LevlMLO_RFC_GetParamBoolValue
-    *  LevlMLO_RFC_SetParamBoolValue
+    *  DeviceFingerPrintMLO_RFC_GetParamBoolValue
+    *  DeviceFingerPrintMLO_RFC_SetParamBoolValue
 
 ***********************************************************************/
 BOOL
-LevlMLO_RFC_GetParamBoolValue
+DeviceFingerPrintMLO_RFC_GetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
         BOOL*                       pBool
     );
 BOOL
-LevlMLO_RFC_SetParamBoolValue
+DeviceFingerPrintMLO_RFC_SetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,

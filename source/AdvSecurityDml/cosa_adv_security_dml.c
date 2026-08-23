@@ -4527,14 +4527,14 @@ AdvSecDNSECHBlocking_RFC_SetParamBoolValue
 
  APIs for Object:
 
-    X_RDKCENTRAL-COM_RFC.Feature.LevlMLO.
+    X_RDKCENTRAL-COM_RFC.Feature.DeviceFingerPrintMLO.
 
-    *  LevlMLO_RFC_GetParamBoolValue
-    *  LevlMLO_RFC_SetParamBoolValue
+    *  DeviceFingerPrintMLO_RFC_GetParamBoolValue
+    *  DeviceFingerPrintMLO_RFC_SetParamBoolValue
 
 ***********************************************************************/
 BOOL
-LevlMLO_RFC_GetParamBoolValue
+DeviceFingerPrintMLO_RFC_GetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -4544,7 +4544,7 @@ LevlMLO_RFC_GetParamBoolValue
     UNREFERENCED_PARAMETER(hInsContext);
     if( AnscEqualString(ParamName, "Enable", TRUE))
     {
-        *pBool = g_pAdvSecAgent->pLevlMLO_RFC->bEnable;
+        *pBool = g_pAdvSecAgent->pDFMLO_RFC->bEnable;
         return TRUE;
     }
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
@@ -4552,7 +4552,7 @@ LevlMLO_RFC_GetParamBoolValue
 }
 
 BOOL
-LevlMLO_RFC_SetParamBoolValue
+DeviceFingerPrintMLO_RFC_SetParamBoolValue
     (
         ANSC_HANDLE                 hInsContext,
         char*                       ParamName,
@@ -4564,12 +4564,12 @@ LevlMLO_RFC_SetParamBoolValue
 
     if( AnscEqualString(ParamName, "Enable", TRUE))
     {
-        if(bValue == g_pAdvSecAgent->pLevlMLO_RFC->bEnable)
+        if(bValue == g_pAdvSecAgent->pDFMLO_RFC->bEnable)
                 return TRUE;
         if( bValue )
-                returnStatus = CosaAdvSecLevlMLOInit(g_pAdvSecAgent->pLevlMLO_RFC);
+                returnStatus = CosaAdvSecDFMLOInit(g_pAdvSecAgent->pDFMLO_RFC);
         else
-                returnStatus = CosaAdvSecLevlMLODeInit(g_pAdvSecAgent->pLevlMLO_RFC);
+                returnStatus = CosaAdvSecDFMLODeInit(g_pAdvSecAgent->pDFMLO_RFC);
 
         if ( returnStatus != ANSC_STATUS_SUCCESS )
         {
