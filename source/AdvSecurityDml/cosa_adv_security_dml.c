@@ -282,13 +282,8 @@ DeviceFingerPrint_GetParamUlongValue
     ERR_CHK(rc);
     if((rc == EOK) && (!ind))
     {
-#if !(defined(_COSA_INTEL_XB3_ARM_) || defined(_COSA_BCM_MIPS_))
         *puLong = g_pAdvSecAgent->ulLogLevel;
         return TRUE;
-#else
-        UNREFERENCED_PARAMETER(puLong);
-        return FALSE;
-#endif
     }
 
     CcspTraceWarning(("%s: Unsupported parameter '%s'\n", __FUNCTION__, ParamName));
@@ -374,7 +369,6 @@ DeviceFingerPrint_SetParamUlongValue
     ERR_CHK(rc);
     if((rc == EOK) && (!ind))
     {
-#if !(defined(_COSA_INTEL_XB3_ARM_) || defined(_COSA_BCM_MIPS_))
         if ( bValue < ADVSEC_LogLevel_ERROR || bValue > ADVSEC_LogLevel_VERBOSE )
         {
             CcspTraceInfo(("%s Values Log Level: Out of range\n", __FUNCTION__));
@@ -393,11 +387,6 @@ DeviceFingerPrint_SetParamUlongValue
         }
 
         return TRUE;
-#else
-     UNREFERENCED_PARAMETER(bValue);
-     UNREFERENCED_PARAMETER(returnStatus);
-     return FALSE;
-#endif
     }
 
     CcspTraceWarning(("%s: Unsupported parameter '%s'\n", __FUNCTION__, ParamName));
@@ -915,13 +904,9 @@ SafeBrowsing_GetParamUlongValue
 {
     UNREFERENCED_PARAMETER(hInsContext);
     /* check the parameter name and return the corresponding value */
-    errno_t rc1 = -1;
-    int ind1 = -1;
-#if !(defined(_COSA_INTEL_XB3_ARM_) || defined(_COSA_BCM_MIPS_))
-    errno_t rc2 = -1, rc3 = -1, rc4 = -1, rc5 = -1;
-    int ind2 = -1, ind3 = -1, ind4 = -1, ind5 = -1;
+    errno_t rc1 = -1, rc2 = -1, rc3 = -1, rc4 = -1, rc5 = -1;
+    int ind1 = -1, ind2 = -1, ind3 = -1, ind4 = -1, ind5 = -1;
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
-#endif
     PCOSA_DATAMODEL_AGENT       pMyObject     = (PCOSA_DATAMODEL_AGENT)g_pAdvSecAgent;
 
     if(ParamName == NULL)
@@ -955,7 +940,6 @@ SafeBrowsing_GetParamUlongValue
         return TRUE;
     }
 
-#if !(defined(_COSA_INTEL_XB3_ARM_) || defined(_COSA_BCM_MIPS_))
     rc1 = strcmp_s("Threshold", strlen("Threshold"), ParamName, &ind1);
     ERR_CHK(rc1);
     rc2 = strcmp_s("Timeout", strlen("Timeout"), ParamName, &ind2);
@@ -984,7 +968,6 @@ SafeBrowsing_GetParamUlongValue
 
         return TRUE;
     }
-#endif
 
     CcspTraceWarning(("%s: Unsupported parameter '%s'\n", __FUNCTION__, ParamName));
     return FALSE;
@@ -1118,11 +1101,6 @@ SafeBrowsing_GetParamStringValue
     )
 {
     UNREFERENCED_PARAMETER(hInsContext);
-#if (defined(_COSA_INTEL_XB3_ARM_) || defined(_COSA_BCM_MIPS_))
-    UNREFERENCED_PARAMETER(ParamName);
-    UNREFERENCED_PARAMETER(pValue);
-    UNREFERENCED_PARAMETER(pUlSize);
-#else
     ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
     /* check the parameter name and return the corresponding value */
     errno_t rc1 = -1, rc2 = -1, rc3 = -1, rc4 = -1, rc5 = -1;
@@ -1155,7 +1133,6 @@ SafeBrowsing_GetParamStringValue
         }
         return returnStatus;
     }
-#endif
     CcspTraceWarning(("%s: Unsupported parameter '%s'\n", __FUNCTION__, ParamName));
     return -1;
 }
@@ -2537,13 +2514,8 @@ DeviceFingerPrintICMPv6_RFC_GetParamBoolValue
 
     if( AnscEqualString(ParamName, "Enable", TRUE))
     {
-#if !(defined(_COSA_INTEL_XB3_ARM_) || defined(_COSA_BCM_MIPS_))
         *pBool = g_pAdvSecAgent->pDFIcmpv6_RFC->bEnable;
         return TRUE;
-#else
-        UNREFERENCED_PARAMETER(pBool);
-        return FALSE;
-#endif
     }
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;
@@ -2594,7 +2566,6 @@ DeviceFingerPrintICMPv6_RFC_SetParamBoolValue
 
     if( AnscEqualString(ParamName, "Enable", TRUE))
     {
-#if !(defined(_COSA_INTEL_XB3_ARM_) || defined(_COSA_BCM_MIPS_))
         if(bValue == g_pAdvSecAgent->pDFIcmpv6_RFC->bEnable)
                 return TRUE;
         if( bValue )
@@ -2608,11 +2579,6 @@ DeviceFingerPrintICMPv6_RFC_SetParamBoolValue
             return FALSE;
         }
         return TRUE;
-#else
-     UNREFERENCED_PARAMETER(bValue);
-     UNREFERENCED_PARAMETER(returnStatus);
-     return FALSE;
-#endif
     }
 
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
