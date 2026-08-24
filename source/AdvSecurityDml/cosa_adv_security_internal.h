@@ -25,6 +25,7 @@
 #define STATIC
 #endif
 
+#include <stdbool.h>
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
 
