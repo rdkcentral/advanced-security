@@ -3526,7 +3526,6 @@ ANSC_STATUS CosaLevlDeInit(ANSC_HANDLE hThisObject)
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
-    bool wifidcl_deinited = FALSE;
 
     returnStatus = CosaSetSysCfgUlong(g_LevlEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
@@ -3551,7 +3550,6 @@ ANSC_STATUS CosaLevlDeInit(ANSC_HANDLE hThisObject)
                 CcspTraceError(("%s: wifidatacollection de-init error\n", __FUNCTION__));
                 return returnStatus;
             }
-            wifidcl_deinited = TRUE;
         }
 
         // Disable Device.WiFi.Levl if enabled
@@ -3571,7 +3569,7 @@ ANSC_STATUS CosaLevlDeInit(ANSC_HANDLE hThisObject)
     }
     else
     {
-        CcspTraceInfo(("%s: DeviceFingerPrintMLO RFC still enabled, skipping WifiDataCollection/LEVL_DML teardown\n", __FUNCTION__));
+        CcspTraceInfo(("%s: DeviceFingerPrintMLO RFC is enabled, skip disabling WifiDataCollection\n", __FUNCTION__));
     }
 
     rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableLEVL &");
