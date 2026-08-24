@@ -979,11 +979,20 @@ fi
 
 if [ "$1" = "-enableLEVL" ]; then
     enable_wifidatacollection
+    enable_levl
+fi
+
+if [ "$1" = "-enableLEVL_R" ]; then
+    enable_wifidatacollection
     enable_levl "RR"
 fi
 
 if [ "$1" = "-disableLEVL" ]; then
     disable_levl
+fi
+
+if [ "$1" = "-disableLEVL_R" ]; then
+    disable_levl "RR"
 fi
 
 if [ "$1" = "-enableAGT" ]; then
@@ -1059,10 +1068,18 @@ if [ "$1" = "-disableDNSECHBlocking" ]; then
 fi
 
 if [ "$1" = "-enableDFMLO" ]; then
+    enable_dfmlo
+fi
+
+if [ "$1" = "-enableDFMLO_R" ]; then
     enable_dfmlo "RR"
 fi
 
 if [ "$1" = "-disableDFMLO" ]; then
+    disable_dfmlo
+fi
+
+if [ "$1" = "-disableDFMLO_R" ]; then
     disable_dfmlo "RR"
 fi
 
