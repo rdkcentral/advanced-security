@@ -141,18 +141,6 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintMLO_RFC_GetParamBoolValue", DeviceFingerPrintMLO_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintMLO_RFC_SetParamBoolValue", DeviceFingerPrintMLO_RFC_SetParamBoolValue);
 
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintLastSeen_RFC_GetParamBoolValue", DeviceFingerPrintLastSeen_RFC_GetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintLastSeen_RFC_SetParamBoolValue", DeviceFingerPrintLastSeen_RFC_SetParamBoolValue);
-
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintDNSSafeSearch_RFC_GetParamBoolValue", DeviceFingerPrintDNSSafeSearch_RFC_GetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintDNSSafeSearch_RFC_SetParamBoolValue", DeviceFingerPrintDNSSafeSearch_RFC_SetParamBoolValue);
-
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintLocalHTTPUA_RFC_GetParamBoolValue", DeviceFingerPrintLocalHTTPUA_RFC_GetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintLocalHTTPUA_RFC_SetParamBoolValue", DeviceFingerPrintLocalHTTPUA_RFC_SetParamBoolValue);
-
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "CpeProtectionNetwork_RFC_GetParamBoolValue", CpeProtectionNetwork_RFC_GetParamBoolValue);
-    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "CpeProtectionNetwork_RFC_SetParamBoolValue", CpeProtectionNetwork_RFC_SetParamBoolValue);
-
     /* Create Object for Settings */
     g_pAdvSecAgent = (PCOSA_DATAMODEL_AGENT)CosaSecurityCreate();
 
