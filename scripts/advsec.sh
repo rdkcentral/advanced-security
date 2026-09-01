@@ -19,16 +19,7 @@
 source /etc/device.properties
 source /etc/log_timestamp.sh
 source /usr/bin/cujo-agent-sh-env
-
-T2_MSG_CLIENT=/usr/bin/telemetry2_0_client
-
-t2ValNotify() {
-    if [ -f $T2_MSG_CLIENT ]; then
-        marker=$1
-        shift
-        $T2_MSG_CLIENT "$marker" "$*"
-    fi
-}
+source /lib/rdk/t2Shared_api.sh
 
 export RUNTIME_DIR="/usr"
 
