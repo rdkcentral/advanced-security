@@ -458,6 +458,7 @@
                   </parameter>
                  </parameters>
             </object>
+<?ifdef MLO_SUPPORTED?>
             <object>
               <name>DeviceFingerPrintMLO</name>
               <objectType>object</objectType>
@@ -474,6 +475,7 @@
                   </parameter>
                 </parameters>
             </object>
+<?endif?>
             <object>
               <name>NetworkIntelligence</name>
               <objectType>object</objectType>

@@ -647,6 +647,7 @@ CosaLevlDeInit
         ANSC_HANDLE hThisObject
     );
 
+#ifdef MLO_SUPPORTED
 ANSC_STATUS
 CosaAdvSecDFMLOInit
     (
@@ -658,6 +659,7 @@ CosaAdvSecDFMLODeInit
     (
         ANSC_HANDLE hThisObject
     );
+#endif // MLO_SUPPORTED
 #endif // WIFI_DATA_COLLECTION
 
 ANSC_STATUS
