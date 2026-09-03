@@ -26,6 +26,9 @@
 #endif
 
 #include <stdbool.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <errno.h>
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
 

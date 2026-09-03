@@ -400,6 +400,19 @@ static void Advsec_SetDefaultsUrl()
    }
 }
 
+static int touch_file(const char *filepath)
+{
+    int fd;
+
+    fd = open(filepath, O_CREAT | O_WRONLY, 0644);
+    if (fd < 0) {
+        return -1;
+    }
+
+    close(fd);
+    return 0;
+}
+
 #ifdef WAN_FAILOVER_SUPPORTED
 static void eventReceiveHandler(
     rbusHandle_t handle,
@@ -1719,8 +1732,8 @@ ANSC_STATUS CosaAdvWifiDataCollectionInit(ANSC_HANDLE hThisObject)
         {
             return returnStatus;
         }
-        rc = v_secure_system("touch " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-        if(!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        rc = touch_file(ADVSEC_WIFIDCL_INIT_FILE_PATH);
+        if(rc != 0)
         {
             CcspTraceWarning(("Failed to touch %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
         }
@@ -1761,16 +1774,12 @@ ANSC_STATUS CosaAdvWifiDataCollectionDeInit(ANSC_HANDLE hThisObject)
     {
         return returnStatus;
     }
-    rc = v_secure_system("rm " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-    if(!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-    {
-        CcspTraceWarning(("Failed to remove %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
-    }
+    unlink(ADVSEC_WIFIDCL_INIT_FILE_PATH);
 
     returnStatus = CosaSetSysCfgUlong(g_AdvWifiDataCollection, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning(("%s: syscfg_set failure.", __FUNCTION__));
+        CcspTraceError(("%s: syscfg_set failure.\n", __FUNCTION__));
         return returnStatus;
     }
 
@@ -1806,8 +1815,8 @@ ANSC_STATUS CosaAdvSecInit()
         }
         else
         {
-            rc = v_secure_system("touch " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-            if(!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+            rc = touch_file(ADVSEC_WIFIDCL_INIT_FILE_PATH);
+            if(rc != 0)
             {
                 CcspTraceWarning(("Failed to touch %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
             }
@@ -1846,11 +1855,7 @@ ANSC_STATUS CosaAdvSecDeInit()
         }
         else
         {
-            rc = v_secure_system("rm " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-            if(!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-            {
-                CcspTraceWarning(("Failed to remove %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
-            }
+            unlink(ADVSEC_WIFIDCL_INIT_FILE_PATH);
         }
     }
 #endif
@@ -1901,18 +1906,17 @@ static void *advsec_logger_th(void *arg)
                 pthread_mutex_unlock(&logMutex);
 
                 ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/advsec_log_fp_status.sh check_status &");
-                if(ret !=0)
+                if(ret != 0)
                 {
-                     CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                    CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
                 }
             }
 
             ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/advsec_cpu_mem_recovery.sh &");
             if(ret !=0)
             {
-                 CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
             }
-
         }
         else
         {
@@ -3353,7 +3357,7 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
         }
     }
 
-    // Enable WifiDataCollection if not already enabled
+    // Enable Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.Enable if disabled
     if (g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable == FALSE)
     {
         returnStatus = CosaAdvWifiDataConsumerInit();
@@ -3362,8 +3366,8 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
             CcspTraceError(("%s:%d CosaAdvWifiDataConsumerInit failed\n", __FUNCTION__, __LINE__));
             return returnStatus;
         }
-        rc = v_secure_system("touch " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        rc = touch_file(ADVSEC_WIFIDCL_INIT_FILE_PATH);
+        if (rc != 0)
         {
             CcspTraceError(("Failed to touch %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
         }
