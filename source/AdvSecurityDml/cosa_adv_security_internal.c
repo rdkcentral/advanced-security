@@ -1844,8 +1844,6 @@ ANSC_STATUS CosaAdvSecDeInit()
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     int ret = 0;
 #ifdef WIFI_DATA_COLLECTION
-    errno_t rc = -1;
-
     if (g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable == 1)
     {
         returnStatus = CosaAdvWifiDataConsumerDeInit();
@@ -3318,6 +3316,7 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
     bool wifidcl_inited = FALSE;
+    int levl_init_count = 0;
 
     int ret = 0;
 
