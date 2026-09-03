@@ -630,12 +630,6 @@ CosaAdvWifiDataCollectionDeInit
     );
 
 ANSC_STATUS
-CosaAdvWifiDCLEnsureInit
-    (
-        bool *wifidcl_inited
-    );
-
-ANSC_STATUS
 CosaLevlInit
     (
         ANSC_HANDLE hThisObject

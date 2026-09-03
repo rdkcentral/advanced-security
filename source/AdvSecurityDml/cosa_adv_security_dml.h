@@ -711,7 +711,7 @@ AdvSecDNSECHBlocking_RFC_SetParamBoolValue
     *  DeviceFingerPrintMLO_RFC_SetParamBoolValue
 
 ***********************************************************************/
-#if defined(WIFI_DATA_COLLECTION) && defined(MLO_SUPPORTED)
+#ifdef MLO_SUPPORTED
 BOOL
 DeviceFingerPrintMLO_RFC_GetParamBoolValue
     (
@@ -726,7 +726,7 @@ DeviceFingerPrintMLO_RFC_SetParamBoolValue
         char*                       ParamName,
         BOOL                        bValue
     );
-#endif /* WIFI_DATA_COLLECTION && MLO_SUPPORTED */
+#endif /* MLO_SUPPORTED */
 /***********************************************************************
 
  APIs for Object:

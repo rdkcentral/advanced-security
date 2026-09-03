@@ -3308,25 +3308,14 @@ ANSC_STATUS CosaAdvSecUserSpaceDeInit(ANSC_HANDLE hThisObject)
 */
 
 #ifdef WIFI_DATA_COLLECTION
-/*
- * CosaAdvWifiDCLEnsureInit - Common helper for enabling LEVL_DML and WifiDataCollection.
- *
- * Both CosaLevlInit and CosaAdvSecDFMLOInit require:
- *   1. wifidcl_init_precheck() passes
- *   2. Device.WiFi.Levl (LEVL_DML) is active
- *   3. WifiDataCollection RFC is enabled if it was not already
- *
- * @param wifidcl_inited  Set to TRUE if this call newly enabled WifiDataCollection.
- * @return ANSC_STATUS_SUCCESS on success, ANSC_STATUS_FAILURE otherwise.
- */
-ANSC_STATUS CosaAdvWifiDCLEnsureInit(bool *wifidcl_inited)
+ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
 {
-    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
-    int levl_wait_count = 0;
-    int ret = 0;
+    bool wifidcl_inited = FALSE;
 
-    *wifidcl_inited = FALSE;
+    int ret = 0;
 
     ret = wifidcl_init_precheck();
     if (ret != RBUS_ERROR_SUCCESS)
@@ -3353,11 +3342,11 @@ ANSC_STATUS CosaAdvWifiDCLEnsureInit(bool *wifidcl_inited)
     while (Wifi_Get_Status(LEVL_DML) == FALSE)
     {
         CcspTraceInfo(("%s:%d Waiting for levl_init to complete\n", __FUNCTION__, __LINE__));
-        CcspTraceDebug(("%s:%d Levl wait time is %d seconds\n", __FUNCTION__, __LINE__, levl_wait_count));
+        CcspTraceDebug(("%s:%d Levl wait time is %d seconds\n", __FUNCTION__, __LINE__, levl_init_count));
         sleep(1);
-        levl_wait_count++;
+        levl_init_count++;
 
-        if (levl_wait_count == 10)
+        if (levl_init_count == 10)
         {
             CcspTraceError(("%s:%d %s is false even after setting to true\n", __FUNCTION__, __LINE__, LEVL_DML));
             return ANSC_STATUS_FAILURE;
@@ -3386,25 +3375,8 @@ ANSC_STATUS CosaAdvWifiDCLEnsureInit(bool *wifidcl_inited)
         }
 
         g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable = TRUE;
-        *wifidcl_inited = TRUE;
+        wifidcl_inited = TRUE;
         CcspTraceInfo(("AdvSecWifiDataCollection_RFCEnable:TRUE\n"));
-    }
-
-    return returnStatus;
-}
-
-ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
-{
-    UNREFERENCED_PARAMETER(hThisObject);
-    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
-    errno_t rc = -1;
-    bool wifidcl_inited = FALSE;
-
-    returnStatus = CosaAdvWifiDCLEnsureInit(&wifidcl_inited);
-    if (ANSC_STATUS_SUCCESS != returnStatus)
-    {
-        CcspTraceError(("%s:%d CosaAdvWifiDCLEnsureInit failed\n", __FUNCTION__, __LINE__));
-        return returnStatus;
     }
 
     returnStatus = CosaSetSysCfgUlong(g_LevlEnabled, 1);
