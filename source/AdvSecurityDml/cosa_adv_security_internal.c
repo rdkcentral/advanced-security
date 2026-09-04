@@ -155,7 +155,10 @@ static char *g_NetworkIntelligenceMemoryLimit = "Advsecurity_NetworkIntelligence
 #ifdef WIFI_DATA_COLLECTION
 static char *g_AdvWifiDataCollection = "Adv_WifiDataCollectionRFCEnable";
 static char *g_LevlEnabled = "Adv_LevlRFCEnable";
-#endif
+#ifdef MLO_SUPPORTED
+static char *g_DFMLOEnabled = "Adv_DFMLORFCEnable";
+#endif // MLO_SUPPORTED
+#endif // WIFI_DATA_COLLECTION
 static char *g_AdvSecAgentEnabled = "Adv_AdvSecAgentRFCEnable";
 static char *g_AdvSecSafeBrowsingEnabled = "Adv_AdvSecSafeBrowsingRFCEnable";
 static char *g_AdvSecCujoTelemetryWiFiFPEnabled = "Adv_AdvSecCujoTelemetryWiFiFPRFCEnable";
@@ -166,7 +169,6 @@ static char *g_AdvSecSATEEnabled = "Adv_SATERFCEnable";
 static char *g_AdvSecTCPTrackerFilterDevicesEnabled = "Adv_TCPTrackerFilterDevicesRFCEnable";
 static char *g_AdvSecDoHBlockingEnabled = "Adv_DoHBlockingRFCEnable";
 static char *g_AdvSecDNSECHBlockingEnabled = "Adv_DNSECHBlockingRFCEnable";
-static char *g_DFMLOEnabled = "Adv_DFMLORFCEnable";
 
 pthread_mutex_t logMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t logCond = PTHREAD_COND_INITIALIZER;
@@ -1145,8 +1147,10 @@ CosaSecurityInitialize
 #ifdef WIFI_DATA_COLLECTION
     ULONG                   ValueASWIFIDCL_RFC = 0;
     ULONG                   ValueLEVL_RFC = 0;
+#ifdef MLO_SUPPORTED
     ULONG                   ValueDFMLO_RFC = 0;
-#endif
+#endif // MLO_SUPPORTED
+#endif // WIFI_DATA_COLLECTION
     ULONG                   ValueASAGENT_RFC = 0;
     ULONG                   ValueASSAFEBROWSING_RFC = 0;
     ULONG                   ValueASCUJOTELEMETRYWIFIFP_RFC = 0;
