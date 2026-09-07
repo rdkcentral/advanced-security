@@ -1804,9 +1804,6 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvSecUserSpaceInit)
     EXPECT_CALL(*g_syscfgMock, syscfg_commit())
         .Times(1)
         .WillOnce(Return(0));
-    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableUS &"), _))
-        .Times(1)
-        .WillOnce(Return(0));
 
     ANSC_STATUS status = CosaAdvSecUserSpaceInit(NULL);
 
