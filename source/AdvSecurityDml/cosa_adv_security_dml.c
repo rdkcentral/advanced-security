@@ -4499,7 +4499,7 @@ AdvSecDNSECHBlocking_RFC_SetParamBoolValue
     *  DeviceFingerPrintMLO_RFC_SetParamBoolValue
 
 ***********************************************************************/
-#ifdef MLO_SUPPORTED
+#if defined(WIFI_DATA_COLLECTION) && defined(MLO_SUPPORTED)
 BOOL
 DeviceFingerPrintMLO_RFC_GetParamBoolValue
     (
@@ -4549,7 +4549,7 @@ DeviceFingerPrintMLO_RFC_SetParamBoolValue
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;
 }
-#endif /* MLO_SUPPORTED */
+#endif /* defined(WIFI_DATA_COLLECTION) && defined(MLO_SUPPORTED) */
 
 /***********************************************************************
 

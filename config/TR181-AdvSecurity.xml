@@ -458,7 +458,7 @@
                   </parameter>
                  </parameters>
             </object>
-<?ifdef MLO_SUPPORTED?>
+<?ifdef WIFI_DATA_COLLECTION & MLO_SUPPORTED?>
             <object>
               <name>DeviceFingerPrintMLO</name>
               <objectType>object</objectType>
