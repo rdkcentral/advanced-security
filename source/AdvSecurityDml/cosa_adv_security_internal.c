@@ -402,19 +402,6 @@ static void Advsec_SetDefaultsUrl()
    }
 }
 
-static int touch_file(const char *filepath)
-{
-    int fd;
-
-    fd = open(filepath, O_CREAT | O_WRONLY, 0644);
-    if (fd < 0) {
-        return -1;
-    }
-
-    close(fd);
-    return 0;
-}
-
 #ifdef WAN_FAILOVER_SUPPORTED
 static void eventReceiveHandler(
     rbusHandle_t handle,
@@ -443,6 +430,19 @@ static void eventReceiveHandler(
 #endif
 
 #ifdef WIFI_DATA_COLLECTION
+static int touch_file(const char *filepath)
+{
+    int fd;
+
+    fd = open(filepath, O_CREAT | O_WRONLY, 0644);
+    if (fd < 0) {
+        return -1;
+    }
+
+    close(fd);
+    return 0;
+}
+
 static void wifiEventReceiveHandler(
     rbusHandle_t handle,
     rbusEvent_t const* event,
