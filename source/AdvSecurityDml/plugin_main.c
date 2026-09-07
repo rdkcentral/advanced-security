@@ -138,6 +138,11 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecDNSECHBlocking_RFC_GetParamBoolValue", AdvSecDNSECHBlocking_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvSecDNSECHBlocking_RFC_SetParamBoolValue", AdvSecDNSECHBlocking_RFC_SetParamBoolValue);
 
+#if defined(WIFI_DATA_COLLECTION) && defined(MLO_SUPPORTED)
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintMLO_RFC_GetParamBoolValue", DeviceFingerPrintMLO_RFC_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "DeviceFingerPrintMLO_RFC_SetParamBoolValue", DeviceFingerPrintMLO_RFC_SetParamBoolValue);
+#endif /* defined(WIFI_DATA_COLLECTION) && defined(MLO_SUPPORTED) */
+
     /* Create Object for Settings */
     g_pAdvSecAgent = (PCOSA_DATAMODEL_AGENT)CosaSecurityCreate();
 

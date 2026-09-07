@@ -288,7 +288,7 @@ static int cujoagent_consumer_init(cujoagent_wifi_consumer_t *consumer) {
   cujoagent_tlv_notify_lut_t tlv_notify_lut_filler[MAX_TO_CUJO_TLVS] = {
       {CUJO_FPC_WIFI_RADIO_UPDATE_EVENT, NOTIFY_RADIO_DATA_READY, NOTIFY_RADIO_DATA_SENT},
       {CUJO_FPC_WIFI_STATION_UPDATE_EVENT, NOTIFY_STATION_DATA_READY, NOTIFY_STATION_DATA_SENT},
-      {CUJO_FPC_WIFI_DATA_BATCH_EVENT, NOTIFY_BATCH_DATA_READY, NOTIFY_BATCH_DATA_SENT},
+      {CUJO_FPC_WIFI_DATA_EVENT, NOTIFY_WIFI_DATA_EVENT_READY, NOTIFY_WIFI_DATA_EVENT_SENT},
       {CUJO_FPC_CSI_AND_CFO_DATA_EVENT, NOTIFY_CSI_CFO_READY, NOTIFY_CSI_CFO_SENT},
       {CUJO_FPC_TEMPERATURE_DATA_EVENT, NOTIFY_TEMPERATURE_READY, NOTIFY_TEMPERATURE_SENT},
       {CUJO_FPC_L1_COLLECTION_DONE, NOTIFY_L1_COLLECTION_DONE_READY, NOTIFY_L1_COLLECTION_DONE_SENT},
@@ -451,6 +451,37 @@ static int cujoagent_write_event(int eventfd, cujoagent_notify_t notify) {
   return 0;
 }
 
+/* epoll_wait that silently retries on EINTR. For positive timeouts, the
+ * remaining deadline is recomputed on each retry so a signal storm cannot
+ * indefinitely extend the wait. For timeout_ms == -1, blocks until anything
+ * other than EINTR breaks it. Returns the same values as epoll_wait(2). */
+static int cujoagent_epoll_wait(int epoll_fd, struct epoll_event *events,
+                                int maxevents, int timeout_ms) {
+  struct timespec start = {0};
+  if (timeout_ms > 0) {
+    clock_gettime(CLOCK_MONOTONIC, &start);
+  }
+
+  int remaining = timeout_ms;
+  for (;;) {
+    int nfds = epoll_wait(epoll_fd, events, maxevents, remaining);
+    if (nfds != -1 || errno != EINTR) {
+      return nfds;
+    }
+
+    if (timeout_ms > 0) {
+      struct timespec now = {0};
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      int elapsed_ms = (int)((now.tv_sec - start.tv_sec) * MSECS_PER_SEC +
+                             (now.tv_nsec - start.tv_nsec) / NSECS_PER_MSEC);
+      if (elapsed_ms >= timeout_ms) {
+        return 0;
+      }
+      remaining = timeout_ms - elapsed_ms;
+    }
+  }
+}
+
 static int cujoagent_wait_for_event(int epoll_fd, cujoagent_notify_t notify,
                                     int timeout_ms) {
   struct epoll_event events[MAX_EPOLL_EVENTS] = {0};
@@ -463,7 +494,7 @@ static int cujoagent_wait_for_event(int epoll_fd, cujoagent_notify_t notify,
   CcspTraceDebug(("Epoll wait: epoll fd [%d] notify to expect [%d]\n",
                   epoll_fd, notify));
 
-  nfds = epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS, timeout_ms);
+  nfds = cujoagent_epoll_wait(epoll_fd, events, MAX_EPOLL_EVENTS, timeout_ms);
   for (int i = 0; i < nfds; i++) {
     efd = events[i].data.fd;
     event = events[i].events;
@@ -669,35 +700,30 @@ static int cujoagent_emit_event_tlv(enum cujo_fpc_tag_list tag, void *data,
 
 static rbusError_t
 cujoagent_set_csi_collection(cujoagent_wifi_consumer_t *consumer,
-                             unsigned int duration,
+                             unsigned int interval_ms,
+                             unsigned int duration_ms,
                              mac_addr_str_t client_mac_str) {
-  /* NOTE: Order matters here. Every property set triggers a push of levl dml
-   * data (all fields) to OneWifi control queue, but only the client mac set
-   * enables the csi engine. Therefore, first update the duration and only then
-   * set the MAC for collection. */
-
-  /* WIFI_LEVL_SOUNDING_DURATION: A duration for how long to collect the CSI
-   * data. If zero, then is set to DEFAULT_SOUNDING_DURATION_MS in OneWifi.
-   * Note: not to confuse with CSI_DELAY_PERIOD, which is basically a sampling
-   * rate and equals to 100ms. Therefore, for a default 2000ms sounding
-   * duration and a 1sample/100ms rate we should be expecting 20 samples. */
-  char const *name = WIFI_LEVL_SOUNDING_DURATION;
-  CcspTraceDebug(("Setting sounding duration to [%u] ms\n", duration));
-  rbusError_t err = rbus_setUInt(consumer->rbus_handle, name, duration);
-  if (err) {
-    CcspTraceError(("Failed to set [%s] over RBUS: [%d]\n", name, err));
-    return err;
+  /* WIFI_LEVL_CSI_MAC_DATA: composite parameter that arms the CSI engine
+   * in a single rbus write. Payload is "<mac>;<interval_ms>;<duration_ms>".
+   * The levl app rejects interval < 100 ms and duration < 1000 ms, so both
+   * bounds must already be clamped by the caller. */
+  char buf[WIFI_LEVL_CSI_MAC_DATA_MAX_LEN] = {0};
+  int count = snprintf(buf, WIFI_LEVL_CSI_MAC_DATA_MAX_LEN, "%s;%u;%u",
+                   client_mac_str, interval_ms, duration_ms);
+  if (count < 0 || count >= WIFI_LEVL_CSI_MAC_DATA_MAX_LEN) {
+    CcspTraceError(("Failed to format [%s] payload\n", WIFI_LEVL_CSI_MAC_DATA));
+    return RBUS_ERROR_INVALID_INPUT;
   }
 
-  /* WIFI_LEVL_CLIENTMAC: Semicolon or no-semicolon MAC address to start the
-   * CSI and CFO collection for. */
-  name = WIFI_LEVL_CLIENTMAC;
-  CcspTraceDebug(("Setting mac [%s] for CSI and CFO collection\n", client_mac_str));
-  err = rbus_setStr(consumer->rbus_handle, name, client_mac_str);
+  CcspTraceDebug(("Setting CSI collection: [%s] = [%s]\n",
+                  WIFI_LEVL_CSI_MAC_DATA, buf));
+  rbusError_t err = rbus_setStr(consumer->rbus_handle,
+                                WIFI_LEVL_CSI_MAC_DATA,
+                                buf);
   if (err) {
-    CcspTraceError(("Failed to set [%s] over RBUS: [%d]\n", name, err));
+    CcspTraceError(("Failed to set [%s] over RBUS: [%d]\n",
+                    WIFI_LEVL_CSI_MAC_DATA, err));
   }
-
   return err;
 }
 
@@ -720,6 +746,7 @@ static void *cujoagent_l1_collector(void *arg) {
   struct cujo_fpc_l1_collection_done done = {0};
   unsigned int expected_temperature_interval = 0;
   unsigned int expected_csi_duration = 0;
+  unsigned int expected_csi_interval = 0;
   unsigned int timeout_ms = 0;
 
   int collector_epoll = -1;
@@ -744,8 +771,27 @@ static void *cujoagent_l1_collector(void *arg) {
     expected_temperature_interval = WIFI_RADIO_MIN_TEMPERATURE_INTERVAL;
   }
 
+  /* Derive the levl publish interval from the agent's desired CSI sample rate.
+   * The levl app stores this as the per-client publish cadence, not the raw
+   * sampling period, which is fixed in driver. Fall back to the driver's
+   * minimum CSI interval if the agent did not specify a rate. */
+  expected_csi_interval = (l1_start_tlv->l1_rate_hz > 0)
+                              ? MSECS_PER_SEC / l1_start_tlv->l1_rate_hz
+                              : DCL_CSI_INTERVAL_MS;
+  if (expected_csi_interval < WIFI_LEVL_MIN_PUBLISH_INTERVAL) {
+    CcspTraceDebug(
+        ("Expected CSI publish interval [%u] is less than the minimum "
+         "supported [%u]. Setting the interval to the minimum supported.\n",
+         expected_csi_interval, WIFI_LEVL_MIN_PUBLISH_INTERVAL));
+    expected_csi_interval = WIFI_LEVL_MIN_PUBLISH_INTERVAL;
+  }
+
+  /* Levl publishes one CSI sample per expected_csi_interval, so the arm
+   * duration must scale with that cadence to actually yield max_csi_readings
+   * readings. Using a fixed DCL_CSI_INTERVAL_MS here would under-collect at
+   * any rate slower than the driver's 10 Hz default. */
   timeout_ms = l1_start_tlv->timeout_secs * MSECS_PER_SEC;
-  expected_csi_duration = l1_start_tlv->max_csi_readings * DCL_CSI_INTERVAL_MS;
+  expected_csi_duration = l1_start_tlv->max_csi_readings * expected_csi_interval;
   if (expected_csi_duration > timeout_ms) {
     CcspTraceDebug((
         "Expected CSI collection duration [%u] is greater than the L1 "
@@ -803,7 +849,8 @@ static void *cujoagent_l1_collector(void *arg) {
   }
 
   /* Start getting CSI and CFO over RBUS */
-  if (cujoagent_set_csi_collection(consumer, expected_csi_duration,
+  if (cujoagent_set_csi_collection(consumer, expected_csi_interval,
+                                   expected_csi_duration,
                                    collect_mac_str) != RBUS_ERROR_SUCCESS) {
     msg = "Failed to enable CSI and CFO collection";
     goto err;
@@ -823,9 +870,11 @@ static void *cujoagent_l1_collector(void *arg) {
                   "expecting event on eventfd [%d] or timerfd [%d]\n",
                   collector_epoll, collector->notification, collector->timer));
 
-  nfds = epoll_wait(collector_epoll, events, MAX_EPOLL_EVENTS,
-                    timeout_ms + EPOLL_TIMEOUT_MS);
+  nfds = cujoagent_epoll_wait(collector_epoll, events, MAX_EPOLL_EVENTS,
+                              timeout_ms + EPOLL_TIMEOUT_MS);
   if (nfds == -1) {
+    CcspTraceError(("L1 collector epoll wait error: errno=%d (%s)\n",
+                    errno, strerror(errno)));
     msg = "L1 collector epoll wait error";
     goto err;
   }
@@ -1035,6 +1084,7 @@ cujoagent_start_l1_collection(struct cujo_fpc_l1_collection_start *l1_start_tlv,
   if (pthread_create(&thr, &attr, &cujoagent_l1_collector, collector) != 0) {
     CcspTraceError(("Failed to start L1 collector thread for mac [%s]\n",
                     collect_mac_str));
+    pthread_mutex_lock(&consumer->l1_lock);
     if (epoll_ctl(consumer->queue_epoll, EPOLL_CTL_DEL,
                   collector->notification_ack, NULL)) {
       CcspTraceError(("Failed to remove L1 collector stop_ack eventfd from the "
@@ -1042,13 +1092,7 @@ cujoagent_start_l1_collection(struct cujo_fpc_l1_collection_start *l1_start_tlv,
     }
     consumer->l1_collections[slot] = NULL;
     pthread_attr_destroy(&attr);
-    if (collector) {
-      cujoagent_close_if_valid(&collector->notification_ack);
-      cujoagent_close_if_valid(&collector->notification);
-      cujoagent_close_if_valid(&collector->timer);
-      free(collector);
-    }
-    return -1;
+    goto err;
   }
   pthread_attr_destroy(&attr);
 
@@ -1110,7 +1154,14 @@ static void *cujoagent_socket_loop(void *arg) {
                     "expecting event on socket fd [%d] or eventfd [%d]\n",
                     consumer->comms_epoll, consumer->sock_fd,
                     consumer->comms_notification));
-    nfds = epoll_wait(consumer->comms_epoll, events, MAX_EPOLL_EVENTS, -1);
+    nfds = cujoagent_epoll_wait(consumer->comms_epoll, events,
+                                MAX_EPOLL_EVENTS, -1);
+    if (nfds == -1) {
+      CcspTraceError(("Socket loop epoll wait error: errno=%d (%s)\n",
+                      errno, strerror(errno)));
+      msg = "Socket loop epoll wait error";
+      goto err;
+    }
     for (int i = 0; i < nfds; i++) {
       efd = events[i].data.fd;
       event = events[i].events;
@@ -1302,8 +1353,11 @@ static void *cujoagent_fifo_loop(void *arg) {
                     "expecting event on eventfd [%d] or fifo fd [%d]\n",
                     consumer->fifo_epoll, consumer->fifo_notification,
                     consumer->fifo_fd));
-    nfds = epoll_wait(consumer->fifo_epoll, events, MAX_EPOLL_EVENTS, -1);
+    nfds = cujoagent_epoll_wait(consumer->fifo_epoll, events,
+                                MAX_EPOLL_EVENTS, -1);
     if (nfds == -1) {
+      CcspTraceError(("FIFO loop epoll wait error: errno=%d (%s)\n",
+                      errno, strerror(errno)));
       msg = "Epoll wait error";
       goto err;
     }
@@ -1505,34 +1559,6 @@ cujoagent_vap_array_index(wifi_platform_property_t *wifi_prop,
   return vap_array_index;
 }
 
-static wifi_vap_info_t *
-cujoagent_vap_index_to_vap_info(cujoagent_wifi_consumer_t *consumer,
-                                unsigned int vap_index) {
-  wifi_hal_capability_t *hal_cap = &consumer->hal_cap;
-  wifi_platform_property_t *wifi_prop = &hal_cap->wifi_prop;
-
-  wifi_interface_name_idex_map_t *iface_map = NULL;
-  rdk_wifi_radio_t *radio = NULL;
-  int vap_array_index = -1;
-
-  iface_map = cujoagent_iface_property(wifi_prop, vap_index);
-  if (!iface_map) {
-    CcspTraceError(
-        ("Couldn't find interface map for vap index [%u]\n", vap_index));
-    return NULL;
-  }
-
-  radio = &consumer->radios[iface_map->rdk_radio_index];
-  vap_array_index = cujoagent_vap_array_index(wifi_prop, iface_map);
-  if (vap_array_index == -1) {
-    CcspTraceError(("Couldn't find vap array index for iface map index [%u]\n",
-                    iface_map->index));
-    return NULL;
-  }
-
-  return &radio->vaps.vap_map.vap_array[vap_array_index];
-}
-
 static int cujoagent_event_type(client_state_t client_state) {
   int event_type = -1;
   switch (client_state) {
@@ -1555,14 +1581,13 @@ static void cujoagent_new_station_event(
     wifi_vap_info_t *vap_info,
     cujoagent_wifi_consumer_t *consumer) {
   unsigned int client_count = 0;
-  unsigned int assoc_dev_count = 0;
   size_t ssid_len = 0;
   hash_map_t *assoc_dev_map = NULL;
   assoc_dev_data_t *assoc_dev_data = NULL;
   wifi_interface_name_idex_map_t *iface_map = NULL;
   int vap_array_index = 0;
 
-  /* Count clients across _all_ VAPs of interest */
+  /* Count clients across _all_ VAPs of interest, skipping MLD secondary links */
   *station_update_event_size = sizeof(struct cujo_fpc_wifi_station_event);
   for (unsigned int i = 0; i < consumer->hal_cap.wifi_prop.numRadios; i++) {
     for (unsigned int j = 0; j < consumer->vap_subs_count; j++) {
@@ -1585,10 +1610,16 @@ static void cujoagent_new_station_event(
                           .vaps.rdk_vap_array[vap_array_index]
                           .associated_devices_map;
       if (assoc_dev_map) {
-        assoc_dev_count = hash_map_count(assoc_dev_map);
-        *station_update_event_size +=
-            assoc_dev_count * sizeof(struct cujo_fpc_assoc_station_info);
-        client_count += assoc_dev_count;
+        assoc_dev_data = hash_map_get_first(assoc_dev_map);
+        while (assoc_dev_data) {
+          if (!assoc_dev_data->dev_stats.cli_MLDEnable ||
+              assoc_dev_data->association_link) {
+            *station_update_event_size +=
+                sizeof(struct cujo_fpc_assoc_station_info);
+            client_count++;
+          }
+          assoc_dev_data = hash_map_get_next(assoc_dev_map, assoc_dev_data);
+        }
       }
     }
   }
@@ -1599,7 +1630,7 @@ static void cujoagent_new_station_event(
     return;
   }
 
-  /* Populate the station update event with the list of _all_ connected clients */
+  /* Populate the station update event, skipping MLD secondary links */
   for (unsigned int i = 0, offset = 0; i < consumer->hal_cap.wifi_prop.numRadios; i++) {
     for (unsigned int j = 0; j < consumer->vap_subs_count; j++) {
       iface_map = cujoagent_iface_property(
@@ -1621,21 +1652,25 @@ static void cujoagent_new_station_event(
                           .vaps.rdk_vap_array[vap_array_index]
                           .associated_devices_map;
       if (assoc_dev_map) {
-        assoc_dev_count = hash_map_count(assoc_dev_map);
         assoc_dev_data = hash_map_get_first(assoc_dev_map);
-        for (unsigned int k = 0; assoc_dev_data; k++) {
-          memcpy((*event)->assoc_station_info[offset + k].mac.ether_addr_octet,
+        while (assoc_dev_data) {
+          if (assoc_dev_data->dev_stats.cli_MLDEnable &&
+              !assoc_dev_data->association_link) {
+            assoc_dev_data = hash_map_get_next(assoc_dev_map, assoc_dev_data);
+            continue;
+          }
+          memcpy((*event)->assoc_station_info[offset].mac.ether_addr_octet,
                  assoc_dev_data->dev_stats.cli_MACAddress,
                  ETH_ALEN);
-          cujoagent_copy_to((*event)->assoc_station_info[offset + k].if_name,
+          cujoagent_copy_to((*event)->assoc_station_info[offset].if_name,
                             IF_NAMESIZE,
                             iface_map->interface_name);
           /* FIXME: Hard-coding AUTO */
-          (*event)->assoc_station_info[offset + k].operating_mode =
+          (*event)->assoc_station_info[offset].operating_mode =
               CUJO_FPC_WIFI_MODE_AUTO;
+          offset++;
           assoc_dev_data = hash_map_get_next(assoc_dev_map, assoc_dev_data);
         }
-        offset += assoc_dev_count;
       }
     }
   }
@@ -1703,7 +1738,7 @@ static void cujoagent_new_radio_event(struct cujo_fpc_radio_event *event,
 static void
 cujoagent_print_events(struct cujo_fpc_radio_event *radio_event,
                        struct cujo_fpc_wifi_station_event *station_event,
-                       struct cujo_fpc_wifi_data_batch_event *batch_event,
+                       struct cujo_fpc_wifi_data_event *data_event,
                        struct cujo_fpc_csi_and_cfo_data_event *csi_cfo_event,
                        struct cujo_fpc_temperature_data_event *temperature_event) {
   char da[MAX_MAC_STR_LEN + 1] = {0};
@@ -1743,15 +1778,17 @@ cujoagent_print_events(struct cujo_fpc_radio_event *radio_event,
     }
   }
 
-  if (batch_event) {
-    CcspTraceDebug(("CUJO_WIFI_DATA_BATCH_EVENT: "
+  if (data_event) {
+    CcspTraceDebug(("CUJO_FPC_WIFI_DATA_EVENT: "
                     "timestamp_ms [%" PRIu64 "] "
-                    "vap_index [%u] mac [%s] wifi_captures_count [%u]\n",
-                    batch_event->timestamp_ms, batch_event->vap_index,
-                    ether_ntoa_r(&batch_event->mac, sa),
-                    batch_event->wifi_captures_count));
+                    "vap_index [%u] mac [%s] freq_band [%d] "
+                    "channel [%u] operating_mode [%d]\n",
+                    data_event->timestamp_ms, data_event->vap_index,
+                    ether_ntoa_r(&data_event->mac, sa),
+                    data_event->freq_band, data_event->channel,
+                    data_event->operating_mode));
 
-    struct cujo_fpc_wifi_pcap *pcap = NULL;
+    struct cujo_fpc_wifi_pcap *pcap = &data_event->wifi_capture;
     uint64_t pcap_ts = 0;
 
     uint8_t version = 0;
@@ -1759,37 +1796,39 @@ cujoagent_print_events(struct cujo_fpc_radio_event *radio_event,
     uint16_t fc = 0, duration = 0;
     uint16_t addr1 = 0, addr2 = 0, addr3 = 0;
 
-    for (unsigned int i = 0, offset = 0; i < batch_event->wifi_captures_count; i++) {
-      pcap = (struct cujo_fpc_wifi_pcap *)(batch_event->wifi_captures + offset);
-      if (pcap->has_radiotap_header){
-        version = pcap->data[0];
-        hdrlen = le16toh(*(uint16_t *)&pcap->data[2]);
-        CcspTraceDebug(("CUJO_WIFI_DATA_BATCH_EVENT: "
-                        "radiotap [%u]: version [%" PRIu8 "] len [%" PRIu16 "]\n",
-                        i, version, hdrlen));
-      }
-
-      pcap_ts = (uint64_t)pcap->header.ts.tv_sec * MSECS_PER_SEC +
-                (uint64_t)pcap->header.ts.tv_usec / USECS_PER_MSEC;
-      CcspTraceDebug(("CUJO_WIFI_DATA_BATCH_EVENT: "
-                      "pcap_pkthdr [%u]: timestamp_ms [%" PRIu64 "] "
-                      "caplen [%" PRIu32 "] len [%" PRIu32 "]\n",
-                      i, pcap_ts, pcap->header.caplen, pcap->header.len));
-
-      fc = le16toh(*(uint16_t *)&pcap->data[hdrlen]);
-      duration = le16toh(*(uint16_t *)&pcap->data[hdrlen + sizeof fc]);
-      addr1 = hdrlen + sizeof fc + sizeof duration;
-      addr2 = addr1 + sizeof(struct ether_addr);
-      addr3 = addr2 + sizeof(struct ether_addr);
-      CcspTraceDebug(
-          ("CUJO_WIFI_DATA_BATCH_EVENT: "
-           "ieee frame [%u]: fc [0x%04x] da[%s] sa[%s] bssid[%s]\n",
-           i, fc, ether_ntoa_r((struct ether_addr *)&pcap->data[addr1], da),
-           ether_ntoa_r((struct ether_addr *)&pcap->data[addr2], sa),
-           ether_ntoa_r((struct ether_addr *)&pcap->data[addr3], bssid)));
-
-      offset += sizeof(struct cujo_fpc_wifi_pcap) + pcap->header.caplen;
+    if (pcap->has_radiotap_header){
+      version = pcap->data[0];
+      hdrlen = le16toh(*(uint16_t *)&pcap->data[2]);
+      CcspTraceDebug(("CUJO_FPC_WIFI_DATA_EVENT: "
+                      "radiotap: version [%" PRIu8 "] len [%" PRIu16 "]\n",
+                      version, hdrlen));
     }
+
+    pcap_ts = (uint64_t)pcap->header.ts.tv_sec * MSECS_PER_SEC +
+              (uint64_t)pcap->header.ts.tv_usec / USECS_PER_MSEC;
+    CcspTraceDebug(("CUJO_FPC_WIFI_DATA_EVENT: "
+                    "pcap_pkthdr: timestamp_ms [%" PRIu64 "] "
+                    "caplen [%" PRIu32 "] len [%" PRIu32 "]\n",
+                    pcap_ts, pcap->header.caplen, pcap->header.len));
+
+    if (pcap->header.caplen < hdrlen + MIN_IEEE80211_3ADDR_HDR_LEN) {
+      CcspTraceWarning(("CUJO_FPC_WIFI_DATA_EVENT: "
+                        "frame too short for header parsing: "
+                        "caplen [%" PRIu32 "]\n", pcap->header.caplen));
+      return;
+    }
+
+    fc = le16toh(*(uint16_t *)&pcap->data[hdrlen]);
+    duration = le16toh(*(uint16_t *)&pcap->data[hdrlen + sizeof fc]);
+    addr1 = hdrlen + sizeof fc + sizeof duration;
+    addr2 = addr1 + sizeof(struct ether_addr);
+    addr3 = addr2 + sizeof(struct ether_addr);
+    CcspTraceDebug(
+        ("CUJO_FPC_WIFI_DATA_EVENT: "
+         "ieee frame: fc [0x%04x] da[%s] sa[%s] bssid[%s]\n",
+         fc, ether_ntoa_r((struct ether_addr *)&pcap->data[addr1], da),
+         ether_ntoa_r((struct ether_addr *)&pcap->data[addr2], sa),
+         ether_ntoa_r((struct ether_addr *)&pcap->data[addr3], bssid)));
   }
 
   if (csi_cfo_event) {
@@ -2126,6 +2165,21 @@ cujoagent_process_client_state(client_state_t client_state,
                                 .vaps.rdk_vap_array[vap_array_index]
                                 .vap_index));
 
+            /* For MLD clients, only emit radio/station
+             * events for the association link. */
+            if (diff_assoc_dev_data->dev_stats.cli_MLDEnable &&
+                !diff_assoc_dev_data->association_link) {
+              CcspTraceDebug(("Skipping radio/station event for secondary "
+                              "MLD link for mac [%s] on vap index [%u]\n",
+                              mac_in_diff_map,
+                              decoded_params->radios[i]
+                                  .vaps.rdk_vap_array[vap_array_index]
+                                  .vap_index));
+              diff_assoc_dev_data = hash_map_get_next(assoc_dev_diff_map,
+                                                      diff_assoc_dev_data);
+              continue;
+            }
+
             /* For disconnects, DONE must be sent _before_ the radio|station
              * update event. Therefore, stop the L1 collection for the
              * disconnecting MAC first (stopping it will skip pushing the DONE
@@ -2366,24 +2420,42 @@ static void cujoagent_new_wifi_pcap(struct cujo_fpc_wifi_pcap *pcap,
   memcpy(pcap->data + EMPTY_RT_LEN, rdk_mgmt->data, rdk_mgmt->frame.len);
 }
 
-static int cujoagent_new_data_batch_event(
-    struct cujo_fpc_wifi_data_batch_event *event,
-    struct cujo_fpc_wifi_pcap *pcap, size_t pcap_size,
+static int cujoagent_new_data_event(
+    struct cujo_fpc_wifi_data_event *event, size_t data_size,
     cujoagent_wifi_consumer_t *consumer, frame_data_t *rdk_mgmt) {
-  wifi_vap_info_t *vap_info =
-      cujoagent_vap_index_to_vap_info(consumer, rdk_mgmt->frame.ap_index);
-  if (!vap_info) {
-    CcspTraceError(("Couldn't find vap info for vap index [%u]\n",
-                    rdk_mgmt->frame.ap_index));
+  wifi_platform_property_t *wifi_prop = &consumer->hal_cap.wifi_prop;
+  unsigned int vap_index = rdk_mgmt->frame.ap_index;
+
+  wifi_interface_name_idex_map_t *iface_map =
+      cujoagent_iface_property(wifi_prop, vap_index);
+  if (!iface_map) {
+    CcspTraceError(
+        ("Couldn't find interface map for vap index [%u]\n", vap_index));
     return -1;
   }
 
-  /* An event for each received frame. */
-  event->wifi_captures_count = 1;
+  rdk_wifi_radio_t *radio = &consumer->radios[iface_map->rdk_radio_index];
+  int vap_array_index = cujoagent_vap_array_index(wifi_prop, iface_map);
+  if (vap_array_index == -1) {
+    CcspTraceError(("Couldn't find vap array index for iface map index [%u]\n",
+                    iface_map->index));
+    return -1;
+  }
+
+  wifi_vap_info_t *vap_info = &radio->vaps.vap_map.vap_array[vap_array_index];
+
   event->timestamp_ms = cujoagent_timestamp();
-  event->vap_index = rdk_mgmt->frame.ap_index;
+  event->vap_index = vap_index;
   memcpy(event->mac.ether_addr_octet, vap_info->u.bss_info.bssid, ETH_ALEN);
-  memcpy(event->wifi_captures, pcap, pcap_size);
+  event->freq_band = cujoagent_freq_band(radio->oper.band);
+  event->channel = radio->oper.channel;
+  /* FIXME: Needs proper translation from radio_oper fields and bitmasks. And
+   * even then that will be the radio's operating mode, not the station's.
+   * Probably not worth the hassle, hard-coding to auto for now. */
+  event->operating_mode = CUJO_FPC_WIFI_MODE_AUTO;
+
+  cujoagent_new_wifi_pcap(&event->wifi_capture, data_size, rdk_mgmt);
+
   return 0;
 }
 
@@ -2410,59 +2482,48 @@ cujoagent_process_mgmt_frame_event(cujoagent_wifi_consumer_t *consumer,
 
   /* FIXME: Fake empty radiotap header */
   size_t data_size = rdk_mgmt->frame.len + EMPTY_RT_LEN;
-  size_t pcap_size = sizeof(struct cujo_fpc_wifi_pcap) + data_size;
-  struct cujo_fpc_wifi_pcap *pcap = calloc(1, pcap_size);
-  if (pcap == NULL) {
+  size_t data_event_size = sizeof(struct cujo_fpc_wifi_data_event) + data_size;
+  struct cujo_fpc_wifi_data_event *data_event = calloc(1, data_event_size);
+  if (data_event == NULL) {
     CcspTraceError(
-        ("Failed to allocate wifi pcap for frame type [%d] sta_mac [%s]\n",
+        ("Failed to allocate wifi data event for frame type [%d] sta_mac [%s]\n",
          rdk_mgmt->frame.type, sta_mac));
     return;
   }
-
-  size_t data_batch_event_size =
-      sizeof(struct cujo_fpc_wifi_data_batch_event) + pcap_size;
-  struct cujo_fpc_wifi_data_batch_event *data_batch_event =
-      calloc(1, data_batch_event_size);
-  if (data_batch_event == NULL) {
-    CcspTraceError(("Failed to allocate data batch event\n"));
-    free(pcap);
-    return;
-  }
-
-  cujoagent_new_wifi_pcap(pcap, data_size, rdk_mgmt);
 
   switch (subtype) {
   case consumer_event_probe_req:
   case consumer_event_auth:
   case consumer_event_assoc_req:
   case consumer_event_reassoc_req:
-    if (cujoagent_new_data_batch_event(data_batch_event, pcap, pcap_size,
-                                       consumer, rdk_mgmt) != 0) {
-      CcspTraceError(("Gathering data for wifi data batch event "
+    if (cujoagent_new_data_event(data_event, data_size,
+                                 consumer, rdk_mgmt) != 0) {
+      CcspTraceError(("Gathering data for wifi data event "
                       "frame type [%d] sta_mac [%s] failed\n",
                       rdk_mgmt->frame.type, sta_mac));
-      free(pcap);
-      free(data_batch_event);
+      free(data_event);
       return;
     }
     break;
   default:
-    break;
-  }
-
-  if (cujoagent_emit_event_tlv(CUJO_FPC_WIFI_DATA_BATCH_EVENT,
-                               data_batch_event,
-                               data_batch_event_size,
-                               consumer) != 0) {
-    free(pcap);
-    free(data_batch_event);
+    CcspTraceError(("Unexpected consumer event subtype [%d] for "
+                    "frame type [%d] sta_mac [%s]\n",
+                    subtype, rdk_mgmt->frame.type, sta_mac));
+    free(data_event);
     return;
   }
 
-  cujoagent_print_events(NULL, NULL, data_batch_event, NULL, NULL);
+  if (cujoagent_emit_event_tlv(CUJO_FPC_WIFI_DATA_EVENT,
+                               data_event,
+                               data_event_size,
+                               consumer) != 0) {
+    free(data_event);
+    return;
+  }
 
-  free(pcap);
-  free(data_batch_event);
+  cujoagent_print_events(NULL, NULL, data_event, NULL, NULL);
+
+  free(data_event);
 }
 
 static void
@@ -2536,12 +2597,28 @@ static int cujoagent_vap_index_from_mac(cujoagent_wifi_consumer_t *consumer,
   for (unsigned int i = 0; i < wifi_prop->numRadios; i++) {
     for (unsigned int j = 0; j < radios[i].vaps.num_vaps; j++) {
       assoc_dev_map = radios[i].vaps.rdk_vap_array[j].associated_devices_map;
-      if (assoc_dev_map) {
-        assoc_dev_data = hash_map_get(assoc_dev_map, mac_str);
-        if (assoc_dev_data) {
-          vap_index = radios[i].vaps.rdk_vap_array[j].vap_index;
-        }
+      if (!assoc_dev_map) {
+        continue;
       }
+      assoc_dev_data = hash_map_get(assoc_dev_map, mac_str);
+      if (!assoc_dev_data) {
+        continue;
+      }
+      /* For an MLO client this MAC appears in the assoc map of every link's
+       * VAP across radios, but only the primary (association_link) carries
+       * the vap_index the cujo agent registered for the active collection.
+       * Skip MLD secondary links so the lookup converges on that VAP rather
+       * than the last-iterated radio (matches the pattern used elsewhere
+       * in this file for station-event emission). */
+      if (assoc_dev_data->dev_stats.cli_MLDEnable &&
+          !assoc_dev_data->association_link) {
+        continue;
+      }
+      vap_index = radios[i].vaps.rdk_vap_array[j].vap_index;
+      break;
+    }
+    if (vap_index != -1) {
+      break;
     }
   }
 
@@ -3076,7 +3153,7 @@ cujoagent_radio_temperature_handler(__attribute__((unused)) rbusHandle_t handle,
     return;
   }
 
-  unsigned int event_radio_idx = 1;
+  unsigned int event_radio_idx = 0;
   if (sscanf(subscription->eventName, DEV_WIFI_EVENTS_RADIO_TEMPERATURE,
              &event_radio_idx) != 1) {
     CcspTraceError(

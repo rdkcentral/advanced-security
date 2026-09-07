@@ -705,6 +705,32 @@ AdvSecDNSECHBlocking_RFC_SetParamBoolValue
 
  APIs for Object:
 
+    X_RDKCENTRAL-COM_RFC.Feature.DeviceFingerPrintMLO.
+
+    *  DeviceFingerPrintMLO_RFC_GetParamBoolValue
+    *  DeviceFingerPrintMLO_RFC_SetParamBoolValue
+
+***********************************************************************/
+#if defined(WIFI_DATA_COLLECTION) && defined(MLO_SUPPORTED)
+BOOL
+DeviceFingerPrintMLO_RFC_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+DeviceFingerPrintMLO_RFC_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
+#endif /* defined(WIFI_DATA_COLLECTION) && defined(MLO_SUPPORTED) */
+/***********************************************************************
+
+ APIs for Object:
+
     X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.
 
     *  WifiDataCollection_RFC_GetParamBoolValue

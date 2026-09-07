@@ -56,7 +56,6 @@ fi
 MIN_RSS_FIRST_THRESHOLD=$(($MAX_MEM_FIRST_SOFT_LIMIT * $KB)) #kb
 MIN_RSS_SECOND_THRESHOLD=$(($MAX_MEM_SECOND_SOFT_LIMIT * $KB)) #kb
 MAX_RSS_THRESHOLD=$(($MAX_MEM_HARD_LIMIT * $KB)) #kb
-LOWFREE_MEM_THRESHOLD=$((10 * $KB))
 
 if [ "$1" != "" ]; then
 	SAMPLING_TIME=$1
@@ -170,6 +169,7 @@ check_networkintelligence_mem_recovery()
     if [ "$total_ni_rss" -ge "$NI_MAX_RSS_THRESHOLD" ]; then
         echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$total_ni_rss kB, restarting cujo-ni service" >> $ADVSEC_AGENT_LOG_PATH
         systemctl restart cujo-ni
+        t2CountNotify "SYS_INFO_CUJO_NI_restart_memlimit_reached"
     fi
 }
 
@@ -215,34 +215,6 @@ log_agent_mem_statistics()
     elif [ "$total_rss_mem" -ge "$MIN_RSS_FIRST_THRESHOLD" ]; then
         echo_t "Warning !!! Reached Soft limit of $MAX_MEM_FIRST_SOFT_LIMIT MB, current memory:$total_rss_mem" >> $ADVSEC_AGENT_LOG_PATH
     fi
-
-	if [ "$BOX_TYPE" = "XF3" ]; then
-		lowfree_mem=$(awk '/[Ll]ow[Ff]ree/{print $2}' /proc/meminfo)
-		if [ $lowfree_mem -le $LOWFREE_MEM_THRESHOLD ]; then
-			echo_t "ADVSEC Lowfree Memory threshold recovery" >> $ADVSEC_AGENT_LOG_PATH
-			advsec_restart_agent "LowFreeMem"
-			exit
-		fi
-	fi
-
-	if [ ! -e ${ADVSEC_USERSPACE_ENABLED_PATH} ]; then
-		tracer_interval=$(${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e 'return cujo.config.tracer_interval')
-		if [ "x${tracer_interval}" = "x" ]; then
-			${RUNTIME_DIR}/bin/${CUJO_AGENT_SH} -e 'cujo.nf.dostring([[print("nfluamem:"..collectgarbage("count"))]])'
-			nflua_rss=$(dmesg | grep nfluamem: | tail -1 | cut -d':' -f2)
-			if [ "${nflua_rss}" = "" ]; then
-				nflua_rss=0
-			fi
-			# nflua_rss is in bytes
-			nflua_rss=$((${nflua_rss} / $KB))
-			echo_t "NFLua memory usage:${nflua_rss}" >> $ADVSEC_AGENT_LOG_PATH
-
-			if [ "${nflua_rss}" -ge "${MAX_RSS_THRESHOLD}" ]; then
-				advsec_restart_agent "NfluaHighRSS"
-				exit
-			fi
-		fi
-	fi
 }
 
 get_agent_pid_list

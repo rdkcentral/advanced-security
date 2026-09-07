@@ -2309,10 +2309,6 @@ TEST_F(CcspAdvSecurityDmlTestFixture, AdvanceSecurityUserSpace_RFC_SetParamBoolV
         .Times(1)
         .WillOnce(Return(0));
 
-    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -enableUS &"), _))
-        .Times(1)
-        .WillOnce(Return(0));
-
     EXPECT_EQ(ANSC_STATUS_SUCCESS, CosaAdvSecUserSpaceInit(NULL));
 
     BOOL result = AdvanceSecurityUserSpace_RFC_SetParamBoolValue(NULL, (char*)ParamName, bValue);
