@@ -1281,11 +1281,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_B
 TEST_F(CcspAdvSecurityInternalTestFixture, advsec_handle_sysevent_notification_BridgeModeTransitionActionsOnChangeOnly)
 {
     char bridgeModeOff[] = "0";
-#ifndef _XF3_PRODUCT_REQ_
     char bridgeModeOn[] = "2";
-#else
-    char bridgeModeOn[] = "3";
-#endif
 
     EXPECT_CALL(*g_safecLibMock, _strcmp_s_chk(StrEq("bridge_mode"), _, _, _, _, _))
         .Times(::testing::AtLeast(2))

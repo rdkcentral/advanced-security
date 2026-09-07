@@ -155,7 +155,10 @@ static char *g_NetworkIntelligenceMemoryLimit = "Advsecurity_NetworkIntelligence
 #ifdef WIFI_DATA_COLLECTION
 static char *g_AdvWifiDataCollection = "Adv_WifiDataCollectionRFCEnable";
 static char *g_LevlEnabled = "Adv_LevlRFCEnable";
-#endif
+#ifdef MLO_SUPPORTED
+static char *g_DFMLOEnabled = "Adv_DFMLORFCEnable";
+#endif // MLO_SUPPORTED
+#endif // WIFI_DATA_COLLECTION
 static char *g_AdvSecAgentEnabled = "Adv_AdvSecAgentRFCEnable";
 static char *g_AdvSecSafeBrowsingEnabled = "Adv_AdvSecSafeBrowsingRFCEnable";
 static char *g_AdvSecCujoTelemetryWiFiFPEnabled = "Adv_AdvSecCujoTelemetryWiFiFPRFCEnable";
@@ -399,6 +402,19 @@ static void Advsec_SetDefaultsUrl()
    }
 }
 
+static int touch_file(const char *filepath)
+{
+    int fd;
+
+    fd = open(filepath, O_CREAT | O_WRONLY, 0644);
+    if (fd < 0) {
+        return -1;
+    }
+
+    close(fd);
+    return 0;
+}
+
 #ifdef WAN_FAILOVER_SUPPORTED
 static void eventReceiveHandler(
     rbusHandle_t handle,
@@ -521,7 +537,6 @@ int wifidcl_init_precheck()
     }
     return returnStatus;
 }
-#endif
 
 BOOL Wifi_Get_Status(const char *pParamName)
 {
@@ -636,6 +651,7 @@ ANSC_STATUS Wifi_SetParameterValue(const char *paramName, bool bValue)
     rbusValue_Release(value);
     return ANSC_STATUS_SUCCESS;
 }
+#endif // WIFI_DATA_COLLECTION
 
 ANSC_STATUS CosaAdvSecFetchSbConfig(char* paramName, char* pValue, ULONG* pUlSize, ULONG* puLong)
 {
@@ -884,6 +900,10 @@ VOID FreeCosaDmAgent(PCOSA_DATAMODEL_AGENT pMyObject)
             AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvSecDNSECHBlocking_RFC);
             pMyObject->pAdvSecDNSECHBlocking_RFC = NULL;
         }
+        if (pMyObject->pDFMLO_RFC) {
+            AnscFreeMemory((ANSC_HANDLE)pMyObject->pDFMLO_RFC);
+            pMyObject->pDFMLO_RFC = NULL;
+        }
         if (pMyObject->pAdvNetworkIntelligence_RFC) {
             AnscFreeMemory((ANSC_HANDLE)pMyObject->pAdvNetworkIntelligence_RFC);
             pMyObject->pAdvNetworkIntelligence_RFC = NULL;
@@ -1060,6 +1080,13 @@ CosaSecurityCreate
         goto mem_alloc_failure;
     }
 
+    pMyObject->pDFMLO_RFC = (PCOSA_DATAMODEL_DEVICEFINGERPRINTMLO_RFC)
+                                              AnscAllocateMemory(sizeof(COSA_DATAMODEL_DEVICEFINGERPRINTMLO_RFC));
+    if ( !pMyObject->pDFMLO_RFC )
+    {
+        goto mem_alloc_failure;
+    }
+
     pMyObject->pAdvNetworkIntelligence_RFC = (PCOSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC)
                                                 AnscAllocateMemory(sizeof(COSA_DATAMODEL_ADVSECNETWORKINTELLIGENCE_RFC));
 
@@ -1120,7 +1147,10 @@ CosaSecurityInitialize
 #ifdef WIFI_DATA_COLLECTION
     ULONG                   ValueASWIFIDCL_RFC = 0;
     ULONG                   ValueLEVL_RFC = 0;
-#endif
+#ifdef MLO_SUPPORTED
+    ULONG                   ValueDFMLO_RFC = 0;
+#endif // MLO_SUPPORTED
+#endif // WIFI_DATA_COLLECTION
     ULONG                   ValueASAGENT_RFC = 0;
     ULONG                   ValueASSAFEBROWSING_RFC = 0;
     ULONG                   ValueASCUJOTELEMETRYWIFIFP_RFC = 0;
@@ -1366,11 +1396,14 @@ CosaSecurityInitialize
 #ifdef NETWORK_INTELLIGENCE
     CosaGetSysCfgUlong(g_AdvSecNetworkIntelligenceEnabled, &ValueNI_RFC);
     CosaGetSysCfgUlong(g_NetworkIntelligenceMemoryLimit, &ValueNIML_RFC);
-#endif
+#endif /* NETWORK_INTELLIGENCE */
 #ifdef WIFI_DATA_COLLECTION
     CosaGetSysCfgUlong(g_AdvWifiDataCollection, &ValueASWIFIDCL_RFC);
     CosaGetSysCfgUlong(g_LevlEnabled, &ValueLEVL_RFC);
-#endif
+#ifdef MLO_SUPPORTED
+    CosaGetSysCfgUlong(g_DFMLOEnabled, &ValueDFMLO_RFC);
+#endif /* MLO_SUPPORTED */
+#endif /* WIFI_DATA_COLLECTION */
     CosaGetSysCfgUlong(g_AdvSecAgentEnabled, &ValueASAGENT_RFC);
     CosaGetSysCfgUlong(g_AdvSecSafeBrowsingEnabled, &ValueASSAFEBROWSING_RFC);
     CosaGetSysCfgUlong(g_AdvSecCujoTelemetryWiFiFPEnabled, &ValueASCUJOTELEMETRYWIFIFP_RFC);
@@ -1462,10 +1495,22 @@ CosaSecurityInitialize
     {
         g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable = FALSE;
     }
+#ifdef MLO_SUPPORTED
+    if (g_pAdvSecAgent->pLevl_RFC->bEnable == TRUE)
+    {
+        g_pAdvSecAgent->pDFMLO_RFC->bEnable = ValueDFMLO_RFC;
+    }
+    else
+    {
+        g_pAdvSecAgent->pDFMLO_RFC->bEnable = FALSE;
+    }
+#else
+    g_pAdvSecAgent->pDFMLO_RFC->bEnable = FALSE;
+#endif // MLO_SUPPORTED
 #else
     g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable = FALSE;
     g_pAdvSecAgent->pLevl_RFC->bEnable = FALSE;
-#endif
+#endif // WIFI_DATA_COLLECTION
     g_pAdvSecAgent->pAdvSecAgent_RFC->bEnable = ValueASAGENT_RFC;
     g_pAdvSecAgent->pAdvSecSafeBrowsing_RFC->bEnable = ValueASSAFEBROWSING_RFC;
     g_pAdvSecAgent->pAdvSecCujoTelemetryWiFiFP_RFC->bEnable = ValueASCUJOTELEMETRYWIFIFP_RFC;
@@ -1691,8 +1736,8 @@ ANSC_STATUS CosaAdvWifiDataCollectionInit(ANSC_HANDLE hThisObject)
         {
             return returnStatus;
         }
-        rc = v_secure_system("touch " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-        if(!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        rc = touch_file(ADVSEC_WIFIDCL_INIT_FILE_PATH);
+        if(rc != 0)
         {
             CcspTraceWarning(("Failed to touch %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
         }
@@ -1733,16 +1778,12 @@ ANSC_STATUS CosaAdvWifiDataCollectionDeInit(ANSC_HANDLE hThisObject)
     {
         return returnStatus;
     }
-    rc = v_secure_system("rm " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-    if(!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-    {
-        CcspTraceWarning(("Failed to remove %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
-    }
+    unlink(ADVSEC_WIFIDCL_INIT_FILE_PATH);
 
     returnStatus = CosaSetSysCfgUlong(g_AdvWifiDataCollection, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning(("%s: syscfg_set failure.", __FUNCTION__));
+        CcspTraceError(("%s: syscfg_set failure.\n", __FUNCTION__));
         return returnStatus;
     }
 
@@ -1778,8 +1819,8 @@ ANSC_STATUS CosaAdvSecInit()
         }
         else
         {
-            rc = v_secure_system("touch " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-            if(!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+            rc = touch_file(ADVSEC_WIFIDCL_INIT_FILE_PATH);
+            if(rc != 0)
             {
                 CcspTraceWarning(("Failed to touch %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
             }
@@ -1807,8 +1848,6 @@ ANSC_STATUS CosaAdvSecDeInit()
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     int ret = 0;
 #ifdef WIFI_DATA_COLLECTION
-    errno_t rc = -1;
-
     if (g_pAdvSecAgent->pAdvWifiDataCollection_RFC->bEnable == 1)
     {
         returnStatus = CosaAdvWifiDataConsumerDeInit();
@@ -1818,11 +1857,7 @@ ANSC_STATUS CosaAdvSecDeInit()
         }
         else
         {
-            rc = v_secure_system("rm " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-            if(!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-            {
-                CcspTraceWarning(("Failed to remove %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
-            }
+            unlink(ADVSEC_WIFIDCL_INIT_FILE_PATH);
         }
     }
 #endif
@@ -1871,19 +1906,19 @@ static void *advsec_logger_th(void *arg)
                 pthread_mutex_lock(&logMutex);
                 remaining_time = g_pAdvSecAgent->ulLoggingPeriod;
                 pthread_mutex_unlock(&logMutex);
+
+                ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/advsec_log_fp_status.sh check_status &");
+                if(ret != 0)
+                {
+                    CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                }
             }
 
-            ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/advsec_log_fp_status.sh check_status &");
-            if(ret !=0)
-            {
-                 CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
-            }
             ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/advsec_cpu_mem_recovery.sh &");
             if(ret !=0)
             {
-                 CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
             }
-
         }
         else
         {
@@ -2671,12 +2706,7 @@ void advsec_handle_sysevent_notification(char *event, char *val)
                 }
 
             }
-
-#ifndef _XF3_PRODUCT_REQ_
             else if((val[0] == '2') && (val[1] == '\0'))
-#else
-            else if((val[0] == '3') && (val[1] == '\0'))
-#endif
             {
                 CcspTraceWarning(("CcspAdvSecurity: Received Bridge Mode On\n"));
                 ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disable &");
@@ -3242,7 +3272,6 @@ ANSC_STATUS CosaAdvSecUserSpaceInit(ANSC_HANDLE hThisObject)
 {
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
-    errno_t rc = -1;
 
     returnStatus = CosaSetSysCfgUlong(g_AdvSecUserSpaceEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
@@ -3252,12 +3281,6 @@ ANSC_STATUS CosaAdvSecUserSpaceInit(ANSC_HANDLE hThisObject)
     }
 
     g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = TRUE;
-
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableUS &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-    {
-       CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
-    }
 
     CcspTraceWarning (("AdvSecUserSpace_RFCEnable:TRUE\n"));
     return returnStatus;
@@ -3296,7 +3319,6 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
-    bool withUS = FALSE;
     bool wifidcl_inited = FALSE;
     int levl_init_count = 0;
 
@@ -3327,29 +3349,15 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     while (Wifi_Get_Status(LEVL_DML) == FALSE)
     {
         CcspTraceInfo(("%s:%d Waiting for levl_init to complete\n", __FUNCTION__, __LINE__));
-        CcspTraceDebug(("%s:%d Levl_init wait time is %d seconds\n", __FUNCTION__, __LINE__,levl_init_count));
+        CcspTraceDebug(("%s:%d Levl_init wait time is %d seconds\n", __FUNCTION__, __LINE__, levl_init_count));
         sleep(1);
         levl_init_count++;
 
-        if(levl_init_count == 10) {
+        if (levl_init_count == 10)
+        {
             CcspTraceError(("%s:%d %s is false even after setting to true\n", __FUNCTION__, __LINE__, LEVL_DML));
             return ANSC_STATUS_FAILURE;
         }
-    }
-
-    // Enable Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.AdvanceSecurityUserSpace.Enable if disabled
-    if (g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable == FALSE)
-    {
-        returnStatus = CosaSetSysCfgUlong(g_AdvSecUserSpaceEnabled, 1);
-        if (ANSC_STATUS_SUCCESS != returnStatus)
-        {
-            CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
-            return returnStatus;
-        }
-
-        g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = TRUE;
-        withUS = TRUE;
-        CcspTraceInfo(("AdvSecUserSpace_RFCEnable:TRUE\n"));
     }
 
     // Enable Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.WifiDataCollection.Enable if disabled
@@ -3361,8 +3369,8 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
             CcspTraceError(("%s:%d CosaAdvWifiDataConsumerInit failed\n", __FUNCTION__, __LINE__));
             return returnStatus;
         }
-        rc = v_secure_system("touch " ADVSEC_WIFIDCL_INIT_FILE_PATH);
-        if(!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        rc = touch_file(ADVSEC_WIFIDCL_INIT_FILE_PATH);
+        if (rc != 0)
         {
             CcspTraceError(("Failed to touch %s", ADVSEC_WIFIDCL_INIT_FILE_PATH));
         }
@@ -3386,17 +3394,9 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     }
 
     g_pAdvSecAgent->pLevl_RFC->bEnable = TRUE;
-    if (withUS)
+    if (wifidcl_inited)
     {
-        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableLEVLwithUS &");
-        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-        {
-           CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
-        }
-    }
-    else if (wifidcl_inited)
-    {
-        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableLEVL &");
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableLEVL_R &");
         if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
         {
            CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
@@ -3413,6 +3413,13 @@ ANSC_STATUS CosaLevlDeInit(ANSC_HANDLE hThisObject)
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
+#ifdef MLO_SUPPORTED
+    if (g_pAdvSecAgent->pDFMLO_RFC->bEnable == TRUE)
+    {
+        CcspTraceWarning(("%s: DeviceFingerPrintMLO RFC is enabled, skip disabling Levl RFC\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+#endif /* MLO_SUPPORTED */
     bool wifidcl_deinited = FALSE;
 
     // De-initialize wifidatacollection
@@ -3463,7 +3470,7 @@ ANSC_STATUS CosaLevlDeInit(ANSC_HANDLE hThisObject)
     CcspTraceInfo(("Levl_RFCEnable:FALSE\n"));
     return returnStatus;
 }
-#endif
+#endif // WIFI_DATA_COLLECTION
 
 ANSC_STATUS CosaAdvSecAgentInit(ANSC_HANDLE hThisObject)
 {
@@ -3908,18 +3915,74 @@ ANSC_STATUS CosaAdvSecDNSECHBlockingDeInit(ANSC_HANDLE hThisObject)
     rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableDNSECHBlocking &");
     if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
     {
-       CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
     }
 
     CcspTraceWarning (("AdvSecDNSECHBlocking_RFCEnable:FALSE\n"));
     return returnStatus;
 }
 
-ANSC_STATUS CosaAdvSecAgentRaptrInit(ANSC_HANDLE hThisObject)
+#if defined(WIFI_DATA_COLLECTION) && defined(MLO_SUPPORTED)
+ANSC_STATUS CosaAdvSecDFMLOInit(ANSC_HANDLE hThisObject)
 {
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
+
+    if (g_pAdvSecAgent->pLevl_RFC->bEnable == FALSE)
+    {
+        CcspTraceWarning(("%s: Levl RFC is disabled, skip enabling DeviceFingerPrintMLO RFC\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
+    }
+
+    returnStatus = CosaSetSysCfgUlong(g_DFMLOEnabled, 1);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pDFMLO_RFC->bEnable = TRUE;
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableDFMLO_R &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+       CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceInfo(("DeviceFingerPrintMLO_RFCEnable:TRUE\n"));
+    return returnStatus;
+}
+
+ANSC_STATUS CosaAdvSecDFMLODeInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+    errno_t rc = -1;
+
+    returnStatus = CosaSetSysCfgUlong(g_DFMLOEnabled, 0);
+    if (ANSC_STATUS_SUCCESS != returnStatus)
+    {
+        CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
+        return returnStatus;
+    }
+
+    g_pAdvSecAgent->pDFMLO_RFC->bEnable = FALSE;
+
+    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableDFMLO_R &");
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+        CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+    }
+
+    CcspTraceInfo(("DeviceFingerPrintMLO_RFCEnable:FALSE\n"));
+    return returnStatus;
+}
+#endif /* WIFI_DATA_COLLECTION && MLO_SUPPORTED */
+
+ANSC_STATUS CosaAdvSecAgentRaptrInit(ANSC_HANDLE hThisObject)
+{
+    UNREFERENCED_PARAMETER(hThisObject);
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
 
     returnStatus = CosaSetSysCfgUlong(g_RaptrEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
@@ -3930,12 +3993,6 @@ ANSC_STATUS CosaAdvSecAgentRaptrInit(ANSC_HANDLE hThisObject)
 
     g_pAdvSecAgent->pRaptr_RFC->bEnable = TRUE;
 
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableRaptr &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-    {
-       CcspTraceError(("%s: enable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
-    }
-
     CcspTraceWarning (("AdvSecAgentRaptr_RFCEnable:TRUE\n"));
     return returnStatus;
 }
@@ -3944,7 +4001,6 @@ ANSC_STATUS CosaAdvSecAgentRaptrDeInit(ANSC_HANDLE hThisObject)
 {
     UNREFERENCED_PARAMETER(hThisObject);
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
-    errno_t rc = -1;
 
     returnStatus = CosaSetSysCfgUlong(g_RaptrEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
@@ -3954,12 +4010,6 @@ ANSC_STATUS CosaAdvSecAgentRaptrDeInit(ANSC_HANDLE hThisObject)
     }
 
     g_pAdvSecAgent->pRaptr_RFC->bEnable = FALSE;
-
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableRaptr &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-    {
-       CcspTraceError(("%s: disable failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
-    }
 
     CcspTraceWarning (("AdvSecAgentRaptr_RFCEnable:FALSE\n"));
     return returnStatus;
