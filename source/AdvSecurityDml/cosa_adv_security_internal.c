@@ -1778,7 +1778,10 @@ ANSC_STATUS CosaAdvWifiDataCollectionDeInit(ANSC_HANDLE hThisObject)
     {
         return returnStatus;
     }
-    unlink(ADVSEC_WIFIDCL_INIT_FILE_PATH);
+    if (unlink(ADVSEC_WIFIDCL_INIT_FILE_PATH) != 0 && errno != ENOENT)
+    {
+        CcspTraceWarning(("Failed to remove %s: errno=%d\n", ADVSEC_WIFIDCL_INIT_FILE_PATH, errno));
+    }
 
     returnStatus = CosaSetSysCfgUlong(g_AdvWifiDataCollection, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
@@ -1857,7 +1860,10 @@ ANSC_STATUS CosaAdvSecDeInit()
         }
         else
         {
-            unlink(ADVSEC_WIFIDCL_INIT_FILE_PATH);
+            if (unlink(ADVSEC_WIFIDCL_INIT_FILE_PATH) != 0 && errno != ENOENT)
+            {
+                CcspTraceWarning(("Failed to remove %s: errno=%d\n", ADVSEC_WIFIDCL_INIT_FILE_PATH, errno));
+            }
         }
     }
 #endif
