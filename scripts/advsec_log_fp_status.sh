@@ -92,25 +92,15 @@ check_status()
         print_telemetry_log $ADV_PARENTAL_CONTROL_NUMBER_OF_ACTIVE_MACS_PRINT$_ACTIVE_MACS_COUNT ${ADVSEC_AGENT_LOG_PATH}
     fi
 
-    if [ "$BOX_TYPE" != "XB3" ] && [ "$BOX_TYPE" != "XF3" ]; then
-        if [ "$DF_ICMPv6_RFC_ENABLED" = "1" ]; then
-            print_telemetry_log ${DF_ICMPv6_RFC_ENABLED_LOG} ${ADVSEC_AGENT_LOG_PATH}
-        else
-            print_telemetry_log ${DF_ICMPv6_RFC_DISABLED_LOG} ${ADVSEC_AGENT_LOG_PATH}
-        fi
+    if [ "$DF_ICMPv6_RFC_ENABLED" = "1" ]; then
+        print_telemetry_log ${DF_ICMPv6_RFC_ENABLED_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    else
+        print_telemetry_log ${DF_ICMPv6_RFC_DISABLED_LOG} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
-    if [ -e ${ADVSEC_RAPTR_ENABLED_PATH} ]; then
-        print_telemetry_log ${ADV_RAPTR_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
-    else
-        print_telemetry_log ${ADV_RAPTR_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
-    fi
+    print_telemetry_log ${ADV_RAPTR_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
 
-    if [ -e ${ADVSEC_USERSPACE_ENABLED_PATH} ]; then
-        print_telemetry_log ${ADV_USERSPACE_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
-    else
-        print_telemetry_log ${ADV_USERSPACE_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
-    fi
+    print_telemetry_log ${ADV_USERSPACE_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
 
     if [ -e ${ADVSEC_CUJOTRACER_ENABLED_PATH} ]; then
         print_telemetry_log ${ADV_CUJOTRACER_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
@@ -146,6 +136,12 @@ check_status()
         print_telemetry_log ${ADV_DNS_ECH_BLOCKING_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     else
         print_telemetry_log ${ADV_DNS_ECH_BLOCKING_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    fi
+
+    if [ -e ${ADVSEC_DFMLO_ENABLED_PATH} ]; then
+        print_telemetry_log ${ADV_DFMLO_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    else
+        print_telemetry_log ${ADV_DFMLO_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
     if [ -e ${ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH} ]; then
