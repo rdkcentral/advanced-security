@@ -489,7 +489,6 @@ static int cujoagent_wait_for_event(int epoll_fd, cujoagent_notify_t notify,
   int efd = -1;
   uint32_t event = 0;
   uint64_t u = NOTIFY_NONE;
-  int nbytes;
 
   CcspTraceDebug(("Epoll wait: epoll fd [%d] notify to expect [%d]\n",
                   epoll_fd, notify));
@@ -510,13 +509,9 @@ static int cujoagent_wait_for_event(int epoll_fd, cujoagent_notify_t notify,
       return -1;
     }
 
-    nbytes = read(efd, &u, sizeof(u));
-    if (nbytes < 0) {
+    if (read(efd, &u, sizeof(u)) < 0) {
       CcspTraceError(("Failed to read event fd [%d]\n", efd));
       return -1;
-    }
-    else {
-      CcspTraceDebug(("Read event fd %d bytes\n", nbytes));
     }
 
     if (u != notify) {
@@ -752,7 +747,6 @@ static void *cujoagent_l1_collector(void *arg) {
   int collector_epoll = -1;
   struct epoll_event ev = {0};
   struct itimerspec ts = {0};
-  int nbytes;
 
   mac_addr_str_t collect_mac_str = {0};
   cujoagent_bytes_to_mac_str(l1_start_tlv->mac.ether_addr_octet,
@@ -901,13 +895,9 @@ static void *cujoagent_l1_collector(void *arg) {
       continue;
     }
 
-    nbytes = read(efd, &u, sizeof(u));
-    if (nbytes < 0) {
+    if (read(efd, &u, sizeof(u)) < 0) {
       CcspTraceError(("Failed to read event fd [%d]\n", efd));
       continue;
-    }
-    else {
-      CcspTraceDebug(("Read event fd %d bytes\n", nbytes));
     }
 
     if (efd == collector->timer) {
@@ -1130,7 +1120,6 @@ static void *cujoagent_socket_loop(void *arg) {
 
   struct cujo_fpc_l1_collection_start *l1_start_tlv = NULL;
   mac_addr_str_t collect_mac_str = {0};
-  int nbytes;
 
   /* Blocking call, get a hello first and only then proceed further */
   if (cujoagent_tlv_handshake(consumer->sock_fd, &paddr, &addr_len,
@@ -1176,14 +1165,10 @@ static void *cujoagent_socket_loop(void *arg) {
       }
 
       if (efd == consumer->comms_notification) {
-        nbytes = read(efd, &u, sizeof(u));
-        if (nbytes == -1) {
+        if (read(efd, &u, sizeof(u)) == -1) {
           CcspTraceError(("Failed to read eventfd [%d]\n", efd));
           continue;
         }
-       else {
-         CcspTraceDebug(("Read eventfd %d bytes\n", nbytes));
-       }
 
         for (int j = 0; j < MAX_TO_CUJO_TLVS; j++) {
           if (u == consumer->tlv_notify_lut[j].notify_ready) {
@@ -1340,7 +1325,6 @@ static void *cujoagent_fifo_loop(void *arg) {
   size_t csi_label_len = sizeof(csi_label);
   size_t csi_expected_len = 0;
   unsigned int csi_data_len = 0;
-  int nbytes;
 
   fifo_buf = calloc(1, fifo_payload_size);
   if (fifo_buf == NULL) {
@@ -1428,14 +1412,10 @@ static void *cujoagent_fifo_loop(void *arg) {
           }
         }
       } else if (efd == consumer->fifo_notification) {
-        nbytes = read(efd, &u, sizeof(u));
-        if (nbytes < 0) {
+        if (read(efd, &u, sizeof(u)) < 0) {
           CcspTraceError(("Failed to read event fd [%d]\n", efd));
           continue;
         }
-       else {
-         CcspTraceDebug(("Read event fd %d bytes\n", nbytes));
-       }
 
         if (u == NOTIFY_FIFO_THREAD_STOP) {
           notify = NOTIFY_FIFO_THREAD_RETURN;
