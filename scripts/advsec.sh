@@ -66,6 +66,7 @@ export ADVSEC_USERSPACE_ENABLED_PATH=/tmp/advsec_userspace_enabled
 export ADVSEC_CUJOTRACER_ENABLED_PATH=/tmp/advsec_cujotracer_enabled
 export ADVSEC_CUJOTELEMETRY_ENABLED_PATH=/tmp/advsec_cujotelemetry_enabled
 export ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH=/tmp/advsec_networkintelligence_enabled
+export ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH=/tmp/advsec_networkintelligence_activated
 export ADVSEC_SATE_ENABLED_PATH=/tmp/advsec_sate_enabled
 export ADVSEC_TCPTRACKER_FILTER_DEVICES_ENABLED_PATH=/tmp/advsec_tcptracker_filter_devices_enabled
 export ADVSEC_DOH_BLOCKING_ENABLED_PATH=/tmp/advsec_doh_blocking_enabled
@@ -94,6 +95,7 @@ export ADVSEC_WS_DISCOVERY_RFC_ENABLED=$(syscfg get Adv_WSDisAnaRFCEnable)
 export ADVSEC_CUJOTRACER_RFC_ENABLED=$(syscfg get Adv_AdvSecCujoTracerRFCEnable)
 export ADVSEC_CUJOTELEMETRY_RFC_ENABLED=$(syscfg get Adv_AdvSecCujoTelemetryRFCEnable)
 export ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED=$(syscfg get Adv_AdvSecNetworkIntelligenceRFCEnable)
+export ADVSEC_NETWORKINTELLIGENCE_ACTIVATED=$(syscfg get Adv_AdvSecNetworkIntelligenceActivate)
 export ADVSEC_SATE_RFC_ENABLED=$(syscfg get Adv_SATERFCEnable)
 export ADVSEC_TCPTRACKER_FILTER_DEVICES_RFC_ENABLED=$(syscfg get Adv_TCPTrackerFilterDevicesRFCEnable)
 export ADVSEC_DOH_BLOCKING_RFC_ENABLED=$(syscfg get Adv_DoHBlockingRFCEnable)
@@ -123,6 +125,8 @@ export ADV_RAPTR_RFC_ENABLE_LOG=ADVANCE_SECURITY_RAPTR_ENABLED
 export ADV_USERSPACE_RFC_ENABLE_LOG=ADVANCE_SECURITY_USERSPACE_ENABLED
 export ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG=ADVANCE_SECURITY_NETWORKINTELLIGENCE_ENABLED
 export ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG=ADVANCE_SECURITY_NETWORKINTELLIGENCE_DISABLED
+export ADV_NETWORKINTELLIGENCE_ACTIVATE_LOG=ADVANCE_SECURITY_NETWORKINTELLIGENCE_ACTIVATED
+export ADV_NETWORKINTELLIGENCE_DEACTIVATE_LOG=ADVANCE_SECURITY_NETWORKINTELLIGENCE_DEACTIVATED
 export ADV_WIFIDATACOLLECTION_RFC_ENABLE_LOG=ADVANCE_SECURITY_WIFIDATACOLLECTION_ENABLED
 export ADV_WIFIDATACOLLECTION_RFC_DISABLE_LOG=ADVANCE_SECURITY_WIFIDATACOLLECTION_DISABLED
 export ADV_LEVL_RFC_ENABLE_LOG=ADVANCE_SECURITY_LEVL_ENABLED
@@ -418,6 +422,26 @@ advsec_cleanup_config_agent() {
     advsec_cleanup_config
 }
 
+start_ni_service()
+{
+    if [ -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH ] && [ -f $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH ]; then
+        if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
+            echo_t "[ADVSEC] Starting cujo-ni service" >> ${ADVSEC_AGENT_LOG_PATH}
+            systemctl start cujo-ni.service
+            t2CountNotify "SYS_INFO_CUJO_NI_start"
+        fi
+    fi
+}
+
+stop_ni_service()
+{
+    if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
+        echo_t "[ADVSEC] Stopping cujo-ni service" >> ${ADVSEC_AGENT_LOG_PATH}
+        systemctl stop cujo-ni.service
+        t2CountNotify "SYS_INFO_CUJO_NI_stop"
+    fi
+}
+
 advsec_restart_agent() {
     if [ ! -f $ADVSEC_INITIALIZING ]; then
         touch $ADVSEC_INITIALIZING
@@ -426,6 +450,8 @@ advsec_restart_agent() {
         else
             echo_t "[ADVSEC] Restarting ${CUJO_AGENT_LOG} due to Selfheal..." >> ${ADVSEC_AGENT_LOG_PATH}
         fi
+
+        stop_ni_service
 
         advsec_stop_agent
 
@@ -464,6 +490,8 @@ advsec_restart_agent() {
         then
                start_privacy_protection
         fi
+
+        start_ni_service
 
         rm $ADVSEC_INITIALIZING
     fi

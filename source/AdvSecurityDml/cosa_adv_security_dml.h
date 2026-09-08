@@ -565,6 +565,32 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
         char*                       ParamName,
         BOOL                        bValue
     );
+
+#ifdef NETWORK_INTELLIGENCE
+ /***********************************************************************
+
+    APIs for Object:
+
+    X_RDKCENTRAL-COM_NetworkIntelligence.
+
+    *  NetworkIntelligence_GetParamBoolValue
+    *  NetworkIntelligence_SetParamBoolValue
+
+***********************************************************************/
+BOOL
+NetworkIntelligence_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    );
+BOOL
+NetworkIntelligence_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    );
  /***********************************************************************
 
     APIs for Object:
@@ -605,6 +631,8 @@ NetworkIntelligence_RFC_SetParamUlongValue
         char*                       ParamName,
         ULONG                       uValue
     );
+#endif // NETWORK_INTELLIGENCE
+
 /***********************************************************************
 
  APIs for Object:

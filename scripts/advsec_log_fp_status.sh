@@ -174,6 +174,12 @@ check_status()
         print_telemetry_log ${ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     fi
 
+    if [ -e ${ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH} ]; then
+        print_telemetry_log ${ADV_NETWORKINTELLIGENCE_ACTIVATE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    else
+        print_telemetry_log ${ADV_NETWORKINTELLIGENCE_DEACTIVATE_LOG} ${ADVSEC_AGENT_LOG_PATH}
+    fi
+
     if [ -e ${ADVSEC_CUJOTELEMETRYWIFIFP_ENABLED_PATH} ]; then
         print_telemetry_log ${ADV_CUJOTELEMETRYWIFIFP_RFC_ENABLE_LOG} ${ADVSEC_AGENT_LOG_PATH}
     else

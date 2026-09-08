@@ -38,6 +38,7 @@ extern pthread_mutex_t logMutex;
 
 #ifdef NETWORK_INTELLIGENCE
 static char *g_AdvNetworkIntelligence = "Adv_AdvSecNetworkIntelligenceRFCEnable";
+static char *g_NetworkIntelligenceActivate = "Adv_AdvSecNetworkIntelligenceActivate";
 #endif
 
 #ifdef WIFI_DATA_COLLECTION
@@ -3842,6 +3843,129 @@ AdvanceSecurityCujoTelemetry_RFC_SetParamBoolValue
     return FALSE;
 }
 
+#ifdef NETWORK_INTELLIGENCE
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_NetworkIntelligence.
+
+    *  NetworkIntelligence_GetParamBoolValue
+    *  NetworkIntelligence_SetParamBoolValue
+
+***********************************************************************/
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        NetworkIntelligence_GetParamBoolValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                BOOL*                       pBool
+            );
+
+    description:
+
+        This function is called to retrieve Boolean parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL*                       pBool
+                The buffer of returned boolean value;
+
+    return:     TRUE if succeeded.
+
+***********************************************************************/
+BOOL
+NetworkIntelligence_GetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL*                       pBool
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and return the corresponding value */
+
+    if(AnscEqualString(ParamName, "Activate", TRUE))
+    {
+        *pBool = g_pAdvSecAgent->pNetworkIntelligence->bActivate;
+        return TRUE;
+    }
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        NetworkIntelligence_SetParamBoolValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                BOOL                        bValue
+            );
+
+    description:
+
+        This function is called to set BOOL parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                BOOL                        bValue
+                The updated BOOL value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+NetworkIntelligence_SetParamBoolValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        BOOL                        bValue
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    /* check the parameter name and set the corresponding value */
+    ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
+
+    if(AnscEqualString(ParamName, "Activate", TRUE))
+    {
+        if(bValue == g_pAdvSecAgent->pNetworkIntelligence->bActivate)
+                return TRUE;
+        if(bValue)
+                returnStatus = CosaNetworkIntelligenceActivate(g_pAdvSecAgent->pNetworkIntelligence);
+        else
+                returnStatus = CosaNetworkIntelligenceDeactivate(g_pAdvSecAgent->pNetworkIntelligence);
+
+        if (returnStatus != ANSC_STATUS_SUCCESS)
+        {
+            CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
+            return FALSE;
+        }
+        return TRUE;
+    }
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
 /***********************************************************************
 
  APIs for Object:
@@ -3893,15 +4017,11 @@ NetworkIntelligence_RFC_GetParamBoolValue
     UNREFERENCED_PARAMETER(hInsContext);
     /* check the parameter name and return the corresponding value */
 
-#ifdef NETWORK_INTELLIGENCE
     if(AnscEqualString(ParamName, "Enable", TRUE))
     {
         *pBool = g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable;
         return TRUE;
     }
-#else
-    UNREFERENCED_PARAMETER(pBool);
-#endif
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;
 }
@@ -3946,26 +4066,16 @@ NetworkIntelligence_RFC_SetParamBoolValue
 {
     UNREFERENCED_PARAMETER(hInsContext);
     /* check the parameter name and return the corresponding value */
-#ifdef NETWORK_INTELLIGENCE
     ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
-    ULONG SysCfg_ASNI_RFC = 0;
 
     if(AnscEqualString(ParamName, "Enable", TRUE))
     {
-        if ((FALSE == g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable) && (FALSE == g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable) && (TRUE == bValue))
-        {
-            CcspTraceInfo(("Unable to set the AdvNetworkIntelligence_RFC to TRUE since the AdvSecUserSpace_RFC is FALSE \n"));
-            CcspTraceInfo(("AdvSecUserSpace_RFCEnable:%d|AdvNetworkIntelligence_RFC:%d\n", g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable, g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable));
-            return FALSE;
-        }
-        CosaGetSysCfgUlong(g_AdvNetworkIntelligence, &SysCfg_ASNI_RFC);
-        if(bValue == g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable && (bValue == SysCfg_ASNI_RFC))
-                return TRUE;
+        if(bValue == g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable)
+            return TRUE;
         if(bValue)
-                returnStatus = CosaAdvSecNetworkIntelligenceInit(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC);
+            returnStatus = CosaAdvSecNetworkIntelligenceInit(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC);
         else
-                returnStatus = CosaAdvSecNetworkIntelligenceDeInit(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC);
-
+            returnStatus = CosaAdvSecNetworkIntelligenceDeInit(g_pAdvSecAgent->pAdvNetworkIntelligence_RFC);
         if (returnStatus != ANSC_STATUS_SUCCESS)
         {
             CcspTraceInfo(("%s EXIT Error\n", __FUNCTION__));
@@ -3973,9 +4083,6 @@ NetworkIntelligence_RFC_SetParamBoolValue
         }
         return TRUE;
     }
-#else
-    UNREFERENCED_PARAMETER(bValue);
-#endif
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;
 }
@@ -4031,15 +4138,11 @@ NetworkIntelligence_RFC_GetParamUlongValue
     UNREFERENCED_PARAMETER(hInsContext);
     /* check the parameter name and return the corresponding value */
 
-#ifdef NETWORK_INTELLIGENCE
     if( AnscEqualString(ParamName, "MemoryLimit", TRUE))
     {
         *pUlong = g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->uMemoryLimit;
         return TRUE;
     }
-#else
-    UNREFERENCED_PARAMETER(pUlong);
-#endif
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;
 }
@@ -4084,8 +4187,6 @@ NetworkIntelligence_RFC_SetParamUlongValue
 {
     UNREFERENCED_PARAMETER(hInsContext);
     /* check the parameter name and return the corresponding value */
-
-#ifdef NETWORK_INTELLIGENCE
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
 
     if( AnscEqualString(ParamName, "MemoryLimit", TRUE))
@@ -4106,12 +4207,10 @@ NetworkIntelligence_RFC_SetParamUlongValue
 
         return TRUE;
     }
-#else
-    UNREFERENCED_PARAMETER(uValue);
-#endif
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;
 }
+#endif // NETWORK_INTELLIGENCE
 
 /***********************************************************************
 

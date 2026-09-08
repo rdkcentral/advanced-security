@@ -42,7 +42,13 @@ if [ "$max_rss" != "" ]; then
     MAX_MEM_HARD_LIMIT=$max_rss
 fi
 
-NI_ENABLE=$(dmcli eRT retv Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.NetworkIntelligence.Enable)
+NI_RFC_ENABLED=$(dmcli eRT retv Device.DeviceInfo.X_RDKCENTRAL-COM_RFC.Feature.NetworkIntelligence.Enable)
+NI_ACTIVATED=$(dmcli eRT retv Device.DeviceInfo.X_RDKCENTRAL-COM_NetworkIntelligence.Activate)
+if [ "$NI_RFC_ENABLED" = "true" ] && [ "$NI_ACTIVATED" = "true" ]; then
+    NI_ENABLED=true
+else
+    NI_ENABLED=false
+fi
 
 # Default NI memory hard limit in MB
 NI_MEM_HARD_LIMIT=30
@@ -168,8 +174,9 @@ check_networkintelligence_mem_recovery()
 
     if [ "$total_ni_rss" -ge "$NI_MAX_RSS_THRESHOLD" ]; then
         echo_t "Warning !!! NetworkIntelligence reached memory limit of $NI_MEM_HARD_LIMIT MB, current:$total_ni_rss kB, restarting cujo-ni service" >> $ADVSEC_AGENT_LOG_PATH
-        systemctl restart cujo-ni
+        advsec_restart_agent "NetworkIntelligenceHighRSS"
         t2CountNotify "SYS_INFO_CUJO_NI_restart_memlimit_reached"
+        exit
     fi
 }
 
@@ -251,12 +258,12 @@ advsec_agent_multiple_processes_recovery
 
 log_agent_mem_statistics
 
-if [ "$NI_ENABLE" = "true" ]; then
+if [ "$NI_ENABLED" = "true" ]; then
     check_networkintelligence_mem_recovery
 fi
 
 agent_cpu_time_before=$( get_cpu_time_spent $(pidof ${CUJO_AGENT}) )
-if [ "$NI_ENABLE" = "true" ]; then
+if [ "$NI_ENABLED" = "true" ]; then
     ni_cpu_time_before=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
 fi
 total_cpu_usage_before=$( get_total_cpu_usage )
@@ -274,7 +281,7 @@ agent_CPU=$(awk "BEGIN {printf \"%.2f\", ($agent_cpu_time_diff * 100.0) / $cpu_u
 t2ValNotify "ADVSEC_AGENT_CPU_USAGE_PERCENTAGE_split" "$agent_CPU"
 echo_t "Advsec Agent CPU_usage=$agent_CPU %" >> $ADVSEC_AGENT_LOG_PATH
 
-if [ "$NI_ENABLE" = "true" ]; then
+if [ "$NI_ENABLED" = "true" ]; then
     ni_cpu_time_after=$(get_cpu_time_spent $(pidof ${CUJO_AGENT_QOSD}) )
     ni_cpu_time_diff=$(( ni_cpu_time_after - ni_cpu_time_before ))
     ni_CPU=$(awk "BEGIN {printf \"%.2f\", ($ni_cpu_time_diff * 100.0) / $cpu_usage_diff}")
