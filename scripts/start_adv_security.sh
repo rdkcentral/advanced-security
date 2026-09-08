@@ -83,10 +83,12 @@ then
         privacy_protection_setup "-startPrivProt"
     fi
 
-    if [ "$DF_ICMPv6_RFC_ENABLED" = "1" ]; then
-        enable_icmpv6
-    else
-        disable_icmpv6
+    if [ "$BOX_TYPE" != "XB3" ] && [ "$BOX_TYPE" != "XF3" ]; then
+        if [ "$DF_ICMPv6_RFC_ENABLED" = "1" ]; then
+            enable_icmpv6
+        else
+            disable_icmpv6
+        fi
     fi
 
     if [ "$ADVSEC_WS_DISCOVERY_RFC_ENABLED" = "1" ]; then
@@ -101,6 +103,12 @@ then
             disable_otm
     fi
 
+    if [ "$ADVSEC_USERSPACE_RFC_ENABLED" = "1" ]; then
+            enable_userspace
+    else
+            disable_userspace
+    fi
+
     if [ "$ADVSEC_CUJOTRACER_RFC_ENABLED" = "1" ]; then
             enable_cujotracer
     else
@@ -111,6 +119,12 @@ then
             enable_cujotelemetry
     else
             disable_cujotelemetry
+    fi
+
+    if [ "$ADVSEC_RAPTR_RFC_ENABLED" = "1" ]; then
+            enable_raptr
+    else
+            disable_raptr
     fi
 
     if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
@@ -151,14 +165,33 @@ then
 
     do_firewall_restart "wait"
 
-    # raptr [-q] option is broken in v2021-Q3-C release and it's been fixed in v2021-Q4-C release.
-    # In worstcase scenario, if [-q] option fails in future CUJO integration,
-    # To avoid flooding of logs in ConsoleLog.txt, we have re-directed stderr output
-    # from 'raptr check' to /rdklogs/logs/agent.txt
-    if raptr -q check 2>> ${ADVSEC_AGENT_LOG_PATH}; then
-        echo_t "Rules are loaded correctly" >> ${ADVSEC_AGENT_LOG_PATH}
+    if [ -f $ADVSEC_RAPTR_ENABLED_PATH ]; then
+        # raptr [-q] option is broken in v2021-Q3-C release and it's been fixed in v2021-Q4-C release.
+        # In worstcase scenario, if [-q] option fails in future CUJO integration,
+        # To avoid flooding of logs in ConsoleLog.txt, we have re-directed stderr output
+        # from 'raptr check' to /rdklogs/logs/agent.txt
+        if raptr -q check 2>> ${ADVSEC_AGENT_LOG_PATH}; then
+            echo_t "Rules are loaded correctly" >> ${ADVSEC_AGENT_LOG_PATH}
+        else
+            do_firewall_restart "wait"
+        fi
     else
-        do_firewall_restart "wait"
+        if [ "$ADV_PC_ENABLED" = "1" ] && [ ! -e ${ADV_PARENTAL_CONTROL_RFC_DISABLED_PATH} ]; then
+            #This is a workaround for an issue in firewall utility, where cujo related rules are not added.
+            #To be removed once firewall utility issue is fixed!
+            sleep 20s
+            ipt4=$(grep -c CUJO /tmp/.ipt 2>/dev/null)
+            ipt4=${ipt4:-0}
+            ipt6=$(grep -c CUJO /tmp/.ipt_v6 2>/dev/null)
+            ipt6=${ipt6:-0}
+            ip4=$(iptables-save | grep -c CUJO)
+            ip6=$(ip6tables-save | grep -c CUJO)
+            if [ "${ipt4}" != "${ip4}" ] || [ "${ipt6}" != "${ip6}" ]; then
+                do_firewall_restart "wait"
+            else
+                echo_t "Rules are loaded correctly" >> ${ADVSEC_AGENT_LOG_PATH}
+            fi
+        fi
     fi
 
     AGENT_USER=$(advsec_get_agent_group_name)
@@ -201,12 +234,18 @@ then
         rm $ADVSEC_AGENT_SHUTDOWN
     fi
 
-    if [ -f $ADVSEC_DF_ICMPv6_ENABLED_PATH ]; then
-        rm $ADVSEC_DF_ICMPv6_ENABLED_PATH
+    if [ "$BOX_TYPE" != "XB3" ] && [ "$BOX_TYPE" != "XF3" ]; then
+        if [ -f $ADVSEC_DF_ICMPv6_ENABLED_PATH ]; then
+            rm $ADVSEC_DF_ICMPv6_ENABLED_PATH
+        fi
     fi
 
     if [ -f $ADVSEC_WS_DISCOVERY_ENABLED_PATH ]; then
         rm $ADVSEC_WS_DISCOVERY_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_RAPTR_ENABLED_PATH ]; then
+        rm $ADVSEC_RAPTR_ENABLED_PATH
     fi
 
     if [ -f $ADVSEC_USERSPACE_ENABLED_PATH ]; then
@@ -251,10 +290,6 @@ then
         rm $ADVSEC_DNS_ECH_BLOCKING_ENABLED_PATH
     fi
 
-    if [ -f $ADVSEC_DFMLO_ENABLED_PATH ]; then
-        rm $ADVSEC_DFMLO_ENABLED_PATH
-    fi
-
     if [ -f $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH ]; then
         rm $ADVSEC_WIFIDATACOLLECTION_ENABLED_PATH
     fi
@@ -265,6 +300,7 @@ fi
 
 start_agent_services()
 {
+    advsec_module_load
     advsec_agent_create_ipsets
     advsec_start_agent
     advsec_wait_for_agent
@@ -278,28 +314,50 @@ start_agent_services()
     if [ "$DF_ENABLED" = "1" ]; then
         advsec_agent_start_fp
     fi
+
+    advsec_initialize_nfq_ct
 }
 
 stop_agent_services()
 {
+    rm -f ${ADVSEC_NFLUA_LOADED}
     stop_privacy_protection
     stop_adv_parental_control
     advsec_agent_stop_sf
     advsec_agent_stop_sb
     advsec_agent_stop_fp
     advsec_stop_agent
-    retries=5;
-    echo "Clearing Cujo iptables rules..." >> ${ADVSEC_AGENT_LOG_PATH}
-    raptr clear
-    while [ ${retries} -gt 0 ]; do
-        if raptr -q check -N; then
-            echo_t "Cujo iptables rules successfully cleared..." >> ${ADVSEC_AGENT_LOG_PATH}
-            break
-        fi
-        sleep 1
-        ((retries--))
+    if [ -f $ADVSEC_RAPTR_ENABLED_PATH ]; then
+        retries=5;
+        echo "Clearing Cujo iptables rules..." >> ${ADVSEC_AGENT_LOG_PATH}
         raptr clear
-    done
+        while [ ${retries} -gt 0 ]; do
+            if raptr -q check -N; then
+                echo_t "Cujo iptables rules successfully cleared..." >> ${ADVSEC_AGENT_LOG_PATH}
+                break
+            fi
+            sleep 1
+            ((retries--))
+            raptr clear
+        done
+    else
+        RETRY_CNT=5
+        while [ ${RETRY_CNT} -gt 0 ]; do
+            ((RETRY_CNT--))
+            echo_t "${CUJO_AGENT_LOG} triggering firewall restart..." >> ${ADVSEC_AGENT_LOG_PATH}
+            sysevent set firewall-restart
+            sleep 10s
+            ip4=$(iptables-save | grep -c CUJO)
+            ip6=$(ip6tables-save | grep -c CUJO)
+            if [ $ip4 = "0" ] && [ $ip6 = "0" ]; then
+                break
+            else
+                echo_t "${CUJO_AGENT_LOG} rules are not removed yet! ip4 = $ip4 And ip6 = $ip6 ..Retry again" >> ${ADVSEC_AGENT_LOG_PATH}
+                sleep 60s
+            fi
+        done
+    fi
+    advsec_module_unload
     advsec_agent_flush_ipsets
     advsec_cleanup_config_agent
 }
@@ -441,6 +499,32 @@ disable_otm()
     echo_t ${ADV_OTM_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "OTM_RFC_Disabled"
+    fi
+}
+
+enable_userspace()
+{
+    touch $ADVSEC_USERSPACE_ENABLED_PATH
+    echo_t ${ADV_USERSPACE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentUserSpace_RFC_Enabled"
+    fi
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
+}
+
+disable_userspace()
+{
+    rm -f $ADVSEC_USERSPACE_ENABLED_PATH
+    echo_t ${ADV_USERSPACE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentUserSpace_RFC_Disabled"
+    fi
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
     fi
 }
 
@@ -664,26 +748,6 @@ disable_dns_ech_blocking()
     fi
 }
 
-enable_dfmlo()
-{
-    touch $ADVSEC_DFMLO_ENABLED_PATH
-    echo_t ${ADV_DFMLO_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-
-    if [ "$1" = "RR" ]; then
-        advsec_restart_agent "AgentDFMLO_RFC_Enabled"
-    fi
-}
-
-disable_dfmlo()
-{
-    rm -f $ADVSEC_DFMLO_ENABLED_PATH
-    echo_t ${ADV_DFMLO_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-
-    if [ "$1" = "RR" ]; then
-        advsec_restart_agent "AgentDFMLO_RFC_Disabled"
-    fi
-}
-
 enable_wifidatacollection()
 {
     if [ -f $ADVSEC_WIFIDCL_INIT_PATH ]; then
@@ -716,6 +780,7 @@ enable_levl()
             advsec_restart_agent "Levl_RFC_Enabled"
         fi
         if [ "$2" = "FR" ]; then
+            enable_userspace
             do_firewall_restart
         fi
     fi
@@ -731,10 +796,39 @@ disable_levl()
     fi
 }
 
+enable_raptr()
+{
+    touch $ADVSEC_RAPTR_ENABLED_PATH
+    echo_t ${ADV_RAPTR_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "FR" ]; then
+        do_firewall_restart
+    fi
+}
+
+disable_raptr()
+{
+    rm -f $ADVSEC_RAPTR_ENABLED_PATH
+    echo_t ${ADV_RAPTR_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ "$1" = "FR" ]; then
+        do_firewall_restart
+    fi
+}
+
 do_firewall_restart()
 {
-    raptr -n -4 set | grep -v ipset > $CUJO_AGENT_RULES_V4_PATH
-    raptr -n -6 set | grep -v ipset > $CUJO_AGENT_RULES_V6_PATH
+    if [ -f $ADVSEC_RAPTR_ENABLED_PATH ]; then
+        raptr -n -4 set | grep -v ipset > $CUJO_AGENT_RULES_V4_PATH
+        raptr -n -6 set | grep -v ipset > $CUJO_AGENT_RULES_V6_PATH
+    else
+        if [ -f $CUJO_AGENT_RULES_V4_PATH ]; then
+            rm $CUJO_AGENT_RULES_V4_PATH
+        fi
+        if [ -f $CUJO_AGENT_RULES_V6_PATH ]; then
+            rm $CUJO_AGENT_RULES_V6_PATH
+        fi
+    fi
     echo_t "${CUJO_AGENT_LOG} triggering firewall restart..." >> ${ADVSEC_AGENT_LOG_PATH}
     sysevent set firewall-restart
 
@@ -777,6 +871,10 @@ fi
 if [ "$1" = "-start" ] || [ "$1" = "-stop" ]
 then
     start_advanced_security $1 $2 $3
+    if [ "$BOX_TYPE" == "XB3" ] || [ "$BOX_TYPE" == "XF3" ]; then
+        echo_t "${CUJO_AGENT_LOG} triggering firewall restart..." >> ${ADVSEC_AGENT_LOG_PATH}
+        sysevent set firewall-restart
+    fi
 fi
 
 if [ "$1" = "-startAdvPC" ] || [ "$1" = "-stopAdvPC" ]
@@ -785,6 +883,10 @@ then
         echo_t "${CUJO_AGENT_LOG} cannot activate AdvParentalControl feature due to RFC is disabled" >> ${ADVSEC_AGENT_LOG_PATH}
     else
         advanced_parental_control_setup $1
+        if [ "$BOX_TYPE" == "XB3" ] || [ "$BOX_TYPE" == "XF3" ]; then
+            echo_t "${CUJO_AGENT_LOG} triggering firewall restart..." >> ${ADVSEC_AGENT_LOG_PATH}
+            sysevent set firewall-restart
+        fi
     fi
 fi
 
@@ -794,6 +896,10 @@ then
         echo_t "${CUJO_AGENT_LOG} cannot activate PrivacyProtection feature due to RFC is disabled" >> ${ADVSEC_AGENT_LOG_PATH}
     else
         privacy_protection_setup $1
+        if [ "$BOX_TYPE" == "XB3" ] || [ "$BOX_TYPE" == "XF3" ]; then
+            echo_t "${CUJO_AGENT_LOG} triggering firewall restart..." >> ${ADVSEC_AGENT_LOG_PATH}
+            sysevent set firewall-restart
+        fi
     fi
 fi
 
@@ -847,6 +953,11 @@ then
         fi
     fi
 
+    if [ "$BOX_TYPE" == "XB3" ] || [ "$BOX_TYPE" == "XF3" ]; then
+        echo_t "${CUJO_AGENT_LOG} triggering firewall restart..." >> ${ADVSEC_AGENT_LOG_PATH}
+        sysevent set firewall-restart
+    fi
+
 fi
 
 if [ "$1" = "-enableICMP6" ]; then
@@ -863,6 +974,20 @@ fi
 
 if [ "$1" = "-disableOTM" ]; then
     disable_otm "RR"
+fi
+
+if [ "$1" = "-enableUS" ]; then
+    # To remove kernel module dependent firewall rules
+    do_firewall_restart
+    # To unload / load required kernel modules during cujo-agent restart
+    rm -f ${ADVSEC_NFLUA_LOADED}
+    enable_userspace "RR" "FR"
+fi
+
+if [ "$1" = "-disableUS" ]; then
+    # To unload / load required kernel modules during cujo-agent restart
+    rm -f ${ADVSEC_NFLUA_LOADED}
+    disable_userspace "RR" "FR"
 fi
 
 if [ "$1" = "-enableNI" ]; then
@@ -883,20 +1008,17 @@ fi
 
 if [ "$1" = "-enableLEVL" ]; then
     enable_wifidatacollection
-    enable_levl
+    enable_levl "RR"
 fi
 
-if [ "$1" = "-enableLEVL_R" ]; then
+if [ "$1" = "-enableLEVLwithUS" ]; then
+    enable_userspace
     enable_wifidatacollection
-    enable_levl "RR"
+    enable_levl "RR" "FR"
 fi
 
 if [ "$1" = "-disableLEVL" ]; then
     disable_levl
-fi
-
-if [ "$1" = "-disableLEVL_R" ]; then
-    disable_levl "RR"
 fi
 
 if [ "$1" = "-enableAGT" ]; then
@@ -971,28 +1093,20 @@ if [ "$1" = "-disableDNSECHBlocking" ]; then
     disable_dns_ech_blocking "RR"
 fi
 
-if [ "$1" = "-enableDFMLO" ]; then
-    enable_dfmlo
-fi
-
-if [ "$1" = "-enableDFMLO_R" ]; then
-    enable_dfmlo "RR"
-fi
-
-if [ "$1" = "-disableDFMLO" ]; then
-    disable_dfmlo
-fi
-
-if [ "$1" = "-disableDFMLO_R" ]; then
-    disable_dfmlo "RR"
-fi
-
 if [ "$1" = "-enableWSDiscovery" ]; then
    enable_wsdiscovery "FR"
 fi
 
 if [ "$1" = "-disableWSDiscovery" ]; then
    disable_wsdiscovery "FR"
+fi
+
+if [ "$1" = "-enableRaptr" ]; then
+   enable_raptr "FR"
+fi
+
+if [ "$1" = "-disableRaptr" ]; then
+   disable_raptr "FR"
 fi
 
 if [ "$1" = "-restartAgent" ] && [ -e ${ADVSEC_DF_ENABLED_PATH} ]

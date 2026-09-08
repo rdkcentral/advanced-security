@@ -25,10 +25,6 @@
 #define STATIC
 #endif
 
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
 
@@ -172,12 +168,6 @@ _COSA_DATAMODEL_ADVSECDNSECHBLOCKING_RFC {
 COSA_DATAMODEL_ADVSECDNSECHBLOCKING_RFC,  *PCOSA_DATAMODEL_ADVSECDNSECHBLOCKING_RFC;
 
 typedef  struct
-_COSA_DATAMODEL_DEVICEFINGERPRINTMLO_RFC {
-    BOOL            bEnable;
-}
-COSA_DATAMODEL_DEVICEFINGERPRINTMLO_RFC,  *PCOSA_DATAMODEL_DEVICEFINGERPRINTMLO_RFC;
-
-typedef  struct
 _COSA_DATAMODEL_RAPTR_RFC {
     BOOL            bEnable;
 }
@@ -240,7 +230,6 @@ _COSA_DATAMODEL_AGENT
     PCOSA_DATAMODEL_ADVSECTCPTRACKERFILTERDEVICES_RFC pAdvSecTCPTrackerFilterDevices_RFC;
     PCOSA_DATAMODEL_ADVSECDOHBLOCKING_RFC pAdvSecDoHBlocking_RFC;
     PCOSA_DATAMODEL_ADVSECDNSECHBLOCKING_RFC pAdvSecDNSECHBlocking_RFC;
-    PCOSA_DATAMODEL_DEVICEFINGERPRINTMLO_RFC pDFMLO_RFC;
     PCOSA_DATAMODEL_RAPTR_RFC pRaptr_RFC;
     PCOSA_DATAMODEL_RABID       pRabid;
     int         	iStatus;
@@ -251,14 +240,10 @@ COSA_DATAMODEL_AGENT,  *PCOSA_DATAMODEL_AGENT;
 /*
     Standard function declaration 
 */
-
-#ifdef WIFI_DATA_COLLECTION
 ANSC_STATUS Wifi_GetParameterValue(const char *pParamName, char *pReturnVal, size_t retValSize);
-ANSC_STATUS Wifi_SetParameterValue(const char *paramName, bool bValue);
-BOOL Wifi_Get_Status(const char *pParamName);
+BOOL WifiMgmtFrame_GetActive_Status(void);
+BOOL WifiLevl_GetActive_Status(void);
 int wifidcl_init_precheck(void);
-#endif // WIFI_DATA_COLLECTION
-
 void advsec_handle_sysevent_notification(char *event, char *val);
 
 ANSC_HANDLE
@@ -499,6 +484,18 @@ CosaAdvSecUserSpaceDeInit
 */
 
 ANSC_STATUS
+CosaLevlInit
+    (
+        ANSC_HANDLE hThisObject
+    );
+
+ANSC_STATUS
+CosaLevlDeInit
+    (
+        ANSC_HANDLE hThisObject
+    );
+
+ANSC_STATUS
 CosaAdvSecAgentInit
     (
         ANSC_HANDLE hThisObject
@@ -619,7 +616,6 @@ CosaAdvSecNetworkIntelligenceDeInit
         ANSC_HANDLE hThisObject
     );
 
-#ifdef WIFI_DATA_COLLECTION
 ANSC_STATUS
 CosaAdvWifiDataCollectionInit
     (
@@ -631,33 +627,6 @@ CosaAdvWifiDataCollectionDeInit
     (
         ANSC_HANDLE hThisObject
     );
-
-ANSC_STATUS
-CosaLevlInit
-    (
-        ANSC_HANDLE hThisObject
-    );
-
-ANSC_STATUS
-CosaLevlDeInit
-    (
-        ANSC_HANDLE hThisObject
-    );
-
-#ifdef MLO_SUPPORTED
-ANSC_STATUS
-CosaAdvSecDFMLOInit
-    (
-        ANSC_HANDLE hThisObject
-    );
-
-ANSC_STATUS
-CosaAdvSecDFMLODeInit
-    (
-        ANSC_HANDLE hThisObject
-    );
-#endif // MLO_SUPPORTED
-#endif // WIFI_DATA_COLLECTION
 
 ANSC_STATUS
 CosaAdvSecFetchSbConfig
