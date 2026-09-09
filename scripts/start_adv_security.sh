@@ -54,6 +54,8 @@ then
 
     wait_for_lanip
 
+    start_ni_service
+
     start_agent_services
 
     touch $ADVSEC_INITIALIZED
@@ -124,8 +126,6 @@ then
     else
         deactivate_networkintelligence
     fi
-
-    start_ni_service
 
     if [ "$ADVSEC_WIFIDATACOLLECTION_RFC_ENABLED" = "1" ]; then
             enable_wifidatacollection
@@ -897,18 +897,34 @@ if [ "$1" = "-disableOTM" ]; then
 fi
 
 if [ "$1" = "-enableNI" ]; then
-    enable_networkintelligence "RR"
+    enable_networkintelligence
 fi
 
 if [ "$1" = "-disableNI" ]; then
+    disable_networkintelligence
+fi
+
+if [ "$1" = "-enableNI_R" ]; then
+    enable_networkintelligence "RR"
+fi
+
+if [ "$1" = "-disableNI_R" ]; then
     disable_networkintelligence "RR"
 fi
 
 if [ "$1" = "-activateNI" ]; then
-    activate_networkintelligence "RR"
+    activate_networkintelligence
 fi
 
 if [ "$1" = "-deactivateNI" ]; then
+    deactivate_networkintelligence
+fi
+
+if [ "$1" = "-activateNI_R" ]; then
+    activate_networkintelligence "RR"
+fi
+
+if [ "$1" = "-deactivateNI_R" ]; then
     deactivate_networkintelligence "RR"
 fi
 

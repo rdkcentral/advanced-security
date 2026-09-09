@@ -1670,10 +1670,21 @@ ANSC_STATUS CosaAdvSecNetworkIntelligenceInit(ANSC_HANDLE hThisObject)
 
     g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = TRUE;
 
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableNI &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    if(g_pAdvSecAgent->pNetworkIntelligence->bActivate)
     {
-        CcspTraceError(("%s: -enableNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableNI_R &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+            CcspTraceError(("%s: -enableNI_R failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
+    }
+    else
+    {
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -enableNI &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+            CcspTraceError(("%s: -enableNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
     }
 
     CcspTraceInfo(("AdvSecNetworkIntelligenceRFCEnable:TRUE\n"));
@@ -1695,10 +1706,21 @@ ANSC_STATUS CosaAdvSecNetworkIntelligenceDeInit(ANSC_HANDLE hThisObject)
 
     g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable = FALSE;
 
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableNI &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    if(g_pAdvSecAgent->pNetworkIntelligence->bActivate)
     {
-       CcspTraceError(("%s: disableNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableNI_R &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+           CcspTraceError(("%s: disableNI_R failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
+    }
+    else
+    {
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -disableNI &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+           CcspTraceError(("%s: disableNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
     }
 
     CcspTraceInfo(("AdvSecNetworkIntelligenceRFCEnable:FALSE\n"));
@@ -1711,12 +1733,6 @@ ANSC_STATUS CosaNetworkIntelligenceActivate(ANSC_HANDLE hThisObject)
     ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
     errno_t rc = -1;
 
-    if (g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable != TRUE)
-    {
-        CcspTraceWarning(("%s: NetworkIntelligence RFC not enabled\n", __FUNCTION__));
-        return ANSC_STATUS_FAILURE;
-    }
-
     returnStatus = CosaSetSysCfgUlong(g_NetworkIntelligenceActivate, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
@@ -1726,10 +1742,21 @@ ANSC_STATUS CosaNetworkIntelligenceActivate(ANSC_HANDLE hThisObject)
 
     g_pAdvSecAgent->pNetworkIntelligence->bActivate = TRUE;
 
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -activateNI &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    if (g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable)
     {
-       CcspTraceError(("%s: -activateNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -activateNI_R &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+           CcspTraceError(("%s: -activateNI_R failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
+    }
+    else
+    {
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -activateNI &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+           CcspTraceError(("%s: -activateNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
     }
 
     CcspTraceInfo(("AdvSecNetworkIntelligenceActivate:TRUE\n"));
@@ -1751,10 +1778,21 @@ ANSC_STATUS CosaNetworkIntelligenceDeactivate(ANSC_HANDLE hThisObject)
 
     g_pAdvSecAgent->pNetworkIntelligence->bActivate = FALSE;
 
-    rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -deactivateNI &");
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    if (g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable)
     {
-       CcspTraceError(("%s: -deactivateNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -deactivateNI_R &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+           CcspTraceError(("%s: -deactivateNI_R failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
+    }
+    else
+    {
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -deactivateNI &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+           CcspTraceError(("%s: -deactivateNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
     }
 
     CcspTraceInfo(("AdvSecNetworkIntelligenceActivate:FALSE\n"));
