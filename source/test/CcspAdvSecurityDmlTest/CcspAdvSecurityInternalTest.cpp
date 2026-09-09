@@ -1441,6 +1441,79 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetDNSCacheSize)
     free(g_pAdvSecAgent);
 }
 
+#ifdef NETWORK_INTELLIGENCE
+extern "C" void speedtestEventReceiveHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription);
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_StopsNI)
+{
+    int marker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusEvent_t event = {};
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetString(value, _))
+        .Times(1)
+        .WillOnce(Return("1"));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -speedtestNIStart &"), _))
+        .Times(1)
+        .WillOnce(Return(0));
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Complete_StartsNI)
+{
+    int marker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusEvent_t event = {};
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetString(value, _))
+        .Times(1)
+        .WillOnce(Return("5"));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -speedtestNIComplete &"), _))
+        .Times(1)
+        .WillOnce(Return(0));
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_NullValue_NoAction)
+{
+    rbusEvent_t event = {};
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return((rbusValue_t)NULL));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Other_NoAction)
+{
+    int marker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusEvent_t event = {};
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetString(value, _))
+        .Times(1)
+        .WillOnce(Return("2"));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+}
+#endif
+
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCInit)
 {
     const char *AdvParentalControlRFCEnabled = "Adv_PCRFCEnable";

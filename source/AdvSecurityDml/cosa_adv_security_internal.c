@@ -66,6 +66,7 @@
 #define ADVSEC_SYSEVENT_CURRENT_WAN_IFNAME_EVENT "current_wan_ifname"
 
 #define LEVL_DML "Device.WiFi.Levl"
+#define SPEEDTEST_STATUS_DML "Device.IP.Diagnostics.X_RDKCENTRAL-COM_SpeedTest.Status"
 
 #define ADVSEC_WAIT_FOR_TIMEOUT (60 * 60)
 #define MAX_VALUE 32
@@ -424,6 +425,56 @@ static void eventReceiveHandler(
         if ( strcmp(eventName,"Device.X_RDK_WanManager.CurrentActiveInterface") == 0 )
         {
             CcspTraceWarning(("AdvSecurityEventConsumer : New value of CurrentActiveInterface is = %s\n",newValue));
+        }
+    }
+}
+#endif
+
+#ifdef NETWORK_INTELLIGENCE
+STATIC void speedtestEventReceiveHandler(
+    rbusHandle_t handle,
+    rbusEvent_t const* event,
+    rbusEventSubscription_t* subscription)
+{
+    rbusValue_t value;
+    const char *status;
+    errno_t rc;
+
+    (void)handle;
+    (void)subscription;
+
+    value = rbusObject_GetValue(event->data, NULL);
+    if (value == NULL)
+    {
+        CcspTraceError(("SpeedTest status event has no value\n"));
+        return;
+    }
+
+    status = rbusValue_GetString(value, NULL);
+    if (status == NULL)
+    {
+        CcspTraceError(("SpeedTest status event value is invalid\n"));
+        return;
+    }
+
+    CcspTraceInfo(("ARUN: SpeedTest status event received, status=%s\n", status));
+
+    if (strcmp(status, "1") == 0)
+    {
+        CcspTraceInfo(("ARUN: SpeedTest status=1, disabling cujo-qosd for speedtest\n"));
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -speedtestNIStart &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+            CcspTraceError(("%s: failed to disable cujo-qosd for SpeedTest, rc=%d\n", __FUNCTION__, WEXITSTATUS(rc)));
+        }
+    }
+    else if (strcmp(status, "5") == 0)
+    {
+        CcspTraceInfo(("ARUN: SpeedTest status=5, enabling cujo-qosd after speedtest\n"));
+        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -speedtestNIComplete &");
+        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        {
+            CcspTraceError(("%s: failed to enable cujo-qosd for SpeedTest, rc=%d\n", __FUNCTION__, WEXITSTATUS(rc)));
         }
     }
 }
@@ -1562,6 +1613,14 @@ CosaSecurityInitialize
     if(ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("AdvSecurityEventConsumer: rbusEvent_Subscribe %s failed: %d\n", LEVL_DML, ret));
+        return ANSC_STATUS_FAILURE;
+    }
+#endif
+#ifdef NETWORK_INTELLIGENCE
+    ret = rbusEvent_Subscribe(rbus_handle, SPEEDTEST_STATUS_DML, speedtestEventReceiveHandler, NULL, 0);
+    if(ret != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("AdvSecurityEventConsumer: rbusEvent_Subscribe %s failed: %d\n", SPEEDTEST_STATUS_DML, ret));
         return ANSC_STATUS_FAILURE;
     }
 #endif
