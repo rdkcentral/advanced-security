@@ -550,6 +550,96 @@ disable_cujotelemetry()
     fi
 }
 
+SPEEDTEST_NI_TIMER_PID_FILE="/tmp/cujo_ni_speedtest_timer.pid"
+
+speedtest_cancel_networkintelligence_timer()
+{
+    local timer_pid
+
+    if [ -r "${SPEEDTEST_NI_TIMER_PID_FILE}" ]; then
+        read -r timer_pid < "${SPEEDTEST_NI_TIMER_PID_FILE}"
+        if [[ "${timer_pid}" =~ ^[0-9]+$ ]] && kill -0 "${timer_pid}" 2>/dev/null; then
+            kill "${timer_pid}"
+        fi
+        rm -f "${SPEEDTEST_NI_TIMER_PID_FILE}"
+    fi
+}
+
+speedtest_set_qosd_enable()
+{
+    # $1 = 0 to disable cujo-qosd, 1 to enable cujo-qosd
+    local enable_val="$1"
+    local cli_out
+    local cli_rc
+
+    cli_out=$(cujo-ni-cli "{\"method\":\"set_configs\", \"configs\": {\"cujoniqos.daemon.enable\": ${enable_val}}}" 2>&1)
+    cli_rc=$?
+    echo_t "ARUN: cujo-ni-cli set_configs cujoniqos.daemon.enable=${enable_val} rc=${cli_rc} out=${cli_out}" >> ${ADVSEC_AGENT_LOG_PATH}
+    if [ ${cli_rc} -ne 0 ] || echo "${cli_out}" | grep -q '"ipc_method_status"[[:space:]]*:[[:space:]]*"NOK"'; then
+        return 1
+    fi
+    return 0
+}
+
+speedtest_pause_networkintelligence()
+{
+    local unpause_timeout
+
+    echo_t "ARUN: speedtest_pause_networkintelligence invoked (SpeedTest status=1)" >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ ! -e ${ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH} ]; then
+        echo_t "cujo-qosd pause skipped for speedtest: Network Intelligence is not enabled" >> ${ADVSEC_AGENT_LOG_PATH}
+        return 0
+    fi
+
+    unpause_timeout=$(dmcli eRT retv "Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut" 2>/dev/null)
+    echo_t "ARUN: SubscriberUnPauseTimeOut read as '${unpause_timeout}'" >> ${ADVSEC_AGENT_LOG_PATH}
+    if ! [[ "${unpause_timeout}" =~ ^[0-9]+$ ]] || [ "${unpause_timeout}" -eq 0 ]; then
+        echo_t "Disabling cujo-qosd for speedtest failed: invalid SubscriberUnPauseTimeOut=${unpause_timeout}" >> ${ADVSEC_AGENT_LOG_PATH}
+        return 1
+    fi
+
+    speedtest_cancel_networkintelligence_timer
+    echo_t "Disabling cujo-qosd for speedtest (unpause timeout=${unpause_timeout}s)" >> ${ADVSEC_AGENT_LOG_PATH}
+    if ! speedtest_set_qosd_enable 0; then
+        echo_t "Disabling cujo-qosd for speedtest failed" >> ${ADVSEC_AGENT_LOG_PATH}
+        return 1
+    fi
+
+    (
+        sleep "${unpause_timeout}"
+        echo_t "ARUN: unpause timer expired after ${unpause_timeout}s" >> ${ADVSEC_AGENT_LOG_PATH}
+        echo_t "IMP_CUJO_NI_SubscriberUnPauseTimeOut" >> ${ADVSEC_AGENT_LOG_PATH}
+        if [ ! -e ${ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH} ]; then
+            echo_t "cujo-qosd resume skipped for speedtest: Network Intelligence is not enabled" >> ${ADVSEC_AGENT_LOG_PATH}
+        else
+            echo_t "Enabling cujo-qosd (unpause timeout expired)" >> ${ADVSEC_AGENT_LOG_PATH}
+            if ! speedtest_set_qosd_enable 1; then
+                echo_t "Enabling cujo-qosd failed" >> ${ADVSEC_AGENT_LOG_PATH}
+            fi
+        fi
+    ) &
+    echo $! > "${SPEEDTEST_NI_TIMER_PID_FILE}"
+}
+
+speedtest_resume_networkintelligence()
+{
+    echo_t "ARUN: speedtest_resume_networkintelligence invoked (SpeedTest status=5)" >> ${ADVSEC_AGENT_LOG_PATH}
+
+    if [ ! -e ${ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH} ]; then
+        echo_t "cujo-qosd resume skipped for speedtest: Network Intelligence is not enabled" >> ${ADVSEC_AGENT_LOG_PATH}
+        speedtest_cancel_networkintelligence_timer
+        return 0
+    fi
+
+    speedtest_cancel_networkintelligence_timer
+    echo_t "Enabling cujo-qosd (speedtest complete)" >> ${ADVSEC_AGENT_LOG_PATH}
+    if ! speedtest_set_qosd_enable 1; then
+        echo_t "Enabling cujo-qosd failed" >> ${ADVSEC_AGENT_LOG_PATH}
+        return 1
+    fi
+}
+
 enable_networkintelligence()
 {
     touch $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
@@ -871,6 +961,14 @@ fi
 
 if [ "$1" = "-disableNI" ]; then
     disable_networkintelligence "RR" "FR"
+fi
+
+if [ "$1" = "-speedtestNIStart" ]; then
+    speedtest_pause_networkintelligence
+fi
+
+if [ "$1" = "-speedtestNIComplete" ]; then
+    speedtest_resume_networkintelligence
 fi
 
 if [ "$1" = "-enableWifiDCL" ]; then
