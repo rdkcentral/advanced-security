@@ -1753,6 +1753,7 @@ ANSC_STATUS CosaNetworkIntelligenceActivate(ANSC_HANDLE hThisObject)
     else
     {
         CcspTraceWarning(("%s: cannot activate NetworkIntelligence feature due to RFC is disabled\n", __FUNCTION__));
+        return ANSC_STATUS_FAILURE;
     }
 
     CcspTraceInfo(("AdvSecNetworkIntelligenceActivate:TRUE\n"));
@@ -2560,9 +2561,12 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     if ( returnStatus != ANSC_STATUS_SUCCESS )
          return SYSCFG_FAILURE;
 
-    returnStatus = advsec_update_feature_status(g_NetworkIntelligenceActivate, feature->network_intelligence_activate, &g_pAdvSecAgent->pNetworkIntelligence->bActivate);
-    if ( returnStatus != ANSC_STATUS_SUCCESS )
-         return SYSCFG_FAILURE;
+    if (feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
+    {
+        returnStatus = CosaSetSysCfgUlong(g_NetworkIntelligenceActivate, feature->network_intelligence_activate);
+        if ( returnStatus != ANSC_STATUS_SUCCESS )
+            return SYSCFG_FAILURE;
+    }
 
     if ( feature->fingerprint_enable != g_pAdvSecAgent->bEnable )
     {
@@ -2578,6 +2582,7 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     {
         if ((feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate) && g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable)
         {
+            g_pAdvSecAgent->pNetworkIntelligence->bActivate = feature->network_intelligence_activate;
             if (feature->network_intelligence_activate)
             {
                 // -activateNI_R will restart cujo-agent and enable cujo-ni service
