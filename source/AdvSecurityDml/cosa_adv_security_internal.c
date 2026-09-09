@@ -1749,14 +1749,13 @@ ANSC_STATUS CosaNetworkIntelligenceActivate(ANSC_HANDLE hThisObject)
         {
            CcspTraceError(("%s: -activateNI_R failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
         }
+        CcspTraceInfo(("AdvSecNetworkIntelligenceActivate:TRUE\n"));
     }
     else
     {
         CcspTraceWarning(("%s: cannot activate NetworkIntelligence feature due to RFC is disabled\n", __FUNCTION__));
-        return ANSC_STATUS_FAILURE;
     }
 
-    CcspTraceInfo(("AdvSecNetworkIntelligenceActivate:TRUE\n"));
     return returnStatus;
 }
 
@@ -2580,28 +2579,35 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     }
     else
     {
-        if ((feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate) && g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable)
+        if (feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
         {
             g_pAdvSecAgent->pNetworkIntelligence->bActivate = feature->network_intelligence_activate;
-            if (feature->network_intelligence_activate)
+            if (g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable)
             {
-                // -activateNI_R will restart cujo-agent and enable cujo-ni service
-                ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -activateNI_R &");
-                if(ret != 0)
+                if (feature->network_intelligence_activate)
                 {
-                    CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                    // -activateNI_R will restart cujo-agent and enable cujo-ni service
+                    ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -activateNI_R &");
+                    if(ret != 0)
+                    {
+                        CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                    }
                 }
+                else
+                {
+                    // -deactivateNI_R will restart cujo-agent and disable cujo-ni service
+                    ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -deactivateNI_R &");
+                    if(ret != 0)
+                    {
+                        CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                    }
+                }
+                // -configure_features not required since cujo-agent restart will configure other features
             }
             else
             {
-                // -deactivateNI_R will restart cujo-agent and disable cujo-ni service
-                ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -deactivateNI_R &");
-                if(ret != 0)
-                {
-                    CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
-                }
+                CcspTraceWarning(("%s: cannot activate NetworkIntelligence feature due to RFC is disabled\n", __FUNCTION__));
             }
-            // -configure_features not required since cujo-agent restart will configure other features
         }
         else
         {
