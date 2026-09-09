@@ -459,6 +459,8 @@ advsec_restart_agent() {
 
         sleep 5
 
+        start_ni_service
+
         if [ ! -e ${ADVSEC_IPSETLIST_CREATED} ]
         then
             advsec_agent_create_ipsets
@@ -490,8 +492,6 @@ advsec_restart_agent() {
         then
                start_privacy_protection
         fi
-
-        start_ni_service
 
         rm $ADVSEC_INITIALIZING
     fi
