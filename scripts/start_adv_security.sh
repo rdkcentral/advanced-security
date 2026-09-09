@@ -121,7 +121,7 @@ then
         disable_networkintelligence
     fi
 
-    if [ "$ADVSEC_NETWORKINTELLIGENCE_ACTIVATED" = "1" ]; then
+    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ] && [ "$ADVSEC_NETWORKINTELLIGENCE_ACTIVATED" = "1" ]; then
         activate_networkintelligence
     else
         deactivate_networkintelligence

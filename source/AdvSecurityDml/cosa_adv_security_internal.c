@@ -1752,11 +1752,7 @@ ANSC_STATUS CosaNetworkIntelligenceActivate(ANSC_HANDLE hThisObject)
     }
     else
     {
-        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -activateNI &");
-        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-        {
-           CcspTraceError(("%s: -activateNI failed rc = %d\n", __FUNCTION__, WEXITSTATUS(rc)));
-        }
+        CcspTraceWarning(("%s: cannot activate NetworkIntelligence feature due to RFC is disabled\n", __FUNCTION__));
     }
 
     CcspTraceInfo(("AdvSecNetworkIntelligenceActivate:TRUE\n"));
@@ -2564,6 +2560,10 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     if ( returnStatus != ANSC_STATUS_SUCCESS )
          return SYSCFG_FAILURE;
 
+    returnStatus = advsec_update_feature_status(g_NetworkIntelligenceActivate, feature->network_intelligence_activate, &g_pAdvSecAgent->pNetworkIntelligence->bActivate);
+    if ( returnStatus != ANSC_STATUS_SUCCESS )
+         return SYSCFG_FAILURE;
+
     if ( feature->fingerprint_enable != g_pAdvSecAgent->bEnable )
     {
         if ( feature->fingerprint_enable )
@@ -2576,12 +2576,36 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     }
     else
     {
-        ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -configure_features &");
-        if(ret !=0)
+        if ((feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate) && g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable)
         {
-              CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+            if (feature->network_intelligence_activate)
+            {
+                // -activateNI_R will restart cujo-agent and enable cujo-ni service
+                ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -activateNI_R &");
+                if(ret != 0)
+                {
+                    CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                }
+            }
+            else
+            {
+                // -deactivateNI_R will restart cujo-agent and disable cujo-ni service
+                ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -deactivateNI_R &");
+                if(ret != 0)
+                {
+                    CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                }
+            }
+            // -configure_features not required since cujo-agent restart will configure other features
         }
-
+        else
+        {
+            ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -configure_features &");
+            if(ret != 0)
+            {
+                CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+            }
+        }
     }
 
     CcspTraceInfo(("Done advsec_handle_webconfig_blob\n"));
