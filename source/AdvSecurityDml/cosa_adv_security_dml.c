@@ -634,9 +634,18 @@ AdvancedSecurity_SetParamStringValue
                 CcspTraceInfo(("ad->subdoc_name is %s\n", ad->subdoc_name));
                 CcspTraceInfo(("ad->version is %lu\n", (long)ad->version));
                 CcspTraceInfo(("ad->transaction_id %lu\n",(long) ad->transaction_id));
-                CcspTraceInfo(("fingerprint_enable:[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d]\n",
-                    ad->param->fingerprint_enable,ad->param->softflowd_enable,ad->param->safebrowsing_enable,
-                    ad->param->parental_control_activate,ad->param->privacy_protection_activate));
+                if (ad->param->network_intelligence_present)
+                {
+                    CcspTraceInfo(("fingerprint_enable:[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d], network_intelligence_activate[%d]\n",
+                        ad->param->fingerprint_enable,ad->param->softflowd_enable,ad->param->safebrowsing_enable,
+                        ad->param->parental_control_activate,ad->param->privacy_protection_activate,ad->param->network_intelligence_activate));
+                }
+                else
+                {
+                    CcspTraceInfo(("fingerprint_enable:[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d]\n",
+                        ad->param->fingerprint_enable,ad->param->softflowd_enable,ad->param->safebrowsing_enable,
+                        ad->param->parental_control_activate,ad->param->privacy_protection_activate));
+                }
 
                 execData *execDataAdvsec = NULL ;
                 execDataAdvsec = (execData*) AnscAllocateMemory (sizeof(execData));
@@ -685,7 +694,7 @@ AdvancedSecurity_SetParamStringValue
         }
         else
         {
-            CcspTraceError(("Failed to unpack megpack\n"));
+            CcspTraceError(("Failed to unpack msgpack\n"));
             ret_val = FALSE;
         }
 

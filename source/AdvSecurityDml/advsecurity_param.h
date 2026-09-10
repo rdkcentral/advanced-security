@@ -32,6 +32,10 @@ typedef struct
     bool  parental_control_activate;
     bool  privacy_protection_activate;
     bool  network_intelligence_activate;
+    /* False when the payload used the older 5-parameter schema that omits
+     * NetworkIntelligenceActivate. In that case network_intelligence_activate
+     * carries no meaning and must not be applied. */
+    bool  network_intelligence_present;
 
 } advsecurityparam_t;
 

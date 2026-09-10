@@ -114,10 +114,15 @@ const char* advsecuritydoc_strerror( int errnum )
 int process_advsecurityparams( advsecurityparam_t *e, msgpack_object_map *map )
 {
     int left = map->size;
-    uint8_t objects_left = 0x3F;
+    /* Bits 0-4 are the mandatory legacy parameters. NetworkIntelligenceActivate
+     * is optional for backward compatibility with the older 5-parameter schema;
+     * when absent it retains its zeroed default. */
+    uint8_t objects_left = 0x1F;
     msgpack_object_kv *p;
     p = map->ptr;
-    while( (0 < objects_left) && (0 < left--) )
+    /* Iterate every entry: optional parameters may follow the last mandatory
+     * one, so we must not stop early once objects_left reaches zero. */
+    while( 0 < left-- )
     {
         if( MSGPACK_OBJECT_STR == p->key.type )
         {
@@ -151,6 +156,7 @@ int process_advsecurityparams( advsecurityparam_t *e, msgpack_object_map *map )
                  if( 0 == match(p, "NetworkIntelligenceActivate") )
                  {
                      e->network_intelligence_activate = p->val.via.boolean;
+                     e->network_intelligence_present = true;
                      objects_left &= ~(1 << 5);
                  }
               }

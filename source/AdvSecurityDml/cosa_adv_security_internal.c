@@ -2545,7 +2545,7 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
 {
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
     int ret =0;
-    CcspTraceInfo(("Entering advsec_handle_webconfig_blob\n"));
+    CcspTraceInfo(("Entering %s\n", __FUNCTION__));
 
     if ( feature->fingerprint_enable == g_pAdvSecAgent->bEnable && ! g_pAdvSecAgent->bEnable )
         return ADVSEC_FAILURE;
@@ -2566,7 +2566,8 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     if ( returnStatus != ANSC_STATUS_SUCCESS )
          return SYSCFG_FAILURE;
 
-    if (feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
+    if (feature->network_intelligence_present &&
+        feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
     {
         returnStatus = CosaSetSysCfgUlong(g_NetworkIntelligenceActivate, feature->network_intelligence_activate);
         if ( returnStatus != ANSC_STATUS_SUCCESS )
@@ -2585,7 +2586,8 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     }
     else
     {
-        if (feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
+        if (feature->network_intelligence_present &&
+            feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
         {
             g_pAdvSecAgent->pNetworkIntelligence->bActivate = feature->network_intelligence_activate;
             if (g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable)
