@@ -174,17 +174,37 @@ int process_advsecuritydoc( advsecuritydoc_t *ad,int num, ... )
 	va_start(valist, num);//start of variable argument loop
 
 	msgpack_object *obj = va_arg(valist, msgpack_object *);//each usage of va_arg fn argument iterates by one time
-	msgpack_object_map *mapobj = &obj->via.map;
-
 	msgpack_object *obj1 = va_arg(valist, msgpack_object *);
-	ad->subdoc_name = strndup( obj1->via.str.ptr, obj1->via.str.size );
-
 	msgpack_object *obj2 = va_arg(valist, msgpack_object *);
-	ad->version = (uint32_t) obj2->via.u64;
-
 	msgpack_object *obj3 = va_arg(valist, msgpack_object *);
-	ad->transaction_id = (uint16_t) obj3->via.u64;
 	va_end(valist);//End of variable argument loop
+
+    if( (NULL == obj) || (NULL == obj1) || (NULL == obj2) || (NULL == obj3) )
+    {
+        CcspTraceError(("%s missing mandatory element(s) in subdoc\n", __FUNCTION__));
+        return -1;
+    }
+
+    if( (MSGPACK_OBJECT_MAP != obj->type) ||
+        (MSGPACK_OBJECT_STR != obj1->type) ||
+        (MSGPACK_OBJECT_POSITIVE_INTEGER != obj2->type) ||
+        (MSGPACK_OBJECT_POSITIVE_INTEGER != obj3->type) )
+    {
+        CcspTraceError(("%s unexpected element type(s) in subdoc\n", __FUNCTION__));
+        return -1;
+    }
+
+    msgpack_object_map *mapobj = &obj->via.map;
+
+    ad->subdoc_name = strndup( obj1->via.str.ptr, obj1->via.str.size );
+    if( NULL == ad->subdoc_name )
+    {
+        CcspTraceError(("%s subdoc_name strndup failed\n", __FUNCTION__));
+        return -1;
+    }
+
+	ad->version = (uint32_t) obj2->via.u64;
+	ad->transaction_id = (uint16_t) obj3->via.u64;
 
 
 	ad->param = (advsecurityparam_t *) AnscAllocateMemory( sizeof(advsecurityparam_t) );
