@@ -114,7 +114,7 @@ const char* advsecuritydoc_strerror( int errnum )
 int process_advsecurityparams( advsecurityparam_t *e, msgpack_object_map *map )
 {
     int left = map->size;
-    uint8_t objects_left = 0x06;
+    uint8_t objects_left = 0x3F;
     msgpack_object_kv *p;
     p = map->ptr;
     while( (0 < objects_left) && (0 < left--) )
@@ -131,22 +131,22 @@ int process_advsecurityparams( advsecurityparam_t *e, msgpack_object_map *map )
                  if( 0 == match(p, "SoftflowdEnable") )
                  {
                      e->softflowd_enable = p->val.via.boolean;
-                     objects_left &= ~(1 << 3);
+                     objects_left &= ~(1 << 1);
                  }
                  if( 0 == match(p, "SafeBrowsingEnable") )
                  {
                      e->safebrowsing_enable = p->val.via.boolean;
-                     objects_left &= ~(1 << 4);
+                     objects_left &= ~(1 << 2);
                  }
                  if( 0 == match(p, "ParentalControlActivate") )
                  {
                      e->parental_control_activate = p->val.via.boolean;
-                     objects_left &= ~(1 << 1);
+                     objects_left &= ~(1 << 3);
                  }
                  if( 0 == match(p, "PrivacyProtectionActivate") )
                  {
                      e->privacy_protection_activate = p->val.via.boolean;
-                     objects_left &= ~(1 << 2);
+                     objects_left &= ~(1 << 4);
                  }
                  if( 0 == match(p, "NetworkIntelligenceActivate") )
                  {
