@@ -88,6 +88,7 @@
 #define ADVSEC_CONFIG_PARAMS_CM_MAC_PATH "/tmp/advsec_config_params/CMMAC"
 #define ADVSEC_INITIALIZED_FILE_PATH "/tmp/advsec_initialized"
 #define ADVSEC_WIFIDCL_INIT_FILE_PATH "/tmp/advsec_wifidcl_init"
+#define ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH "/tmp/advsec_networkintelligence_activated"
 #define ADVSEC_CLOUD_HOST "/tmp/advsec_cloud_host"
 #define ADVSEC_CLOUD_IP "/tmp/advsec_cloud_ipv4"
 #define ADVSEC_DEFAULT_CM_MAC "00:1A:2B:11:22:33"
@@ -1449,7 +1450,7 @@ CosaSecurityInitialize
         returnStatus = CosaSetSysCfgUlong(g_AdvSecUserSpaceEnabled, 1);
         if (returnStatus != ANSC_STATUS_SUCCESS)
         {
-            CcspTraceError(("%s: syscfg_set failure.\n", __FUNCTION__));
+            CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
         }
         g_pAdvSecAgent->pAdvSecUserSpace_RFC->bEnable = TRUE;
         CcspTraceInfo(("AdvSecUserSpace_RFCEnable:TRUE\n"));
@@ -1492,7 +1493,7 @@ CosaSecurityInitialize
             returnStatus = CosaSetSysCfgUlong(g_AdvWifiDataCollection, 1);
             if (returnStatus != ANSC_STATUS_SUCCESS)
             {
-                CcspTraceError(("%s: syscfg_set failure.\n", __FUNCTION__));
+                CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
             }
             ValueASWIFIDCL_RFC = TRUE;
             CcspTraceInfo(("AdvSecWifiDataCollection_RFCEnable:TRUE\n"));
@@ -1753,6 +1754,11 @@ ANSC_STATUS CosaNetworkIntelligenceActivate(ANSC_HANDLE hThisObject)
     }
     else
     {
+        touch_file(ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH);
+        if(rc != 0)
+        {
+            CcspTraceWarning(("Failed to touch %s\n", ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH));
+        }
         CcspTraceWarning(("%s: cannot activate NetworkIntelligence feature due to RFC is disabled\n", __FUNCTION__));
     }
 
@@ -1888,7 +1894,7 @@ ANSC_STATUS CosaAdvWifiDataCollectionDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvWifiDataCollection, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceError(("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3172,7 +3178,7 @@ CosaAdvPCInit
 
     if (CosaSetSysCfgUlong (g_AdvParentalControlEnabled, 1))
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
 
@@ -3197,7 +3203,7 @@ CosaAdvPCDeInit
 
     if (CosaSetSysCfgUlong (g_AdvParentalControlEnabled, 0))
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
 
@@ -3222,7 +3228,7 @@ CosaPrivacyProtectionInit
 
     if (CosaSetSysCfgUlong (g_PrivacyProtectionEnabled, 1))
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
 
@@ -3247,7 +3253,7 @@ CosaPrivacyProtectionDeInit
 
     if (CosaSetSysCfgUlong (g_PrivacyProtectionEnabled, 0))
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return ANSC_STATUS_FAILURE;
     }
 
@@ -3271,7 +3277,7 @@ ANSC_STATUS CosaAdvDFIcmpv6Init(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_DeviceFingerPrintICMPv6Enabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3297,7 +3303,7 @@ ANSC_STATUS CosaAdvDFIcmpv6DeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_DeviceFingerPrintICMPv6Enabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3322,7 +3328,7 @@ ANSC_STATUS CosaWSDisInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_WSDiscoveryAnalysisEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3348,7 +3354,7 @@ ANSC_STATUS CosaWSDisDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_WSDiscoveryAnalysisEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3373,7 +3379,7 @@ ANSC_STATUS CosaAdvSecOTMInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecOTMEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3399,7 +3405,7 @@ ANSC_STATUS CosaAdvSecOTMDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecOTMEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3423,7 +3429,7 @@ ANSC_STATUS CosaAdvSecUserSpaceInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecUserSpaceEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3443,7 +3449,7 @@ ANSC_STATUS CosaAdvSecUserSpaceDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecUserSpaceEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3524,7 +3530,7 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
         returnStatus = CosaSetSysCfgUlong(g_AdvWifiDataCollection, 1);
         if (ANSC_STATUS_SUCCESS != returnStatus)
         {
-            CcspTraceError(("%s: syscfg_set failure.\n", __FUNCTION__));
+            CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
             return returnStatus;
         }
 
@@ -3536,7 +3542,7 @@ ANSC_STATUS CosaLevlInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_LevlEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceError(("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3599,7 +3605,7 @@ ANSC_STATUS CosaLevlDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_LevlEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceError(("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3628,7 +3634,7 @@ ANSC_STATUS CosaAdvSecAgentInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecAgentEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3653,7 +3659,7 @@ ANSC_STATUS CosaAdvSecAgentDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecAgentEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3678,7 +3684,7 @@ ANSC_STATUS CosaAdvSecSafeBrowsingInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecSafeBrowsingEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3703,7 +3709,7 @@ ANSC_STATUS CosaAdvSecSafeBrowsingDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecSafeBrowsingEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3728,7 +3734,7 @@ ANSC_STATUS CosaAdvSecCujoTelemetryWiFiFPInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecCujoTelemetryWiFiFPEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3753,7 +3759,7 @@ ANSC_STATUS CosaAdvSecCujoTelemetryWiFiFPDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecCujoTelemetryWiFiFPEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3778,7 +3784,7 @@ ANSC_STATUS CosaAdvSecCujoTracerInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecCujoTracerEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3803,7 +3809,7 @@ ANSC_STATUS CosaAdvSecCujoTracerDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecCujoTracerEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3828,7 +3834,7 @@ ANSC_STATUS CosaAdvSecCujoTelemetryInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecCujoTelemetryEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3853,7 +3859,7 @@ ANSC_STATUS CosaAdvSecCujoTelemetryDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecCujoTelemetryEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3878,7 +3884,7 @@ ANSC_STATUS CosaAdvSecSATEInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecSATEEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3903,7 +3909,7 @@ ANSC_STATUS CosaAdvSecSATEDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecSATEEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3928,7 +3934,7 @@ ANSC_STATUS CosaAdvSecTCPTrackerFilterDevicesInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecTCPTrackerFilterDevicesEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3953,7 +3959,7 @@ ANSC_STATUS CosaAdvSecTCPTrackerFilterDevicesDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecTCPTrackerFilterDevicesEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -3978,7 +3984,7 @@ ANSC_STATUS CosaAdvSecDoHBlockingInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecDoHBlockingEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -4003,7 +4009,7 @@ ANSC_STATUS CosaAdvSecDoHBlockingDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecDoHBlockingEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -4028,7 +4034,7 @@ ANSC_STATUS CosaAdvSecDNSECHBlockingInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecDNSECHBlockingEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -4053,7 +4059,7 @@ ANSC_STATUS CosaAdvSecDNSECHBlockingDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_AdvSecDNSECHBlockingEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -4085,7 +4091,7 @@ ANSC_STATUS CosaAdvSecDFMLOInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_DFMLOEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceError(("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
         return returnStatus;
     }
 
@@ -4109,7 +4115,7 @@ ANSC_STATUS CosaAdvSecDFMLODeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_DFMLOEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceError(("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceError(("%s: syscfg_set failure\n", __FUNCTION__));
         return returnStatus;
     }
 
@@ -4134,7 +4140,7 @@ ANSC_STATUS CosaAdvSecAgentRaptrInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_RaptrEnabled, 1);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
@@ -4152,7 +4158,7 @@ ANSC_STATUS CosaAdvSecAgentRaptrDeInit(ANSC_HANDLE hThisObject)
     returnStatus = CosaSetSysCfgUlong(g_RaptrEnabled, 0);
     if (ANSC_STATUS_SUCCESS != returnStatus)
     {
-        CcspTraceWarning (("%s: syscfg_set failure.\n", __FUNCTION__));
+        CcspTraceWarning (("%s: syscfg_set failure.", __FUNCTION__));
         return returnStatus;
     }
 
