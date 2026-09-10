@@ -54,6 +54,18 @@ then
 
     wait_for_lanip
 
+    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
+        enable_networkintelligence
+    else
+        disable_networkintelligence
+    fi
+
+    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ] && [ "$ADVSEC_NETWORKINTELLIGENCE_ACTIVATED" = "1" ]; then
+        activate_networkintelligence
+    else
+        deactivate_networkintelligence
+    fi
+
     start_ni_service
 
     start_agent_services
@@ -113,18 +125,6 @@ then
             enable_cujotelemetry
     else
             disable_cujotelemetry
-    fi
-
-    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
-        enable_networkintelligence
-    else
-        disable_networkintelligence
-    fi
-
-    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ] && [ "$ADVSEC_NETWORKINTELLIGENCE_ACTIVATED" = "1" ]; then
-        activate_networkintelligence
-    else
-        deactivate_networkintelligence
     fi
 
     if [ "$ADVSEC_WIFIDATACOLLECTION_RFC_ENABLED" = "1" ]; then
