@@ -418,6 +418,26 @@ advsec_cleanup_config_agent() {
     advsec_cleanup_config
 }
 
+start_ni_service()
+{
+    if [ -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH ]; then
+        if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
+            echo_t "[ADVSEC] Starting cujo-ni service" >> ${ADVSEC_AGENT_LOG_PATH}
+            systemctl start cujo-ni.service
+            t2CountNotify "SYS_INFO_CUJO_NI_start"
+        fi
+    fi
+}
+
+stop_ni_service()
+{
+    if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
+        echo_t "[ADVSEC] Stopping cujo-ni service" >> ${ADVSEC_AGENT_LOG_PATH}
+        systemctl stop cujo-ni.service
+        t2CountNotify "SYS_INFO_CUJO_NI_stop"
+    fi
+}
+
 advsec_restart_agent() {
     if [ ! -f $ADVSEC_INITIALIZING ]; then
         touch $ADVSEC_INITIALIZING
@@ -427,11 +447,15 @@ advsec_restart_agent() {
             echo_t "[ADVSEC] Restarting ${CUJO_AGENT_LOG} due to Selfheal..." >> ${ADVSEC_AGENT_LOG_PATH}
         fi
 
+        stop_ni_service
+
         advsec_stop_agent
 
         advsec_cleanup_config_agent
 
         sleep 5
+
+        start_ni_service
 
         if [ ! -e ${ADVSEC_IPSETLIST_CREATED} ]
         then
