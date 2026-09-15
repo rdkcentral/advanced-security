@@ -437,7 +437,7 @@ STATIC void speedtestEventReceiveHandler(
     rbusEventSubscription_t* subscription)
 {
     rbusValue_t value;
-    const char *status;
+    uint32_t status;
     errno_t rc;
 
     (void)handle;
@@ -450,16 +450,10 @@ STATIC void speedtestEventReceiveHandler(
         return;
     }
 
-    status = rbusValue_GetString(value, NULL);
-    if (status == NULL)
-    {
-        CcspTraceError(("SpeedTest status event value is invalid\n"));
-        return;
-    }
+    status = rbusValue_GetUInt32(value);
+    CcspTraceInfo(("ARUN: SpeedTest status event received, status=%u\n", status));
 
-    CcspTraceInfo(("ARUN: SpeedTest status event received, status=%s\n", status));
-
-    if (strcmp(status, "1") == 0)
+    if (status == 1)
     {
         CcspTraceInfo(("ARUN: SpeedTest status=1, disabling cujo-qosd for speedtest\n"));
         rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -speedtestNIStart &");
@@ -468,7 +462,7 @@ STATIC void speedtestEventReceiveHandler(
             CcspTraceError(("%s: failed to disable cujo-qosd for SpeedTest, rc=%d\n", __FUNCTION__, WEXITSTATUS(rc)));
         }
     }
-    else if (strcmp(status, "5") == 0)
+    else if (status == 5)
     {
         CcspTraceInfo(("ARUN: SpeedTest status=5, enabling cujo-qosd after speedtest\n"));
         rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -speedtestNIComplete &");
