@@ -1754,7 +1754,7 @@ ANSC_STATUS CosaNetworkIntelligenceActivate(ANSC_HANDLE hThisObject)
     }
     else
     {
-        touch_file(ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH);
+        rc = touch_file(ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH);
         if(rc != 0)
         {
             CcspTraceWarning(("Failed to touch %s\n", ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH));
