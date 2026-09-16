@@ -2546,7 +2546,7 @@ static ANSC_STATUS advsec_update_feature_status(char *syscfg , BOOL new_val, BOO
 int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
 {
     ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
-    int ret =0;
+    int ret = 0;
     CcspTraceInfo(("Entering %s\n", __FUNCTION__));
 
     if ( feature->fingerprint_enable == g_pAdvSecAgent->bEnable && ! g_pAdvSecAgent->bEnable )
@@ -2568,12 +2568,18 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     if ( returnStatus != ANSC_STATUS_SUCCESS )
          return SYSCFG_FAILURE;
 
- #ifdef NETWORK_INTELLIGENCE
+#ifdef NETWORK_INTELLIGENCE
+    BOOL prev_ni_state = FALSE;
     if (feature->network_intelligence_present &&
         feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
     {
         returnStatus = CosaSetSysCfgUlong(g_NetworkIntelligenceActivate, feature->network_intelligence_activate);
-        if ( returnStatus != ANSC_STATUS_SUCCESS )
+        if ( returnStatus == ANSC_STATUS_SUCCESS )
+        {
+            prev_ni_state = g_pAdvSecAgent->pNetworkIntelligence->bActivate;
+            g_pAdvSecAgent->pNetworkIntelligence->bActivate = feature->network_intelligence_activate;
+        }
+        else
             return SYSCFG_FAILURE;
     }
 #endif // NETWORK_INTELLIGENCE
@@ -2592,9 +2598,8 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     {
 #ifdef NETWORK_INTELLIGENCE
         if (feature->network_intelligence_present &&
-            feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
+            feature->network_intelligence_activate != prev_ni_state)
         {
-            g_pAdvSecAgent->pNetworkIntelligence->bActivate = feature->network_intelligence_activate;
             if (g_pAdvSecAgent->pAdvNetworkIntelligence_RFC->bEnable)
             {
                 if (feature->network_intelligence_activate)
@@ -2623,6 +2628,7 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
                 CcspTraceWarning(("%s: cannot activate NetworkIntelligence feature due to RFC is disabled\n", __FUNCTION__));
                 if (feature->network_intelligence_activate)
                 {
+                    // -activateNI will touch /tmp/advsec_networkintelligence_activated file, log only if RFC is enabled
                     ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -activateNI &");
                     if(ret != 0)
                     {
@@ -2631,6 +2637,7 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
                 }
                 else
                 {
+                    // -deactivateNI will remove /tmp/advsec_networkintelligence_activated file, log only if RFC is enabled
                     ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -deactivateNI &");
                     if(ret != 0)
                     {
