@@ -1447,18 +1447,56 @@ extern "C" void speedtestEventReceiveHandler(rbusHandle_t handle, rbusEvent_t co
 TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_StopsNI)
 {
     int marker = 0;
+    int timeoutMarker = 0;
     rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t timeoutValue = (rbusValue_t)&timeoutMarker;
     rbusEvent_t event = {};
 
     EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
         .Times(1)
         .WillOnce(Return(value));
-    EXPECT_CALL(*g_rbusMock, rbusValue_GetString(value, _))
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
         .Times(1)
-        .WillOnce(Return("1"));
+        .WillOnce(Return(1));
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(timeoutValue))
+        .Times(1)
+        .WillOnce(Return(86400));
+    EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
+        .Times(1);
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -speedtestNIStart &"), _))
         .Times(1)
         .WillOnce(Return(0));
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_StartingWithZeroTimeout_NoAction)
+{
+    int marker = 0;
+    int timeoutMarker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t timeoutValue = (rbusValue_t)&timeoutMarker;
+    rbusEvent_t event = {};
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(1));
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(timeoutValue))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
+        .Times(1);
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
 
     speedtestEventReceiveHandler(NULL, &event, NULL);
 }
@@ -1472,9 +1510,9 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Complete_StartsNI)
     EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
         .Times(1)
         .WillOnce(Return(value));
-    EXPECT_CALL(*g_rbusMock, rbusValue_GetString(value, _))
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
         .Times(1)
-        .WillOnce(Return("5"));
+        .WillOnce(Return(5));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("/usr/ccsp/advsec/start_adv_security.sh -speedtestNIComplete &"), _))
         .Times(1)
         .WillOnce(Return(0));
@@ -1504,9 +1542,9 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Other_NoAction)
     EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
         .Times(1)
         .WillOnce(Return(value));
-    EXPECT_CALL(*g_rbusMock, rbusValue_GetString(value, _))
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
         .Times(1)
-        .WillOnce(Return("2"));
+        .WillOnce(Return(2));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
         .Times(0);
 
