@@ -431,7 +431,7 @@ static void eventReceiveHandler(
 }
 #endif
 
-#ifdef WIFI_DATA_COLLECTION
+#if defined(WIFI_DATA_COLLECTION) || defined(NETWORK_INTELLIGENCE)
 static int touch_file(const char *filepath)
 {
     int fd;
@@ -444,7 +444,9 @@ static int touch_file(const char *filepath)
     close(fd);
     return 0;
 }
+#endif
 
+#ifdef WIFI_DATA_COLLECTION
 static void wifiEventReceiveHandler(
     rbusHandle_t handle,
     rbusEvent_t const* event,
