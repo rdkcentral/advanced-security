@@ -435,12 +435,10 @@ start_ni_service()
 
 stop_ni_service()
 {
-    if [ -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH ] && [ -f $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH ]; then
-        if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
-            echo_t "[ADVSEC] Stopping cujo-ni service" >> ${ADVSEC_AGENT_LOG_PATH}
-            systemctl stop cujo-ni.service
-            t2CountNotify "SYS_INFO_CUJO_NI_stop"
-        fi
+    if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
+        echo_t "[ADVSEC] Stopping cujo-ni service" >> ${ADVSEC_AGENT_LOG_PATH}
+        systemctl stop cujo-ni.service
+        t2CountNotify "SYS_INFO_CUJO_NI_stop"
     fi
 }
 

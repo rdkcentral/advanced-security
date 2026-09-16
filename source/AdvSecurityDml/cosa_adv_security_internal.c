@@ -2569,14 +2569,13 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
          return SYSCFG_FAILURE;
 
 #ifdef NETWORK_INTELLIGENCE
-    BOOL prev_ni_state = FALSE;
+    BOOL prev_ni_state = g_pAdvSecAgent->pNetworkIntelligence->bActivate;
     if (feature->network_intelligence_present &&
         feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
     {
         returnStatus = CosaSetSysCfgUlong(g_NetworkIntelligenceActivate, feature->network_intelligence_activate);
         if ( returnStatus == ANSC_STATUS_SUCCESS )
         {
-            prev_ni_state = g_pAdvSecAgent->pNetworkIntelligence->bActivate;
             g_pAdvSecAgent->pNetworkIntelligence->bActivate = feature->network_intelligence_activate;
         }
         else
