@@ -2568,6 +2568,7 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     if ( returnStatus != ANSC_STATUS_SUCCESS )
          return SYSCFG_FAILURE;
 
+ #ifdef NETWORK_INTELLIGENCE
     if (feature->network_intelligence_present &&
         feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
     {
@@ -2575,6 +2576,7 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
         if ( returnStatus != ANSC_STATUS_SUCCESS )
             return SYSCFG_FAILURE;
     }
+#endif // NETWORK_INTELLIGENCE
 
     if ( feature->fingerprint_enable != g_pAdvSecAgent->bEnable )
     {
@@ -2588,6 +2590,7 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     }
     else
     {
+#ifdef NETWORK_INTELLIGENCE
         if (feature->network_intelligence_present &&
             feature->network_intelligence_activate != g_pAdvSecAgent->pNetworkIntelligence->bActivate)
         {
@@ -2613,19 +2616,34 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
                     }
                 }
                 // -configure_features not required since cujo-agent restart will configure other features
+                return BLOB_EXEC_SUCCESS;
             }
             else
             {
                 CcspTraceWarning(("%s: cannot activate NetworkIntelligence feature due to RFC is disabled\n", __FUNCTION__));
+                if (feature->network_intelligence_activate)
+                {
+                    ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -activateNI &");
+                    if(ret != 0)
+                    {
+                        CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                    }
+                }
+                else
+                {
+                    ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -deactivateNI &");
+                    if(ret != 0)
+                    {
+                        CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
+                    }
+                }
             }
         }
-        else
+#endif // NETWORK_INTELLIGENCE
+        ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -configure_features &");
+        if(ret != 0)
         {
-            ret = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -configure_features &");
-            if(ret != 0)
-            {
-                CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
-            }
+            CcspTraceWarning(("Failure in executing command via v_secure_system. ret val: %d \n", ret));
         }
     }
 

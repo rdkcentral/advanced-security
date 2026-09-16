@@ -60,7 +60,7 @@ then
         disable_networkintelligence
     fi
 
-    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ] && [ "$ADVSEC_NETWORKINTELLIGENCE_ACTIVATED" = "1" ]; then
+    if [ "$ADVSEC_NETWORKINTELLIGENCE_ACTIVATED" = "1" ]; then
         activate_networkintelligence
     else
         deactivate_networkintelligence
@@ -590,7 +590,9 @@ disable_networkintelligence()
 activate_networkintelligence()
 {
     touch $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH
-    echo_t ${ADV_NETWORKINTELLIGENCE_ACTIVATE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    if [ -f "$ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH" ]; then
+        echo_t ${ADV_NETWORKINTELLIGENCE_ACTIVATE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    fi
 
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "AgentNetworkIntelligence_Activated"
@@ -604,7 +606,9 @@ activate_networkintelligence()
 deactivate_networkintelligence()
 {
     rm -f $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH
-    echo_t ${ADV_NETWORKINTELLIGENCE_DEACTIVATE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    if [ -f "$ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH" ]; then
+        echo_t ${ADV_NETWORKINTELLIGENCE_DEACTIVATE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    fi
 
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "AgentNetworkIntelligence_Deactivated"
