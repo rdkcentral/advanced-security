@@ -177,6 +177,9 @@ then
     exit 0
 elif [ "$1" = "-disable" ]
 then
+
+    stop_ni_service
+
     stop_agent_services
 
     if [ "$DF_ENABLED" != "1" ]; then
@@ -231,7 +234,9 @@ then
         rm $ADVSEC_CUJOTRACER_ENABLED_PATH
     fi
 
-    rm -f ${ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH}
+    if [ -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH ]; then
+        rm $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
+    fi
 
     if [ -f $ADVSEC_CUJOTELEMETRY_ENABLED_PATH ]; then
         rm $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
