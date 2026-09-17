@@ -49,41 +49,37 @@ uint32_t advsec_webconfig_get_blobversion(char* subdoc)
 }
 
 /* API to update the subdoc version */
-int advsec_webconfig_set_blobversion(char* subdoc,uint32_t version)
+int advsec_webconfig_set_blobversion(char* subdoc, uint32_t version)
 {
+    char subdoc_ver[64] = {0}, buf[72] = {0};
+    errno_t rc = -1;
 
-	char subdoc_ver[64] = {0}, buf[72] = {0};
-        errno_t rc = -1;
-
-        rc = sprintf_s(subdoc_ver,sizeof(subdoc_ver),"%u",version);
-        if(rc < EOK)
-        {
-            ERR_CHK(rc);
-            return -1;
-        }
-        rc = sprintf_s(buf,sizeof(buf),"%s_version",subdoc);
-        if(rc < EOK)
-        {
-            ERR_CHK(rc);
-            return -1;
-        }
- 	if(syscfg_set(NULL,buf,subdoc_ver) != 0)
+    rc = sprintf_s(subdoc_ver, sizeof(subdoc_ver), "%u", version);
+    if(rc < EOK)
+    {
+        ERR_CHK(rc);
+        return -1;
+    }
+    rc = sprintf_s(buf, sizeof(buf), "%s_version", subdoc);
+    if(rc < EOK)
+    {
+        ERR_CHK(rc);
+        return -1;
+    }
+ 	if(syscfg_set(NULL, buf, subdoc_ver) != 0)
  	{
-        	CcspTraceError(("syscfg_set failed\n"));
-        	return -1;
+        CcspTraceError(("syscfg_set failed for [%s]\n", buf));
+        return -1;
  	}
 	else
-     	{
-        	if (syscfg_commit() != 0)
-        	{
-           		CcspTraceError(("syscfg_commit failed\n"));
-                return -1;
-
-        	}
-    	}
-     	
-	return 0;
-     	 
+    {
+        if (syscfg_commit() != 0)
+        {
+            CcspTraceError(("syscfg_commit failed for [%s]\n", buf));
+            return -1;
+        }
+    }
+	return 0;	 
 }
 
 /* API to register all the supported subdocs , versionGet and versionSet are callback functions to get and set the subdoc versions in db */
