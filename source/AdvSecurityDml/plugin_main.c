@@ -103,10 +103,15 @@ COSA_Init
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecurityUserSpace_RFC_GetParamBoolValue", AdvanceSecurityUserSpace_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "AdvanceSecurityUserSpace_RFC_SetParamBoolValue", AdvanceSecurityUserSpace_RFC_SetParamBoolValue);
 
+#ifdef NETWORK_INTELLIGENCE
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "NetworkIntelligence_RFC_GetParamBoolValue", NetworkIntelligence_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "NetworkIntelligence_RFC_SetParamBoolValue", NetworkIntelligence_RFC_SetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "NetworkIntelligence_RFC_GetParamUlongValue", NetworkIntelligence_RFC_GetParamUlongValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "NetworkIntelligence_RFC_SetParamUlongValue", NetworkIntelligence_RFC_SetParamUlongValue);
+
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "NetworkIntelligence_GetParamBoolValue", NetworkIntelligence_GetParamBoolValue);
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "NetworkIntelligence_SetParamBoolValue", NetworkIntelligence_SetParamBoolValue);
+#endif // NETWORK_INTELLIGENCE
 
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WifiDataCollection_RFC_GetParamBoolValue", WifiDataCollection_RFC_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WifiDataCollection_RFC_SetParamBoolValue", WifiDataCollection_RFC_SetParamBoolValue);

@@ -108,7 +108,9 @@ void* comp_helper_convert( const void *buf, size_t len,
                         version =  __finder_comp( "version", expect_type, &msg.data.via.map );
                         transaction_id =  __finder_comp( "transaction_id", expect_type, &msg.data.via.map );
                     
-                        if( ((NULL != inner) && (0 == (process)(p,4, inner, subdoc_name, version, transaction_id))) ||
+                        if( ((NULL != inner) && (NULL != subdoc_name) &&
+                             (NULL != version) && (NULL != transaction_id) &&
+                             (0 == (process)(p,4, inner, subdoc_name, version, transaction_id))) ||
                               ((true == optional) && (NULL == inner)) )
                         {
                             msgpack_unpacked_destroy( &msg );

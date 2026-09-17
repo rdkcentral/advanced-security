@@ -60,6 +60,12 @@ then
         disable_networkintelligence
     fi
 
+    if [ "$ADVSEC_NETWORKINTELLIGENCE_ACTIVATED" = "1" ]; then
+        activate_networkintelligence
+    else
+        deactivate_networkintelligence
+    fi
+
     start_ni_service
 
     start_agent_services
@@ -236,6 +242,10 @@ then
 
     if [ -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH ]; then
         rm $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH ]; then
+        rm $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH
     fi
 
     if [ -f $ADVSEC_CUJOTELEMETRY_ENABLED_PATH ]; then
@@ -585,6 +595,38 @@ disable_networkintelligence()
     fi
 }
 
+activate_networkintelligence()
+{
+    touch $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH
+    if [ -f "$ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH" ]; then
+        echo_t ${ADV_NETWORKINTELLIGENCE_ACTIVATE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    fi
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentNetworkIntelligence_Activated"
+    fi
+
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
+}
+
+deactivate_networkintelligence()
+{
+    rm -f $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH
+    if [ -f "$ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH" ]; then
+        echo_t ${ADV_NETWORKINTELLIGENCE_DEACTIVATE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    fi
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentNetworkIntelligence_Deactivated"
+    fi
+
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
+}
+
 enable_sate()
 {
     touch $ADVSEC_SATE_ENABLED_PATH
@@ -867,11 +909,35 @@ if [ "$1" = "-disableOTM" ]; then
 fi
 
 if [ "$1" = "-enableNI" ]; then
-    enable_networkintelligence "RR"
+    enable_networkintelligence
 fi
 
 if [ "$1" = "-disableNI" ]; then
+    disable_networkintelligence
+fi
+
+if [ "$1" = "-enableNI_R" ]; then
+    enable_networkintelligence "RR"
+fi
+
+if [ "$1" = "-disableNI_R" ]; then
     disable_networkintelligence "RR"
+fi
+
+if [ "$1" = "-activateNI" ]; then
+    activate_networkintelligence
+fi
+
+if [ "$1" = "-deactivateNI" ]; then
+    deactivate_networkintelligence
+fi
+
+if [ "$1" = "-activateNI_R" ]; then
+    activate_networkintelligence "RR"
+fi
+
+if [ "$1" = "-deactivateNI_R" ]; then
+    deactivate_networkintelligence "RR"
 fi
 
 if [ "$1" = "-enableWifiDCL" ]; then
