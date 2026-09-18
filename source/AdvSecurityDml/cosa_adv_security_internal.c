@@ -33,6 +33,9 @@
 #include "cosa_adv_security_internal.h"
 #include "cosa_adv_security_dml.h"
 #include "cosa_adv_security_webconfig.h"
+#ifdef NETWORK_INTELLIGENCE
+#include "cosa_network_intelligence_webconfig.h"
+#endif
 #include "ccsp_psm_helper.h"
 #include <sysevent/sysevent.h>
 #include <time.h>
@@ -2590,6 +2593,40 @@ int advsec_webconfig_handle_blob(advsecurityparam_t *feature)
     CcspTraceInfo(("Done %s\n", __FUNCTION__));
     return BLOB_EXEC_SUCCESS;
 }
+
+#ifdef NETWORK_INTELLIGENCE
+int ni_webconfig_handle_blob(networkintelligenceparam_t *feature)
+{
+    ANSC_STATUS  returnStatus = ANSC_STATUS_SUCCESS;
+
+    CcspTraceInfo(("Entering %s\n", __FUNCTION__));
+
+    if ( g_pAdvSecAgent == NULL || g_pAdvSecAgent->pNetworkIntelligence == NULL ||
+         g_pAdvSecAgent->pAdvNetworkIntelligence_RFC == NULL )
+    {
+        CcspTraceError(("%s: NetworkIntelligence datamodel is not initialized\n", __FUNCTION__));
+        return ADVSEC_FAILURE;
+    }
+
+    if ( feature->network_intelligence_activate == g_pAdvSecAgent->pNetworkIntelligence->bActivate )
+    {
+        CcspTraceInfo(("%s: NetworkIntelligence activate already set to %d\n",
+            __FUNCTION__, feature->network_intelligence_activate));
+        return BLOB_EXEC_SUCCESS;
+    }
+
+    if ( feature->network_intelligence_activate )
+        returnStatus = CosaNetworkIntelligenceActivate(g_pAdvSecAgent->pNetworkIntelligence);
+    else
+        returnStatus = CosaNetworkIntelligenceDeactivate(g_pAdvSecAgent->pNetworkIntelligence);
+
+    if ( returnStatus != ANSC_STATUS_SUCCESS )
+        return SYSCFG_FAILURE;
+
+    CcspTraceInfo(("Done %s\n", __FUNCTION__));
+    return BLOB_EXEC_SUCCESS;
+}
+#endif // NETWORK_INTELLIGENCE
 
 ANSC_STATUS CosaAdvSecGetLoggingPeriod()
 {

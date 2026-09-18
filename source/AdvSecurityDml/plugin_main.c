@@ -111,6 +111,8 @@ COSA_Init
 
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "NetworkIntelligence_GetParamBoolValue", NetworkIntelligence_GetParamBoolValue);
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "NetworkIntelligence_SetParamBoolValue", NetworkIntelligence_SetParamBoolValue);
+
+    pPlugInfo->RegisterFunction(pPlugInfo->hContext, "NetworkIntelligence_SetParamStringValue", NetworkIntelligence_SetParamStringValue);
 #endif // NETWORK_INTELLIGENCE
 
     pPlugInfo->RegisterFunction(pPlugInfo->hContext, "WifiDataCollection_RFC_GetParamBoolValue", WifiDataCollection_RFC_GetParamBoolValue);

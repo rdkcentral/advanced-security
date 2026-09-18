@@ -21,6 +21,10 @@
 #include "ansc_platform.h"
 #include "cosa_adv_security_internal.h"
 #include "cosa_adv_security_webconfig.h"
+#ifdef NETWORK_INTELLIGENCE
+#include "cosa_network_intelligence_webconfig.h"
+#include "networkintelligence_param.h"
+#endif
 #include "syslog.h"
 #include "ccsp_trace.h"
 #include "msgpack.h"
@@ -4202,6 +4206,181 @@ NetworkIntelligence_RFC_SetParamUlongValue
 
         return TRUE;
     }
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        NetworkIntelligence_SetParamStringValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                char*                       pString
+            );
+
+    description:
+
+        This function is called to set string parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                char*                       pString
+                The updated string value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+NetworkIntelligence_SetParamStringValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        char*                       pString
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    errno_t rc = -1;
+    int ind = -1;
+
+    if(ParamName == NULL || pString == NULL)
+        return FALSE;
+
+    /* check the parameter name and set the corresponding value */
+    rc = strcmp_s("Data", strlen("Data"), ParamName, &ind);
+    ERR_CHK(rc);
+    if((rc == EOK) && (!ind))
+    {
+        networkintelligencedoc_t *nd = NULL;
+        int err;
+        char * decodeMsg = NULL;
+        int decodeMsgSize = 0;
+        int size = 0;
+        BOOL ret_val = TRUE;
+
+        msgpack_zone mempool;
+        msgpack_object deserialized;
+        msgpack_unpack_return unpack_ret;
+
+        decodeMsgSize = b64_get_decoded_buffer_size(strlen(pString));
+        decodeMsg = (char *) AnscAllocateMemory(sizeof(char) * decodeMsgSize);
+        if (decodeMsg == NULL)
+        {
+            CcspTraceError(("decodeMsg AnscAllocateMemory failed\n"));
+            return FALSE;
+        }
+        size = b64_decode((uint8_t *) pString, strlen(pString),(uint8_t *) decodeMsg );
+        CcspTraceInfo(("base64 decoded data contains %d bytes\n",size));
+
+        msgpack_zone_init(&mempool, 2048);
+        unpack_ret = msgpack_unpack(decodeMsg, size, NULL, &mempool, &deserialized);
+        switch(unpack_ret)
+        {
+            case MSGPACK_UNPACK_SUCCESS:
+                CcspTraceInfo(("MSGPACK_UNPACK_SUCCESS :%d\n",unpack_ret));
+                break;
+            case MSGPACK_UNPACK_EXTRA_BYTES:
+                CcspTraceInfo(("MSGPACK_UNPACK_EXTRA_BYTES :%d\n",unpack_ret));
+                break;
+            case MSGPACK_UNPACK_CONTINUE:
+                CcspTraceInfo(("MSGPACK_UNPACK_CONTINUE :%d\n",unpack_ret));
+                break;
+            case MSGPACK_UNPACK_PARSE_ERROR:
+                CcspTraceError(("MSGPACK_UNPACK_PARSE_ERROR :%d\n",unpack_ret));
+                break;
+            case MSGPACK_UNPACK_NOMEM_ERROR:
+                CcspTraceError(("MSGPACK_UNPACK_NOMEM_ERROR :%d\n",unpack_ret));
+            break;
+            default:
+                CcspTraceError(("Message Pack decode failed with error: %d\n", unpack_ret));
+        }
+        msgpack_zone_destroy(&mempool);
+
+        CcspTraceInfo(("---------------End of b64 decode--------------\n"));
+
+        if(unpack_ret == MSGPACK_UNPACK_SUCCESS)
+        {
+            CcspTraceInfo(("Msg unpack success\n"));
+            nd = networkintelligencedoc_convert(decodeMsg, size);//used to process the incoming msgobject
+            err = errno;
+            CcspTraceInfo(("errno: %s\n", networkintelligencedoc_strerror(err)));
+
+            if(nd != NULL)
+            {
+                CcspTraceInfo(("nd->subdoc_name is %s\n", nd->subdoc_name));
+                CcspTraceInfo(("nd->version is %lu\n", (long)nd->version));
+                CcspTraceInfo(("nd->transaction_id %lu\n",(long) nd->transaction_id));
+                CcspTraceInfo(("network_intelligence_activate:[%d]\n",
+                    nd->param->network_intelligence_activate));
+
+                execData *execDataNi = NULL ;
+                execDataNi = (execData*) AnscAllocateMemory (sizeof(execData));
+
+                if ( execDataNi != NULL )
+                {
+                    rc = memset_s(execDataNi, sizeof(execData), 0, sizeof(execData));
+                    ERR_CHK(rc);
+
+                    execDataNi->txid = nd->transaction_id;
+                    execDataNi->version = nd->version;
+                    execDataNi->numOfEntries = 1;
+
+                    rc = strcpy_s(execDataNi->subdoc_name, sizeof(execDataNi->subdoc_name), nd->subdoc_name);
+                    if(rc != EOK)
+                    {
+                       ERR_CHK(rc);
+                       AnscFreeMemory(execDataNi);
+                       execDataNi = NULL;
+                       networkintelligencedoc_destroy(nd);
+                       AnscFreeMemory(decodeMsg);
+                       decodeMsg = NULL;
+                       return FALSE;
+                    }
+
+                    execDataNi->user_data = (void*) nd;
+                    execDataNi->calcTimeout = NULL ;
+                    execDataNi->executeBlobRequest = ni_webconfig_process_request;
+                    execDataNi->rollbackFunc = ni_webconfig_rollback;
+                    execDataNi->freeResources = ni_webconfig_free_resources;
+                    PushBlobRequest(execDataNi);
+                    CcspTraceInfo(("PushBlobRequest complete\n"));
+                }
+                else
+                {
+                    CcspTraceError(("execData AnscAllocateMemory failed\n"));
+                    networkintelligencedoc_destroy(nd);
+                    ret_val = FALSE;
+                }
+            }
+            else
+            {
+                CcspTraceError(("Failed to convert networkintelligence subdoc\n"));
+                ret_val = FALSE;
+            }
+        }
+        else
+        {
+            CcspTraceError(("Failed to unpack msgpack\n"));
+            ret_val = FALSE;
+        }
+
+        if ( decodeMsg )
+        {
+            AnscFreeMemory (decodeMsg);
+            decodeMsg = NULL;
+        }
+        return ret_val;
+    }
+
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;
 }

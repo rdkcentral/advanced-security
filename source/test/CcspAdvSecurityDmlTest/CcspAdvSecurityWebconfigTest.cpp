@@ -165,8 +165,8 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_init) {
         .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
-        .Times(1)
-        .WillOnce(Return(0));
+        .Times(SUBDOC_COUNT)
+        .WillRepeatedly(Return(0));
 
     EXPECT_CALL(*g_webconfigFwMock, register_sub_docs(_, _, _, _))
         .Times(1);

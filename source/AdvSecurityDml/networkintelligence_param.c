@@ -22,7 +22,7 @@
 #include <stdarg.h>
 #include "ccsp_trace.h"
 #include "advsecurity_helpers.h"
-#include "advsecurity_param.h"
+#include "networkintelligence_param.h"
 #include "ansc_platform.h"
 
 /*----------------------------------------------------------------------------*/
@@ -36,7 +36,7 @@ enum {
     OK                       = HELPERS_OK,
     OUT_OF_MEMORY            = HELPERS_OUT_OF_MEMORY,
     INVALID_FIRST_ELEMENT    = HELPERS_INVALID_FIRST_ELEMENT,
-    MISSING_ENTRY         = HELPERS_MISSING_WRAPPER,
+    MISSING_ENTRY            = HELPERS_MISSING_WRAPPER,
     INVALID_OBJECT,
     INVALID_VERSION,
 };
@@ -47,38 +47,37 @@ enum {
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-int process_advsecurityparams( advsecurityparam_t *e, msgpack_object_map *map );
-int process_advsecuritydoc( advsecuritydoc_t *ad, int num, ...); 
+int process_networkintelligenceparams( networkintelligenceparam_t *e, msgpack_object_map *map );
+int process_networkintelligencedoc( networkintelligencedoc_t *nd, int num, ...);
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-/* See advsecuritydoc.h for details. */
-advsecuritydoc_t* advsecuritydoc_convert( const void *buf, size_t len )
+/* See networkintelligence_param.h for details. */
+networkintelligencedoc_t* networkintelligencedoc_convert( const void *buf, size_t len )
 {
-	return comp_helper_convert( buf, len, sizeof(advsecuritydoc_t), ADVSEC_WEBCONFIG_SUBDOC_NAME,
+    return comp_helper_convert( buf, len, sizeof(networkintelligencedoc_t), NI_WEBCONFIG_SUBDOC_NAME,
                             MSGPACK_OBJECT_MAP, true,
-                           (process_fn_t) process_advsecuritydoc,
-                           (destroy_fn_t) advsecuritydoc_destroy );
+                           (process_fn_t) process_networkintelligencedoc,
+                           (destroy_fn_t) networkintelligencedoc_destroy );
 }
-/* See advsecuritydoc.h for details. */
-void advsecuritydoc_destroy( advsecuritydoc_t *ad )
+/* See networkintelligence_param.h for details. */
+void networkintelligencedoc_destroy( networkintelligencedoc_t *nd )
 {
-	if( NULL != ad )
-	{
-		
-		if( NULL != ad->subdoc_name )
-		{
-			AnscFreeMemory ( ad->subdoc_name );
-		}
-                if( NULL != ad->param )
-                {
-                        AnscFreeMemory ( ad->param );
-                }
-		AnscFreeMemory ( ad );
-	}
+    if( NULL != nd )
+    {
+        if( NULL != nd->subdoc_name )
+        {
+            AnscFreeMemory ( nd->subdoc_name );
+        }
+        if( NULL != nd->param )
+        {
+            AnscFreeMemory ( nd->param );
+        }
+        AnscFreeMemory ( nd );
+    }
 }
-/* See advsecuritydoc.h for details. */
-const char* advsecuritydoc_strerror( int errnum )
+/* See networkintelligence_param.h for details. */
+const char* networkintelligencedoc_strerror( int errnum )
 {
     struct error_map {
         int v;
@@ -87,15 +86,15 @@ const char* advsecuritydoc_strerror( int errnum )
         { .v = OK,                               .txt = "No errors." },
         { .v = OUT_OF_MEMORY,                    .txt = "Out of memory." },
         { .v = INVALID_FIRST_ELEMENT,            .txt = "Invalid first element." },
-        { .v = INVALID_VERSION,                 .txt = "Invalid 'version' value." },
-        { .v = INVALID_OBJECT,                .txt = "Invalid 'value' array." },
+        { .v = INVALID_VERSION,                  .txt = "Invalid 'version' value." },
+        { .v = INVALID_OBJECT,                   .txt = "Invalid 'value' array." },
         { .v = 0, .txt = NULL }
     };
     int i = 0;
     while( (map[i].v != errnum) && (NULL != map[i].txt) ) { i++; }
     if( NULL == map[i].txt )
     {
-	CcspTraceError(("----%s----\n", __FUNCTION__));
+        CcspTraceError(("----%s----\n", __FUNCTION__));
         return "Unknown error.";
     }
     return map[i].txt;
@@ -111,10 +110,10 @@ const char* advsecuritydoc_strerror( int errnum )
  *
  *  @return 0 on success, error otherwise
  */
-int process_advsecurityparams( advsecurityparam_t *e, msgpack_object_map *map )
+int process_networkintelligenceparams( networkintelligenceparam_t *e, msgpack_object_map *map )
 {
     int left = map->size;
-    uint8_t objects_left = 0x1F;
+    uint8_t objects_left = 0x01;
     msgpack_object_kv *p;
     p = map->ptr;
     while( (0 < left--) && (0 != objects_left) )
@@ -123,54 +122,34 @@ int process_advsecurityparams( advsecurityparam_t *e, msgpack_object_map *map )
         {
             if( MSGPACK_OBJECT_BOOLEAN == p->val.type )
             {
-                if( 0 == match(p, "FingerPrintEnable") )
+                if( 0 == match(p, "NetworkIntelligenceActivate") )
                 {
-                    e->fingerprint_enable = p->val.via.boolean;
+                    e->network_intelligence_activate = p->val.via.boolean;
                     objects_left &= ~(1 << 0);
-                }
-                if( 0 == match(p, "SoftflowdEnable") )
-                {
-                    e->softflowd_enable = p->val.via.boolean;
-                    objects_left &= ~(1 << 1);
-                }
-                if( 0 == match(p, "SafeBrowsingEnable") )
-                {
-                    e->safebrowsing_enable = p->val.via.boolean;
-                    objects_left &= ~(1 << 2);
-                }
-                if( 0 == match(p, "ParentalControlActivate") )
-                {
-                    e->parental_control_activate = p->val.via.boolean;
-                    objects_left &= ~(1 << 3);
-                }
-                if( 0 == match(p, "PrivacyProtectionActivate") )
-                {
-                    e->privacy_protection_activate = p->val.via.boolean;
-                    objects_left &= ~(1 << 4);
                 }
             }
         }
         p++;
     }
-    
+
     if( 1 & objects_left ) {
     } else {
         errno = OK;
     }
-   
+
     return (0 == objects_left) ? 0 : -1;
 }
-int process_advsecuritydoc( advsecuritydoc_t *ad,int num, ... )
+int process_networkintelligencedoc( networkintelligencedoc_t *nd, int num, ... )
 {
-//To access the variable arguments use va_list 
-	va_list valist;
-	va_start(valist, num);//start of variable argument loop
+//To access the variable arguments use va_list
+    va_list valist;
+    va_start(valist, num);//start of variable argument loop
 
-	msgpack_object *obj = va_arg(valist, msgpack_object *);//each usage of va_arg fn argument iterates by one time
-	msgpack_object *obj1 = va_arg(valist, msgpack_object *);
-	msgpack_object *obj2 = va_arg(valist, msgpack_object *);
-	msgpack_object *obj3 = va_arg(valist, msgpack_object *);
-	va_end(valist);//End of variable argument loop
+    msgpack_object *obj = va_arg(valist, msgpack_object *);//each usage of va_arg fn argument iterates by one time
+    msgpack_object *obj1 = va_arg(valist, msgpack_object *);
+    msgpack_object *obj2 = va_arg(valist, msgpack_object *);
+    msgpack_object *obj3 = va_arg(valist, msgpack_object *);
+    va_end(valist);//End of variable argument loop
 
     if( (NULL == obj) || (NULL == obj1) || (NULL == obj2) || (NULL == obj3) )
     {
@@ -189,30 +168,29 @@ int process_advsecuritydoc( advsecuritydoc_t *ad,int num, ... )
 
     msgpack_object_map *mapobj = &obj->via.map;
 
-    ad->subdoc_name = strndup( obj1->via.str.ptr, obj1->via.str.size );
-    if( NULL == ad->subdoc_name )
+    nd->subdoc_name = strndup( obj1->via.str.ptr, obj1->via.str.size );
+    if( NULL == nd->subdoc_name )
     {
         CcspTraceError(("%s subdoc_name strndup failed\n", __FUNCTION__));
         return -1;
     }
 
-	ad->version = (uint32_t) obj2->via.u64;
-	ad->transaction_id = (uint16_t) obj3->via.u64;
+    nd->version = (uint32_t) obj2->via.u64;
+    nd->transaction_id = (uint16_t) obj3->via.u64;
 
-	ad->param = (advsecurityparam_t *) AnscAllocateMemory( sizeof(advsecurityparam_t) );
-        if( NULL == ad->param )
-        {
-	    CcspTraceError(("%s entries count AnscAllocateMemory failed\n", __FUNCTION__));
-            return -1;
-        }
-        memset( ad->param, 0, sizeof(advsecurityparam_t));
+    nd->param = (networkintelligenceparam_t *) AnscAllocateMemory( sizeof(networkintelligenceparam_t) );
+    if( NULL == nd->param )
+    {
+        CcspTraceError(("%s entries count AnscAllocateMemory failed\n", __FUNCTION__));
+        return -1;
+    }
+    memset( nd->param, 0, sizeof(networkintelligenceparam_t));
 
-
-	if( 0 != process_advsecurityparams(ad->param, mapobj) )
-	{
-		CcspTraceError(("%s failed\n", __FUNCTION__));
-		return -1;
-	}
+    if( 0 != process_networkintelligenceparams(nd->param, mapobj) )
+    {
+        CcspTraceError(("%s failed\n", __FUNCTION__));
+        return -1;
+    }
 
     return 0;
 }

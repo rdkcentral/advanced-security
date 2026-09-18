@@ -87,7 +87,11 @@ int advsec_webconfig_set_blobversion(char* subdoc, uint32_t version)
 void advsec_webconfig_init()
 {
         errno_t rc = -1;
-	char *sub_docs[SUBDOC_COUNT+1]= {ADVSEC_WEBCONFIG_SUBDOC_NAME,(char *) 0 };
+	char *sub_docs[SUBDOC_COUNT+1]= {ADVSEC_WEBCONFIG_SUBDOC_NAME,
+#ifdef NETWORK_INTELLIGENCE
+                                         NI_WEBCONFIG_SUBDOC_NAME,
+#endif
+                                         (char *) 0 };
     
     	blobRegInfo *blobData;
 
