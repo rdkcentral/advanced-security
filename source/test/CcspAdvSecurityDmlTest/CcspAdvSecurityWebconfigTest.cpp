@@ -179,7 +179,7 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_init) {
 
 TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_process_request_success) {
     
-    advsecurityparam_t feature;
+    advsecurityparam_t feature = {};
     advsecuritydoc_t advsec;
     advsec.param = &feature;
     advsec.subdoc_name = strdup("advsecurity");
@@ -237,7 +237,7 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_process_request_suc
 
 TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_process_request_failure) {
     
-    advsecurityparam_t feature;
+    advsecurityparam_t feature = {};
     advsecuritydoc_t advsec;
     advsec.param = &feature;
     advsec.subdoc_name = strdup("advsecurity");

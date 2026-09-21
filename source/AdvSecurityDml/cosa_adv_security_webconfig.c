@@ -49,41 +49,37 @@ uint32_t advsec_webconfig_get_blobversion(char* subdoc)
 }
 
 /* API to update the subdoc version */
-int advsec_webconfig_set_blobversion(char* subdoc,uint32_t version)
+int advsec_webconfig_set_blobversion(char* subdoc, uint32_t version)
 {
+    char subdoc_ver[64] = {0}, buf[72] = {0};
+    errno_t rc = -1;
 
-	char subdoc_ver[64] = {0}, buf[72] = {0};
-        errno_t rc = -1;
-
-        rc = sprintf_s(subdoc_ver,sizeof(subdoc_ver),"%u",version);
-        if(rc < EOK)
-        {
-            ERR_CHK(rc);
-            return -1;
-        }
-        rc = sprintf_s(buf,sizeof(buf),"%s_version",subdoc);
-        if(rc < EOK)
-        {
-            ERR_CHK(rc);
-            return -1;
-        }
- 	if(syscfg_set(NULL,buf,subdoc_ver) != 0)
+    rc = sprintf_s(subdoc_ver, sizeof(subdoc_ver), "%u", version);
+    if(rc < EOK)
+    {
+        ERR_CHK(rc);
+        return -1;
+    }
+    rc = sprintf_s(buf, sizeof(buf), "%s_version", subdoc);
+    if(rc < EOK)
+    {
+        ERR_CHK(rc);
+        return -1;
+    }
+ 	if(syscfg_set(NULL, buf, subdoc_ver) != 0)
  	{
-        	CcspTraceError(("syscfg_set failed\n"));
-        	return -1;
+        CcspTraceError(("syscfg_set failed for [%s]\n", buf));
+        return -1;
  	}
 	else
-     	{
-        	if (syscfg_commit() != 0)
-        	{
-           		CcspTraceError(("syscfg_commit failed\n"));
-                return -1;
-
-        	}
-    	}
-     	
-	return 0;
-     	 
+    {
+        if (syscfg_commit() != 0)
+        {
+            CcspTraceError(("syscfg_commit failed for [%s]\n", buf));
+            return -1;
+        }
+    }
+	return 0;	 
 }
 
 /* API to register all the supported subdocs , versionGet and versionSet are callback functions to get and set the subdoc versions in db */
@@ -155,9 +151,18 @@ pErr advsec_webconfig_process_request(void *Data)
             CcspTraceInfo(("%s: advsec->subdoc_name is %s\n", __FUNCTION__, advsec->subdoc_name));
             CcspTraceInfo(("%s: advsec->version is %lu\n", __FUNCTION__, (long)advsec->version));
             CcspTraceInfo(("%s: advsec->transaction_id %lu\n",__FUNCTION__, (long) advsec->transaction_id));
-            CcspTraceInfo(("%s: fingerprint_enable[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d]\n",
-                __FUNCTION__, advsec->param->fingerprint_enable,advsec->param->softflowd_enable,advsec->param->safebrowsing_enable,
-                advsec->param->parental_control_activate, advsec->param->privacy_protection_activate));
+            if (advsec->param->network_intelligence_present)
+            {
+                CcspTraceInfo(("%s: fingerprint_enable[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d], network_intelligence_activate[%d]\n",
+                    __FUNCTION__, advsec->param->fingerprint_enable,advsec->param->softflowd_enable,advsec->param->safebrowsing_enable,
+                    advsec->param->parental_control_activate, advsec->param->privacy_protection_activate, advsec->param->network_intelligence_activate));
+            }
+            else
+            {
+                CcspTraceInfo(("%s: fingerprint_enable[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d]\n",
+                    __FUNCTION__, advsec->param->fingerprint_enable,advsec->param->softflowd_enable,advsec->param->safebrowsing_enable,
+                    advsec->param->parental_control_activate, advsec->param->privacy_protection_activate));
+            }
 
             rc = strcmp_s(ADVSEC_WEBCONFIG_SUBDOC_NAME, strlen(ADVSEC_WEBCONFIG_SUBDOC_NAME), advsec->subdoc_name, &ind);
             ERR_CHK(rc);
