@@ -87,7 +87,11 @@ int advsec_webconfig_set_blobversion(char* subdoc, uint32_t version)
 void advsec_webconfig_init()
 {
         errno_t rc = -1;
-	char *sub_docs[SUBDOC_COUNT+1]= {ADVSEC_WEBCONFIG_SUBDOC_NAME,(char *) 0 };
+	char *sub_docs[SUBDOC_COUNT+1]= {ADVSEC_WEBCONFIG_SUBDOC_NAME,
+#ifdef NETWORK_INTELLIGENCE
+                                         NI_WEBCONFIG_SUBDOC_NAME,
+#endif
+                                         (char *) 0 };
     
     	blobRegInfo *blobData;
 
@@ -151,18 +155,9 @@ pErr advsec_webconfig_process_request(void *Data)
             CcspTraceInfo(("%s: advsec->subdoc_name is %s\n", __FUNCTION__, advsec->subdoc_name));
             CcspTraceInfo(("%s: advsec->version is %lu\n", __FUNCTION__, (long)advsec->version));
             CcspTraceInfo(("%s: advsec->transaction_id %lu\n",__FUNCTION__, (long) advsec->transaction_id));
-            if (advsec->param->network_intelligence_present)
-            {
-                CcspTraceInfo(("%s: fingerprint_enable[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d], network_intelligence_activate[%d]\n",
-                    __FUNCTION__, advsec->param->fingerprint_enable,advsec->param->softflowd_enable,advsec->param->safebrowsing_enable,
-                    advsec->param->parental_control_activate, advsec->param->privacy_protection_activate, advsec->param->network_intelligence_activate));
-            }
-            else
-            {
-                CcspTraceInfo(("%s: fingerprint_enable[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d]\n",
-                    __FUNCTION__, advsec->param->fingerprint_enable,advsec->param->softflowd_enable,advsec->param->safebrowsing_enable,
-                    advsec->param->parental_control_activate, advsec->param->privacy_protection_activate));
-            }
+            CcspTraceInfo(("%s: fingerprint_enable[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d]\n",
+                __FUNCTION__, advsec->param->fingerprint_enable,advsec->param->softflowd_enable,advsec->param->safebrowsing_enable,
+                advsec->param->parental_control_activate, advsec->param->privacy_protection_activate));
 
             rc = strcmp_s(ADVSEC_WEBCONFIG_SUBDOC_NAME, strlen(ADVSEC_WEBCONFIG_SUBDOC_NAME), advsec->subdoc_name, &ind);
             ERR_CHK(rc);

@@ -16,46 +16,42 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-#ifndef __ADVSECURITY_PARAM_H__
-#define __ADVSECURITY_PARAM_H__
+#ifndef __NETWORKINTELLIGENCE_PARAM_H__
+#define __NETWORKINTELLIGENCE_PARAM_H__
 #include <stdint.h>
 #include <stdlib.h>
 #include <msgpack.h>
 
-#define ADVSEC_WEBCONFIG_SUBDOC_NAME "advsecurity"
+#define NI_WEBCONFIG_SUBDOC_NAME "networkintelligence"
 
 typedef struct
 {
-    bool  fingerprint_enable;
-    bool  softflowd_enable;
-    bool  safebrowsing_enable;
-    bool  parental_control_activate;
-    bool  privacy_protection_activate;
+    bool  network_intelligence_activate;
 
-} advsecurityparam_t;
+} networkintelligenceparam_t;
 
 typedef struct {
-    advsecurityparam_t  *param;       
+    networkintelligenceparam_t  *param;
     char *       subdoc_name;
     uint32_t     version;
     uint16_t     transaction_id;
-} advsecuritydoc_t;
+} networkintelligencedoc_t;
 /**
- *  This function converts a msgpack buffer into an advsecuritydoc_t structure
- *  if possible.
+ *  This function converts a msgpack buffer into a networkintelligencedoc_t
+ *  structure if possible.
  *
  *  @param buf the buffer to convert
  *  @param len the length of the buffer in bytes
  *
  *  @return NULL on error, success otherwise
  */
-advsecuritydoc_t* advsecuritydoc_convert( const void *buf, size_t len );
+networkintelligencedoc_t* networkintelligencedoc_convert( const void *buf, size_t len );
 /**
- *  This function destroys an advsecuritydoc_t object.
+ *  This function destroys a networkintelligencedoc_t object.
  *
- *  @param e the advsecuritydoc to destroy
+ *  @param d the networkintelligencedoc to destroy
  */
-void advsecuritydoc_destroy( advsecuritydoc_t *d );
+void networkintelligencedoc_destroy( networkintelligencedoc_t *d );
 /**
  *  This function returns a general reason why the conversion failed.
  *
@@ -63,6 +59,5 @@ void advsecuritydoc_destroy( advsecuritydoc_t *d );
  *
  *  @return the constant string (do not alter or free) describing the error
  */
-const char* advsecuritydoc_strerror( int errnum );
+const char* networkintelligencedoc_strerror( int errnum );
 #endif
-

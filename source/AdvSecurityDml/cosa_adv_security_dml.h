@@ -631,6 +631,23 @@ NetworkIntelligence_RFC_SetParamUlongValue
         char*                       ParamName,
         ULONG                       uValue
     );
+
+/***********************************************************************
+
+ APIs for Object:
+
+    X_RDKCENTRAL-COM_NetworkIntelligence.
+
+    *  NetworkIntelligence_SetParamStringValue
+
+***********************************************************************/
+BOOL
+NetworkIntelligence_SetParamStringValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        char*                       pString
+    );
 #endif // NETWORK_INTELLIGENCE
 
 /***********************************************************************

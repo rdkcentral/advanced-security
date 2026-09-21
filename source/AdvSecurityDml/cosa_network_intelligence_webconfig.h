@@ -16,41 +16,22 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-#ifndef  _COSA_ADV_SECURITY_WEBCONFIG_H
-#define  _COSA_ADV_SECURITY_WEBCONFIG_H
+#ifndef  _COSA_NETWORK_INTELLIGENCE_WEBCONFIG_H
+#define  _COSA_NETWORK_INTELLIGENCE_WEBCONFIG_H
 
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <ctype.h>
 #include "ansc_status.h"
 #include "ansc_platform.h"
 
 #include "webconfig_framework.h"
-#include "advsecurity_param.h"
-#ifdef NETWORK_INTELLIGENCE
 #include "networkintelligence_param.h"
-#endif
 
-#ifdef NETWORK_INTELLIGENCE
-#define SUBDOC_COUNT 2
-#else
-#define SUBDOC_COUNT 1
-#endif
-
-#define BLOCK_SIZE 32
-
-uint32_t advsec_webconfig_get_blobversion(char* subdoc);
-int advsec_webconfig_set_blobversion(char* subdoc,uint32_t version);
-void advsec_webconfig_nit() ;
-
-pErr advsec_webconfig_process_request(void *Data);
-int advsec_webconfig_rollback();
-void advsec_webconfig_free_resources(void *arg);
-int advsec_webconfig_handle_blob(advsecurityparam_t *feature);
-void advsec_webconfig_init();
+pErr ni_webconfig_process_request(void *Data);
+int ni_webconfig_rollback();
+void ni_webconfig_free_resources(void *arg);
+int ni_webconfig_handle_blob(networkintelligenceparam_t *feature);
 
 #endif

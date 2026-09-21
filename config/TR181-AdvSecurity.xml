@@ -75,12 +75,19 @@
               <functions>
                 <func_GetParamBoolValue>NetworkIntelligence_GetParamBoolValue</func_GetParamBoolValue>
                 <func_SetParamBoolValue>NetworkIntelligence_SetParamBoolValue</func_SetParamBoolValue>
+                <func_SetParamStringValue>NetworkIntelligence_SetParamStringValue</func_SetParamStringValue>
               </functions>
               <parameters>
                 <parameter>
                   <name>Activate</name>
                   <type>boolean</type>
                   <syntax>bool</syntax>
+                  <writable>true</writable>
+                </parameter>
+                <parameter>
+                  <name>Data</name>
+                  <type>string</type>
+                  <syntax>string</syntax>
                   <writable>true</writable>
                 </parameter>
               </parameters>
