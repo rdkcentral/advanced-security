@@ -577,7 +577,7 @@ AdvancedSecurity_SetParamStringValue
     errno_t rc = -1;
     int ind = -1;
 
-    if(ParamName == NULL)
+    if((ParamName == NULL) || (pString == NULL))
         return FALSE;
     /* check the parameter name and set the corresponding value */
     rc = strcmp_s("Data", strlen("Data"), ParamName, &ind);
@@ -596,9 +596,29 @@ AdvancedSecurity_SetParamStringValue
         msgpack_unpack_return unpack_ret;
 
         decodeMsgSize = b64_get_decoded_buffer_size(strlen(pString));
+        if(decodeMsgSize <= 0)
+        {
+            CcspTraceError(("Invalid base64 decoded buffer size %d\n", decodeMsgSize));
+            return FALSE;
+        }
+
         decodeMsg = (char *) AnscAllocateMemory(sizeof(char) * decodeMsgSize);
+        if(decodeMsg == NULL)
+        {
+            CcspTraceError(("decodeMsg AnscAllocateMemory failed\n"));
+            return FALSE;
+        }
+
         size = b64_decode((uint8_t *) pString, strlen(pString),(uint8_t *) decodeMsg );
         CcspTraceInfo(("base64 decoded data contains %d bytes\n",size));
+
+        if((size <= 0) || (size > decodeMsgSize))
+        {
+            CcspTraceError(("base64 decode failed, invalid length %d (buffer %d)\n", size, decodeMsgSize));
+            AnscFreeMemory(decodeMsg);
+            decodeMsg = NULL;
+            return FALSE;
+        }
 
         msgpack_zone_init(&mempool, 2048);
         unpack_ret = msgpack_unpack(decodeMsg, size, NULL, &mempool, &deserialized);
@@ -4283,6 +4303,12 @@ NetworkIntelligence_SetParamStringValue
         msgpack_unpack_return unpack_ret;
 
         decodeMsgSize = b64_get_decoded_buffer_size(strlen(pString));
+        if (decodeMsgSize <= 0)
+        {
+            CcspTraceError(("Invalid base64 decoded buffer size %d\n", decodeMsgSize));
+            return FALSE;
+        }
+
         decodeMsg = (char *) AnscAllocateMemory(sizeof(char) * decodeMsgSize);
         if (decodeMsg == NULL)
         {
@@ -4291,6 +4317,14 @@ NetworkIntelligence_SetParamStringValue
         }
         size = b64_decode((uint8_t *) pString, strlen(pString),(uint8_t *) decodeMsg );
         CcspTraceInfo(("base64 decoded data contains %d bytes\n",size));
+
+        if ((size <= 0) || (size > decodeMsgSize))
+        {
+            CcspTraceError(("base64 decode failed, invalid length %d (buffer %d)\n", size, decodeMsgSize));
+            AnscFreeMemory(decodeMsg);
+            decodeMsg = NULL;
+            return FALSE;
+        }
 
         msgpack_zone_init(&mempool, 2048);
         unpack_ret = msgpack_unpack(decodeMsg, size, NULL, &mempool, &deserialized);
