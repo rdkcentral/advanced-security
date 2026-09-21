@@ -633,7 +633,7 @@ AdvancedSecurity_SetParamStringValue
             err = errno;
             CcspTraceInfo(("errno: %s\n", advsecuritydoc_strerror(err)));
 
-            if(ad != NULL)
+            if(ad != NULL && ad->param != NULL && ad->subdoc_name != NULL)
             {
                 CcspTraceInfo(("ad->subdoc_name is %s\n", ad->subdoc_name));
                 CcspTraceInfo(("ad->version is %lu\n", (long)ad->version));
@@ -685,6 +685,17 @@ AdvancedSecurity_SetParamStringValue
                     advsecuritydoc_destroy(ad);
                     ret_val = FALSE;
                 }
+            }
+            else if(ad != NULL)
+            {
+                CcspTraceError(("advsecuritydoc missing mandatory fields\n"));
+                advsecuritydoc_destroy(ad);
+                ret_val = FALSE;
+            }
+            else
+            {
+                CcspTraceError(("advsecuritydoc_convert failed\n"));
+                ret_val = FALSE;
             }
         }
         else
@@ -4314,7 +4325,7 @@ NetworkIntelligence_SetParamStringValue
             err = errno;
             CcspTraceInfo(("errno: %s\n", networkintelligencedoc_strerror(err)));
 
-            if(nd != NULL)
+            if(nd != NULL && nd->param != NULL && nd->subdoc_name != NULL)
             {
                 CcspTraceInfo(("nd->subdoc_name is %s\n", nd->subdoc_name));
                 CcspTraceInfo(("nd->version is %lu\n", (long)nd->version));
@@ -4364,6 +4375,7 @@ NetworkIntelligence_SetParamStringValue
             else
             {
                 CcspTraceError(("Failed to convert networkintelligence subdoc\n"));
+                networkintelligencedoc_destroy(nd);
                 ret_val = FALSE;
             }
         }
