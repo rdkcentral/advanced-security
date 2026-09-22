@@ -165,8 +165,8 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_init) {
         .Times(1)
         .WillOnce(Return(0));
     EXPECT_CALL(*g_safecLibMock, _strcpy_s_chk(_, _, _, _))
-        .Times(1)
-        .WillOnce(Return(0));
+        .Times(SUBDOC_COUNT)
+        .WillRepeatedly(Return(0));
 
     EXPECT_CALL(*g_webconfigFwMock, register_sub_docs(_, _, _, _))
         .Times(1);
@@ -179,7 +179,7 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_init) {
 
 TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_process_request_success) {
     
-    advsecurityparam_t feature;
+    advsecurityparam_t feature = {};
     advsecuritydoc_t advsec;
     advsec.param = &feature;
     advsec.subdoc_name = strdup("advsecurity");
@@ -237,7 +237,7 @@ TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_process_request_suc
 
 TEST_F(CcspAdvSecurityWebconfigTestFixture, advsec_webconfig_process_request_failure) {
     
-    advsecurityparam_t feature;
+    advsecurityparam_t feature = {};
     advsecuritydoc_t advsec;
     advsec.param = &feature;
     advsec.subdoc_name = strdup("advsecurity");

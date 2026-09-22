@@ -36,5 +36,6 @@ endif
 
 if NETWORK_INTELLIGENCE
 libdmlasecurity_la_CPPFLAGS += -DDML_SUPPORT -DNETWORK_INTELLIGENCE
+libdmlasecurity_la_SOURCES += cosa_network_intelligence_webconfig.c networkintelligence_param.c
 libdmlasecurity_la_LDFLAGS += -lwifi_webconfig
 endif

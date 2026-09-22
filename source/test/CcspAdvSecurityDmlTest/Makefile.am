@@ -45,6 +45,8 @@ CcspAdvSecurityDmlTest_gtest_bin_SOURCES = CcspAdvSecurityMock.cpp \
                                            ${top_builddir}/source/AdvSecurityDml/advsecurity_helpers.c \
                                            ${top_builddir}/source/AdvSecurityDml/advsecurity_param.c \
                                            ${top_builddir}/source/AdvSecurityDml/cosa_adv_security_webconfig.c \
+                                           ${top_builddir}/source/AdvSecurityDml/cosa_network_intelligence_webconfig.c \
+                                           ${top_builddir}/source/AdvSecurityDml/networkintelligence_param.c \
                                            ${top_builddir}/source/AdvSecurityDml/plugin_main.c \
                                            gtest_main.cpp
 

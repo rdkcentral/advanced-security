@@ -749,7 +749,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_fingerpr
     int val = 0;
     FILE* file = NULL;
 
-    advsecurityparam_t feature;
+    advsecurityparam_t feature = {};
     feature.safebrowsing_enable = false;
     feature.softflowd_enable = false;
     feature.parental_control_activate = false;
@@ -829,7 +829,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_fingerpr
     int val = 0;
     FILE* file = NULL;
 
-    advsecurityparam_t feature;
+    advsecurityparam_t feature = {};
     feature.fingerprint_enable = false;
     feature.safebrowsing_enable = false;
     feature.softflowd_enable = false;
@@ -910,7 +910,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, advsec_webconfig_handle_blob_configur
     int val = 0;
     FILE* file = NULL;
 
-    advsecurityparam_t feature;
+    advsecurityparam_t feature = {};
     feature.fingerprint_enable = true;
     feature.safebrowsing_enable = false;
     feature.softflowd_enable = false;

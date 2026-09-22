@@ -68,6 +68,31 @@
                 </parameter>
               </parameters>
         </object>
+<?ifdef NETWORK_INTELLIGENCE?>
+        <object>
+          <name>X_RDKCENTRAL-COM_NetworkIntelligence</name>
+              <objectType>object</objectType>
+              <functions>
+                <func_GetParamBoolValue>NetworkIntelligence_GetParamBoolValue</func_GetParamBoolValue>
+                <func_SetParamBoolValue>NetworkIntelligence_SetParamBoolValue</func_SetParamBoolValue>
+                <func_SetParamStringValue>NetworkIntelligence_SetParamStringValue</func_SetParamStringValue>
+              </functions>
+              <parameters>
+                <parameter>
+                  <name>Activate</name>
+                  <type>boolean</type>
+                  <syntax>bool</syntax>
+                  <writable>true</writable>
+                </parameter>
+                <parameter>
+                  <name>Data</name>
+                  <type>string</type>
+                  <syntax>string</syntax>
+                  <writable>true</writable>
+                </parameter>
+              </parameters>
+        </object>
+<?endif?>
         <object>
           <name>X_RDKCENTRAL-COM_AdvancedSecurity</name>
               <objectType>object</objectType>
@@ -476,6 +501,7 @@
                 </parameters>
             </object>
 <?endif?>
+<?ifdef NETWORK_INTELLIGENCE?>
             <object>
               <name>NetworkIntelligence</name>
               <objectType>object</objectType>
@@ -500,6 +526,7 @@
                   </parameter>
                 </parameters>
             </object>
+<?endif?>
             <object>
               <name>WifiDataCollection</name>
               <objectType>object</objectType>

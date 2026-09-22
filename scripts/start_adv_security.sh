@@ -54,6 +54,20 @@ then
 
     wait_for_lanip
 
+    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
+        enable_networkintelligence
+    else
+        disable_networkintelligence
+    fi
+
+    if [ "$ADVSEC_NETWORKINTELLIGENCE_ACTIVATED" = "1" ]; then
+        activate_networkintelligence
+    else
+        deactivate_networkintelligence
+    fi
+
+    start_ni_service
+
     start_agent_services
 
     touch $ADVSEC_INITIALIZED
@@ -113,12 +127,6 @@ then
             disable_cujotelemetry
     fi
 
-    if [ "$ADVSEC_NETWORKINTELLIGENCE_RFC_ENABLED" = "1" ]; then
-        enable_networkintelligence
-    else
-        disable_networkintelligence
-    fi
-
     if [ "$ADVSEC_WIFIDATACOLLECTION_RFC_ENABLED" = "1" ]; then
             enable_wifidatacollection
     else
@@ -175,6 +183,9 @@ then
     exit 0
 elif [ "$1" = "-disable" ]
 then
+
+    stop_ni_service
+
     stop_agent_services
 
     if [ "$DF_ENABLED" != "1" ]; then
@@ -229,7 +240,13 @@ then
         rm $ADVSEC_CUJOTRACER_ENABLED_PATH
     fi
 
-    rm -f ${ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH}
+    if [ -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH ]; then
+        rm $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
+    fi
+
+    if [ -f $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH ]; then
+        rm $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH
+    fi
 
     if [ -f $ADVSEC_CUJOTELEMETRY_ENABLED_PATH ]; then
         rm $ADVSEC_CUJOTELEMETRY_ENABLED_PATH
@@ -618,9 +635,6 @@ enable_networkintelligence()
 {
     touch $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_ENABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
-        systemctl start cujo-ni.service
-    fi
 
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "AgentNetworkIntelligence_RFC_Enabled"
@@ -635,12 +649,41 @@ disable_networkintelligence()
 {
     rm -f $ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH
     echo_t ${ADV_NETWORKINTELLIGENCE_RFC_DISABLE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
-    if systemctl list-unit-files cujo-ni.service 2>/dev/null | grep -q '^cujo-ni\.service'; then
-        systemctl stop cujo-ni.service
-    fi
 
     if [ "$1" = "RR" ]; then
         advsec_restart_agent "AgentNetworkIntelligence_RFC_Disabled"
+    fi
+
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
+}
+
+activate_networkintelligence()
+{
+    touch $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH
+    if [ -f "$ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH" ]; then
+        echo_t ${ADV_NETWORKINTELLIGENCE_ACTIVATE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    fi
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentNetworkIntelligence_Activated"
+    fi
+
+    if [ "$2" = "FR" ]; then
+        do_firewall_restart
+    fi
+}
+
+deactivate_networkintelligence()
+{
+    rm -f $ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH
+    if [ -f "$ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH" ]; then
+        echo_t ${ADV_NETWORKINTELLIGENCE_DEACTIVATE_LOG} >> ${ADVSEC_AGENT_LOG_PATH}
+    fi
+
+    if [ "$1" = "RR" ]; then
+        advsec_restart_agent "AgentNetworkIntelligence_Deactivated"
     fi
 
     if [ "$2" = "FR" ]; then
@@ -930,11 +973,35 @@ if [ "$1" = "-disableOTM" ]; then
 fi
 
 if [ "$1" = "-enableNI" ]; then
-    enable_networkintelligence "RR" "FR"
+    enable_networkintelligence
 fi
 
 if [ "$1" = "-disableNI" ]; then
-    disable_networkintelligence "RR" "FR"
+    disable_networkintelligence
+fi
+
+if [ "$1" = "-enableNI_R" ]; then
+    enable_networkintelligence "RR"
+fi
+
+if [ "$1" = "-disableNI_R" ]; then
+    disable_networkintelligence "RR"
+fi
+
+if [ "$1" = "-activateNI" ]; then
+    activate_networkintelligence
+fi
+
+if [ "$1" = "-deactivateNI" ]; then
+    deactivate_networkintelligence
+fi
+
+if [ "$1" = "-activateNI_R" ]; then
+    activate_networkintelligence "RR"
+fi
+
+if [ "$1" = "-deactivateNI_R" ]; then
+    deactivate_networkintelligence "RR"
 fi
 
 if [ "$1" = "-speedtestNIStart" ]; then
