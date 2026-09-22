@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <mocks/mock_usertime.h>
+#include <mocks/mock_telemetry.h>
 #include <mocks/mock_ansc_wrapper_api.h>
 #include <mocks/mock_syscfg.h>
 #include <mocks/mock_securewrapper.h>
