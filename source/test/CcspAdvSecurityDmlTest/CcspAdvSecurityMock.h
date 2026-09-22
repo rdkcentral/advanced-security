@@ -28,7 +28,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <mocks/mock_usertime.h>
-#include <mocks/mock_telemetry.h>
 #include <mocks/mock_ansc_wrapper_api.h>
 #include <mocks/mock_syscfg.h>
 #include <mocks/mock_securewrapper.h>
@@ -44,6 +43,7 @@
 #include <mocks/mock_cJSON.h>
 #include <mocks/mock_sysevent.h>
 #include <mocks/mock_webconfigframework.h>
+#include <mocks/mock_telemetry.h>
 
 extern SyscfgMock *g_syscfgMock;
 extern SecureWrapperMock *g_securewrapperMock;
@@ -61,6 +61,7 @@ extern cjsonMock *g_cjsonMock;
 extern SyseventMock *g_syseventMock;
 extern webconfigFwMock *g_webconfigFwMock;
 extern AnscWrapperApiMock *g_anscWrapperApiMock;
+extern telemetryMock *g_telemetryMock;
 
 using namespace std;
 using std::experimental::filesystem::exists;

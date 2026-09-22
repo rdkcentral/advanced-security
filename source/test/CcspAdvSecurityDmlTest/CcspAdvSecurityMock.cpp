@@ -34,3 +34,4 @@ cjsonMock *g_cjsonMock = NULL;
 SyseventMock *g_syseventMock = NULL;
 webconfigFwMock *g_webconfigFwMock = NULL;
 AnscWrapperApiMock * g_anscWrapperApiMock = NULL;
+telemetryMock *g_telemetryMock = NULL;

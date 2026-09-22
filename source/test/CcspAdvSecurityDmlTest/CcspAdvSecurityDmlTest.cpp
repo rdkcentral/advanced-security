@@ -41,6 +41,7 @@ protected:
         g_syseventMock = new SyseventMock();
         g_webconfigFwMock = new webconfigFwMock();
         g_anscWrapperApiMock = new AnscWrapperApiMock();
+        g_telemetryMock = new telemetryMock();
     }
 
     void TearDown() override {
@@ -60,6 +61,7 @@ protected:
         delete g_syseventMock;
         delete g_webconfigFwMock;
         delete g_anscWrapperApiMock;
+        delete g_telemetryMock;
         g_syscfgMock = nullptr;
         g_securewrapperMock = nullptr;
         g_msgpackMock = nullptr;
@@ -76,6 +78,7 @@ protected:
         g_syseventMock = nullptr;
         g_webconfigFwMock = nullptr;
         g_anscWrapperApiMock = nullptr;
+        g_telemetryMock = nullptr;
     }
 };
 

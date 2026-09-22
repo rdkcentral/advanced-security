@@ -586,12 +586,14 @@ static BOOL ni_speedtest_trigger(uint32_t timeout)
 
     ni_speedtest_wake_early = FALSE;
     ni_speedtest_thread_running = TRUE;
-    pthread_mutex_unlock(&ni_speedtest_mutex);
 
+    /* Hold the mutex across pthread_create() itself so a concurrent
+     * CosaSecurityRemove() can never observe ni_speedtest_thread_running
+     * == TRUE while thread creation is still in progress (and thus no
+     * thread exists yet to eventually broadcast completion). */
     err = pthread_create(&tid, NULL, ni_speedtest_handler, NULL);
     if (err != 0)
     {
-        pthread_mutex_lock(&ni_speedtest_mutex);
         ni_speedtest_thread_running = FALSE;
         /* Wake any concurrent waiter (e.g. CosaSecurityRemove blocked in
          * pthread_cond_wait expecting this thread to finish) since no
@@ -601,6 +603,7 @@ static BOOL ni_speedtest_trigger(uint32_t timeout)
         CcspTraceError(("%s: failed to create SpeedTest timer thread, error=%d\n", __FUNCTION__, err));
         return FALSE;
     }
+    pthread_mutex_unlock(&ni_speedtest_mutex);
     return TRUE;
 }
 
