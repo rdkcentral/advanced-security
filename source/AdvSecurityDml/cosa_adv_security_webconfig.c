@@ -202,7 +202,7 @@ pErr advsec_webconfig_process_request(void *Data)
 int advsec_webconfig_rollback()
 {
     // return 0 to notify framework when rollback is success
-    CcspTraceInfo((" Entering %s \n",__FUNCTION__));
+    CcspTraceInfo(("Entering %s\n", __FUNCTION__));
 
     int ret = 0;
 
@@ -215,7 +215,7 @@ int advsec_webconfig_rollback()
 void advsec_webconfig_free_resources(void *arg)
 {
 
-    CcspTraceInfo((" Entering %s \n",__FUNCTION__));
+    CcspTraceInfo(("Entering %s\n", __FUNCTION__));
     execData *blob_exec_data  = (execData*) arg;
 
     /* CID 158652: Dereference before null check */

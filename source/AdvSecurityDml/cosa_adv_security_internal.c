@@ -161,7 +161,7 @@ static char *g_AdvSecNetworkIntelligenceEnabled = "Adv_AdvSecNetworkIntelligence
 static char *g_NetworkIntelligenceMemoryLimit = "Advsecurity_NetworkIntelligenceMemoryLimit";
 STATIC pthread_mutex_t ni_speedtest_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t ni_speedtest_cond = PTHREAD_COND_INITIALIZER;
-static struct timespec ni_speedtest_deadline;
+static struct timespec ni_speedtest_timeout;
 STATIC BOOL ni_speedtest_thread_running = FALSE;
 static BOOL ni_speedtest_wake_early = FALSE;
 static BOOL ni_speedtest_shutdown = FALSE;
@@ -471,6 +471,14 @@ static BOOL ni_qosd_enable(BOOL enable)
             __FUNCTION__, enable ? 1 : 0, WEXITSTATUS(rc)));
         return FALSE;
     }
+    if (enable)
+    {
+        t2_event_d("SYS_INFO_CUJO_NI_resume", 1);
+    }
+    else
+    {
+        t2_event_d("SYS_INFO_CUJO_NI_pause", 1);
+    }
     return TRUE;
 }
 
@@ -478,11 +486,11 @@ static BOOL ni_qosd_pause(void)
 {
     if (!is_ni_enabled_and_activated())
     {
-        CcspTraceInfo(("%s: cujo-qosd pause skipped due to Network Intelligence RFC is disabled or not activated\n", __FUNCTION__));
+        CcspTraceInfo(("%s: Network Intelligence pause skipped due to Network Intelligence RFC is disabled or not activated\n", __FUNCTION__));
         return TRUE;
     }
 
-    CcspTraceInfo(("%s: pausing cujo-qosd\n", __FUNCTION__));
+    CcspTraceInfo(("%s: pausing Network Intelligence\n", __FUNCTION__));
     return ni_qosd_enable(FALSE);
 }
 
@@ -490,11 +498,11 @@ static BOOL ni_qosd_resume(void)
 {
     if (!is_ni_enabled_and_activated())
     {
-        CcspTraceInfo(("%s: cujo-qosd resume skipped due to Network Intelligence RFC is disabled or not activated\n", __FUNCTION__));
+        CcspTraceInfo(("%s: Network Intelligence resume skipped due to Network Intelligence RFC is disabled or not activated\n", __FUNCTION__));
         return TRUE;
     }
 
-    CcspTraceInfo(("%s: resuming cujo-qosd\n", __FUNCTION__));
+    CcspTraceInfo(("%s: resuming Network Intelligence\n", __FUNCTION__));
     return ni_qosd_enable(TRUE);
 }
 
@@ -515,7 +523,7 @@ static void *ni_speedtest_handler(void *arg)
     pthread_mutex_lock(&ni_speedtest_mutex);
     while (!ni_speedtest_wake_early && !ni_speedtest_shutdown && waitStatus != ETIMEDOUT)
     {
-        waitStatus = pthread_cond_timedwait(&ni_speedtest_cond, &ni_speedtest_mutex, &ni_speedtest_deadline);
+        waitStatus = pthread_cond_timedwait(&ni_speedtest_cond, &ni_speedtest_mutex, &ni_speedtest_timeout);
         if (waitStatus != 0 && waitStatus != ETIMEDOUT)
         {
             CcspTraceError(("%s: pthread_cond_timedwait failed, error=%d\n", __FUNCTION__, waitStatus));
@@ -528,7 +536,8 @@ static void *ni_speedtest_handler(void *arg)
 
     if (timedOut)
     {
-        CcspTraceWarning(("IMP_CUJO_NI_SubscriberUnPauseTimeOut: SpeedTest timeout expired, enabling cujo-qosd\n"));
+        CcspTraceWarning(("%s: SpeedTest timeout expired, resuming Network Intelligence\n", __FUNCTION__));
+        t2_event_d("IMP_CUJO_NI_SubscriberUnPauseTimeOut", 1);
     }
     if (!ni_qosd_resume())
     {
@@ -545,17 +554,17 @@ static void *ni_speedtest_handler(void *arg)
 
 static BOOL ni_speedtest_trigger(uint32_t timeout)
 {
-    struct timespec deadline;
+    struct timespec ni_resume_timeout;
     pthread_t tid;
     int err;
     BOOL alreadyRunning;
 
-    if (clock_gettime(CLOCK_REALTIME, &deadline) != 0)
+    if (clock_gettime(CLOCK_REALTIME, &ni_resume_timeout) != 0)
     {
         CcspTraceError(("%s: clock_gettime failed, errno=%d\n", __FUNCTION__, errno));
         return FALSE;
     }
-    deadline.tv_sec += timeout;
+    ni_resume_timeout.tv_sec += timeout;
 
     pthread_mutex_lock(&ni_speedtest_mutex);
     if (ni_speedtest_shutdown)
@@ -565,13 +574,13 @@ static BOOL ni_speedtest_trigger(uint32_t timeout)
     }
 
     alreadyRunning = ni_speedtest_thread_running;
-    ni_speedtest_deadline = deadline;
+    ni_speedtest_timeout = ni_resume_timeout;
 
     if (alreadyRunning)
     {
         pthread_cond_signal(&ni_speedtest_cond);
         pthread_mutex_unlock(&ni_speedtest_mutex);
-        CcspTraceInfo(("%s: SpeedTest timer already running, refreshed deadline\n", __FUNCTION__));
+        CcspTraceInfo(("%s: SpeedTest triggered again, refreshed timeout\n", __FUNCTION__));
         return TRUE;
     }
 
@@ -650,7 +659,7 @@ STATIC void speedtestEventReceiveHandler(
     {
         if (!speedtestGetTimeout(&timeout))
         {
-            CcspTraceError(("%s: failed to get SpeedTest timeout; cujo-qosd will not be paused\n", __FUNCTION__));
+            CcspTraceError(("%s: failed to get SpeedTest timeout, Network Intelligence will not be paused\n", __FUNCTION__));
             return;
         }
         if (timeout == 0)
@@ -658,12 +667,12 @@ STATIC void speedtestEventReceiveHandler(
             /* SubscriberUnPauseTimeOut of 0 means the pause/unpause
              * feature is disabled for this cycle: do not pause or, later,
              * resume Network Intelligence. */
-            CcspTraceInfo(("%s: SpeedTest timeout is 0, skipping cujo-qosd pause\n", __FUNCTION__));
+            CcspTraceInfo(("%s: SpeedTest SubscriberUnPauseTimeOut is 0, skipping Network Intelligence pause\n", __FUNCTION__));
             return;
         }
         if (!ni_speedtest_trigger(timeout))
         {
-            CcspTraceError(("%s: failed to start SpeedTest timer; cujo-qosd will not be paused\n", __FUNCTION__));
+            CcspTraceError(("%s: Network Intelligence SpeedTest trigger failed, Network Intelligence will not be paused\n", __FUNCTION__));
         }
     }
     else if (status == ST_TR181_STATUS_COMPLETE)
