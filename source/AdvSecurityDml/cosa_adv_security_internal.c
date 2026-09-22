@@ -71,6 +71,8 @@
 #define LEVL_DML "Device.WiFi.Levl"
 #define SPEEDTEST_STATUS_DML "Device.IP.Diagnostics.X_RDKCENTRAL-COM_SpeedTest.Status"
 #define SPEEDTEST_TIMEOUT_DML "Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"
+#define ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH "/tmp/advsec_networkintelligence_enabled"
+#define CUJONICLI_SET_QOSD_ENABLE_CMD "/usr/bin/cujo-ni-cli \"{\\\"method\\\":\\\"set_configs\\\", \\\"configs\\\": {\\\"cujoniqos.daemon.enable\\\": %d}}\" &"
 
 #define ADVSEC_WAIT_FOR_TIMEOUT (60 * 60)
 #define MAX_VALUE 32
@@ -157,13 +159,12 @@ static char *g_RaptrEnabled = "Adv_RaptrRFCEnable";
 #ifdef NETWORK_INTELLIGENCE
 static char *g_AdvSecNetworkIntelligenceEnabled = "Adv_AdvSecNetworkIntelligenceRFCEnable";
 static char *g_NetworkIntelligenceMemoryLimit = "Advsecurity_NetworkIntelligenceMemoryLimit";
-static pthread_mutex_t speedtestMutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t speedtestCond = PTHREAD_COND_INITIALIZER;
-static pthread_t speedtestTimerThread;
-static struct timespec speedtestDeadline;
-static BOOL speedtestTimerStarted = FALSE;
-static BOOL speedtestTimerActive = FALSE;
-static BOOL speedtestTimerShutdown = FALSE;
+STATIC pthread_mutex_t ni_speedtest_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t ni_speedtest_cond = PTHREAD_COND_INITIALIZER;
+static struct timespec ni_speedtest_deadline;
+STATIC BOOL ni_speedtest_thread_running = FALSE;
+static BOOL ni_speedtest_wake_early = FALSE;
+static BOOL ni_speedtest_shutdown = FALSE;
 static char *g_NetworkIntelligenceActivate = "Adv_AdvSecNetworkIntelligenceActivate";
 #endif
 #ifdef WIFI_DATA_COLLECTION
@@ -444,54 +445,110 @@ static void eventReceiveHandler(
 #endif
 
 #ifdef NETWORK_INTELLIGENCE
-static void *speedtestTimerHandler(void *arg)
+static BOOL is_ni_enabled_and_activated(void)
 {
-    int waitStatus;
+    struct stat st;
+
+    if (stat(ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH, &st) != 0)
+    {
+        return FALSE;
+    }
+    if (stat(ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH, &st) != 0)
+    {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+static BOOL ni_qosd_enable(BOOL enable)
+{
     errno_t rc;
 
-    (void)arg;
-    pthread_mutex_lock(&speedtestMutex);
-
-    while (!speedtestTimerShutdown)
+    rc = v_secure_system(CUJONICLI_SET_QOSD_ENABLE_CMD, enable ? 1 : 0);
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
     {
-        while (!speedtestTimerActive && !speedtestTimerShutdown)
-        {
-            pthread_cond_wait(&speedtestCond, &speedtestMutex);
-        }
+        CcspTraceError(("%s: cujo-ni-cli set_configs cujoniqos.daemon.enable=%d failed, rc=%d\n",
+            __FUNCTION__, enable ? 1 : 0, WEXITSTATUS(rc)));
+        return FALSE;
+    }
+    return TRUE;
+}
 
-        waitStatus = 0;
-        while (speedtestTimerActive && !speedtestTimerShutdown && waitStatus != ETIMEDOUT)
-        {
-            waitStatus = pthread_cond_timedwait(&speedtestCond, &speedtestMutex, &speedtestDeadline);
-            if (waitStatus != 0 && waitStatus != ETIMEDOUT)
-            {
-                CcspTraceError(("%s: pthread_cond_timedwait failed, error=%d\n", __FUNCTION__, waitStatus));
-                speedtestTimerActive = FALSE;
-            }
-        }
-
-        if (speedtestTimerActive && !speedtestTimerShutdown && waitStatus == ETIMEDOUT)
-        {
-            speedtestTimerActive = FALSE;
-            pthread_mutex_unlock(&speedtestMutex);
-            CcspTraceWarning(("SpeedTest timeout expired, enabling cujo-qosd\n"));
-            rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -speedtestNITimeout &");
-            if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-            {
-                CcspTraceError(("%s: failed to enable cujo-qosd after SpeedTest timeout, rc=%d\n", __FUNCTION__, WEXITSTATUS(rc)));
-            }
-            pthread_mutex_lock(&speedtestMutex);
-        }
+static BOOL ni_qosd_pause(void)
+{
+    if (!is_ni_enabled_and_activated())
+    {
+        CcspTraceInfo(("%s: cujo-qosd pause skipped due to Network Intelligence RFC is disabled or not activated\n", __FUNCTION__));
+        return TRUE;
     }
 
-    pthread_mutex_unlock(&speedtestMutex);
+    CcspTraceInfo(("%s: pausing cujo-qosd\n", __FUNCTION__));
+    return ni_qosd_enable(FALSE);
+}
+
+static BOOL ni_qosd_resume(void)
+{
+    if (!is_ni_enabled_and_activated())
+    {
+        CcspTraceInfo(("%s: cujo-qosd resume skipped due to Network Intelligence RFC is disabled or not activated\n", __FUNCTION__));
+        return TRUE;
+    }
+
+    CcspTraceInfo(("%s: resuming cujo-qosd\n", __FUNCTION__));
+    return ni_qosd_enable(TRUE);
+}
+
+static void *ni_speedtest_handler(void *arg)
+{
+    int waitStatus = 0;
+    BOOL timedOut;
+
+    (void)arg;
+
+    pthread_detach(pthread_self());
+
+    if (!ni_qosd_pause())
+    {
+        CcspTraceError(("%s: failed to pause Network Intelligence for SpeedTest\n", __FUNCTION__));
+    }
+
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    while (!ni_speedtest_wake_early && !ni_speedtest_shutdown && waitStatus != ETIMEDOUT)
+    {
+        waitStatus = pthread_cond_timedwait(&ni_speedtest_cond, &ni_speedtest_mutex, &ni_speedtest_deadline);
+        if (waitStatus != 0 && waitStatus != ETIMEDOUT)
+        {
+            CcspTraceError(("%s: pthread_cond_timedwait failed, error=%d\n", __FUNCTION__, waitStatus));
+            break;
+        }
+    }
+    timedOut = (waitStatus == ETIMEDOUT);
+    ni_speedtest_wake_early = FALSE;
+    pthread_mutex_unlock(&ni_speedtest_mutex);
+
+    if (timedOut)
+    {
+        CcspTraceWarning(("IMP_CUJO_NI_SubscriberUnPauseTimeOut: SpeedTest timeout expired, enabling cujo-qosd\n"));
+    }
+    if (!ni_qosd_resume())
+    {
+        CcspTraceError(("%s: failed to resume Network Intelligence after SpeedTest\n", __FUNCTION__));
+    }
+
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    ni_speedtest_thread_running = FALSE;
+    pthread_cond_broadcast(&ni_speedtest_cond);
+    pthread_mutex_unlock(&ni_speedtest_mutex);
+
     return NULL;
 }
 
-static BOOL speedtestArmTimer(uint32_t timeout)
+static BOOL ni_speedtest_trigger(uint32_t timeout)
 {
     struct timespec deadline;
+    pthread_t tid;
     int err;
+    BOOL alreadyRunning;
 
     if (clock_gettime(CLOCK_REALTIME, &deadline) != 0)
     {
@@ -500,38 +557,53 @@ static BOOL speedtestArmTimer(uint32_t timeout)
     }
     deadline.tv_sec += timeout;
 
-    pthread_mutex_lock(&speedtestMutex);
-    if (speedtestTimerShutdown)
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    if (ni_speedtest_shutdown)
     {
-        pthread_mutex_unlock(&speedtestMutex);
+        pthread_mutex_unlock(&ni_speedtest_mutex);
         return FALSE;
     }
-    if (!speedtestTimerStarted)
+
+    alreadyRunning = ni_speedtest_thread_running;
+    ni_speedtest_deadline = deadline;
+
+    if (alreadyRunning)
     {
-        speedtestTimerShutdown = FALSE;
-        err = pthread_create(&speedtestTimerThread, NULL, speedtestTimerHandler, NULL);
-        if (err != 0)
-        {
-            pthread_mutex_unlock(&speedtestMutex);
-            CcspTraceError(("%s: failed to create SpeedTest timer thread, error=%d\n", __FUNCTION__, err));
-            return FALSE;
-        }
-        speedtestTimerStarted = TRUE;
+        pthread_cond_signal(&ni_speedtest_cond);
+        pthread_mutex_unlock(&ni_speedtest_mutex);
+        CcspTraceInfo(("%s: SpeedTest timer already running, refreshed deadline\n", __FUNCTION__));
+        return TRUE;
     }
 
-    speedtestDeadline = deadline;
-    speedtestTimerActive = TRUE;
-    pthread_cond_signal(&speedtestCond);
-    pthread_mutex_unlock(&speedtestMutex);
+    ni_speedtest_wake_early = FALSE;
+    ni_speedtest_thread_running = TRUE;
+    pthread_mutex_unlock(&ni_speedtest_mutex);
+
+    err = pthread_create(&tid, NULL, ni_speedtest_handler, NULL);
+    if (err != 0)
+    {
+        pthread_mutex_lock(&ni_speedtest_mutex);
+        ni_speedtest_thread_running = FALSE;
+        /* Wake any concurrent waiter (e.g. CosaSecurityRemove blocked in
+         * pthread_cond_wait expecting this thread to finish) since no
+         * thread was actually created to signal it later. */
+        pthread_cond_broadcast(&ni_speedtest_cond);
+        pthread_mutex_unlock(&ni_speedtest_mutex);
+        CcspTraceError(("%s: failed to create SpeedTest timer thread, error=%d\n", __FUNCTION__, err));
+        return FALSE;
+    }
     return TRUE;
 }
 
-static void speedtestCancelTimer(void)
+static void ni_speedtest_complete(void)
 {
-    pthread_mutex_lock(&speedtestMutex);
-    speedtestTimerActive = FALSE;
-    pthread_cond_signal(&speedtestCond);
-    pthread_mutex_unlock(&speedtestMutex);
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    if (ni_speedtest_thread_running)
+    {
+        ni_speedtest_wake_early = TRUE;
+        pthread_cond_signal(&ni_speedtest_cond);
+    }
+    pthread_mutex_unlock(&ni_speedtest_mutex);
 }
 
 static BOOL speedtestGetTimeout(uint32_t *timeout)
@@ -548,11 +620,6 @@ static BOOL speedtestGetTimeout(uint32_t *timeout)
 
     *timeout = rbusValue_GetUInt32(value);
     rbusValue_Release(value);
-    if (*timeout == 0)
-    {
-        CcspTraceError(("%s: invalid SpeedTest timeout=0\n", __FUNCTION__));
-        return FALSE;
-    }
 
     return TRUE;
 }
@@ -565,7 +632,6 @@ STATIC void speedtestEventReceiveHandler(
     rbusValue_t value;
     uint32_t status;
     uint32_t timeout;
-    errno_t rc;
 
     (void)handle;
     (void)subscription;
@@ -578,32 +644,31 @@ STATIC void speedtestEventReceiveHandler(
     }
 
     status = rbusValue_GetUInt32(value);
-    CcspTraceInfo(("ARUN: SpeedTest status event received, status=%u\n", status));
+    CcspTraceInfo(("%s: SpeedTest status event received, status=%u\n", __FUNCTION__, status));
 
     if (status == 1)
     {
-        if (!speedtestGetTimeout(&timeout) || !speedtestArmTimer(timeout))
+        if (!speedtestGetTimeout(&timeout))
         {
-            CcspTraceError(("%s: failed to arm SpeedTest timeout; cujo-qosd will not be disabled\n", __FUNCTION__));
+            CcspTraceError(("%s: failed to get SpeedTest timeout; cujo-qosd will not be paused\n", __FUNCTION__));
             return;
         }
-        CcspTraceInfo(("ARUN: SpeedTest status=1, disabling cujo-qosd for speedtest\n"));
-        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -speedtestNIStart &");
-        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+        if (timeout == 0)
         {
-            speedtestCancelTimer();
-            CcspTraceError(("%s: failed to disable cujo-qosd for SpeedTest, rc=%d\n", __FUNCTION__, WEXITSTATUS(rc)));
+            /* SubscriberUnPauseTimeOut of 0 means the pause/unpause
+             * feature is disabled for this cycle: do not pause or, later,
+             * resume Network Intelligence. */
+            CcspTraceInfo(("%s: SpeedTest timeout is 0, skipping cujo-qosd pause\n", __FUNCTION__));
+            return;
+        }
+        if (!ni_speedtest_trigger(timeout))
+        {
+            CcspTraceError(("%s: failed to start SpeedTest timer; cujo-qosd will not be paused\n", __FUNCTION__));
         }
     }
     else if (status == 5)
     {
-        speedtestCancelTimer();
-        CcspTraceInfo(("ARUN: SpeedTest status=5, enabling cujo-qosd after speedtest\n"));
-        rc = v_secure_system(TEMP_DOWNLOAD_LOCATION"/usr/ccsp/advsec/start_adv_security.sh -speedtestNIComplete &");
-        if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
-        {
-            CcspTraceError(("%s: failed to enable cujo-qosd for SpeedTest, rc=%d\n", __FUNCTION__, WEXITSTATUS(rc)));
-        }
+        ni_speedtest_complete();
     }
 }
 #endif
@@ -1763,9 +1828,9 @@ CosaSecurityInitialize
     }
 #endif
 #ifdef NETWORK_INTELLIGENCE
-    pthread_mutex_lock(&speedtestMutex);
-    speedtestTimerShutdown = FALSE;
-    pthread_mutex_unlock(&speedtestMutex);
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    ni_speedtest_shutdown = FALSE;
+    pthread_mutex_unlock(&ni_speedtest_mutex);
     ret = rbusEvent_Subscribe(rbus_handle, SPEEDTEST_STATUS_DML, speedtestEventReceiveHandler, NULL, 0);
     if(ret != RBUS_ERROR_SUCCESS)
     {
@@ -1787,24 +1852,22 @@ CosaSecurityRemove
     PCOSA_DATAMODEL_AGENT            pMyObject    = (PCOSA_DATAMODEL_AGENT)hThisObject;
 
 #ifdef NETWORK_INTELLIGENCE
-    BOOL joinSpeedtestTimer;
-
-    pthread_mutex_lock(&speedtestMutex);
-    joinSpeedtestTimer = speedtestTimerStarted;
-    speedtestTimerShutdown = TRUE;
-    speedtestTimerActive = FALSE;
-    if (joinSpeedtestTimer)
+    /* Signal shutdown and wake any in-flight (detached) SpeedTest timer
+     * thread so it unpauses Network Intelligence and exits before we tear
+     * down. Wait for it to finish since it is detached and cannot be
+     * joined. */
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    ni_speedtest_shutdown = TRUE;
+    if (ni_speedtest_thread_running)
     {
-        pthread_cond_signal(&speedtestCond);
+        ni_speedtest_wake_early = TRUE;
+        pthread_cond_broadcast(&ni_speedtest_cond);
+        while (ni_speedtest_thread_running)
+        {
+            pthread_cond_wait(&ni_speedtest_cond, &ni_speedtest_mutex);
+        }
     }
-    pthread_mutex_unlock(&speedtestMutex);
-    if (joinSpeedtestTimer)
-    {
-        pthread_join(speedtestTimerThread, NULL);
-        pthread_mutex_lock(&speedtestMutex);
-        speedtestTimerStarted = FALSE;
-        pthread_mutex_unlock(&speedtestMutex);
-    }
+    pthread_mutex_unlock(&ni_speedtest_mutex);
 #endif
 
     /* Remove self */
