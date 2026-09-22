@@ -31,6 +31,7 @@
 #include <errno.h>
 #include "ansc_platform.h"
 #include "ansc_string_util.h"
+#include <telemetry_busmessage_sender.h>
 
 #define ADVSEC_MIN_LOG_TIMEOUT (60 * 1)
 #define ADVSEC_MAX_LOG_TIMEOUT (60 * 48)
