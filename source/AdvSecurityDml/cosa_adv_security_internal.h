@@ -43,6 +43,8 @@
 #define ADVSEC_LogLevel_VERBOSE 4
 #define BUFLEN_1024 1024
 #define PARTNER_REDIRECTORURL_PARAMNAME  "Device.DeviceInfo.X_RDKCENTRAL-COM_Syndication.AdvsecRedirectorURL"
+#define      ST_TR181_STATUS_STARTING 1
+#define      ST_TR181_STATUS_COMPLETE 5
 
 typedef enum {
     ADVSEC_SAFEBROWSING=0,

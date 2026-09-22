@@ -1512,10 +1512,10 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PausesAndCo
         .WillOnce(Return(completeValue));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
         .Times(1)
-        .WillOnce(Return(1));
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(completeValue))
         .Times(1)
-        .WillOnce(Return(5));
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
     EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
         .Times(1)
         .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
@@ -1559,10 +1559,10 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateSt
         .WillOnce(Return(completeValue));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
         .Times(2)
-        .WillRepeatedly(Return(1));
+        .WillRepeatedly(Return(ST_TR181_STATUS_STARTING));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(completeValue))
         .Times(1)
-        .WillOnce(Return(5));
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
     EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
         .Times(2)
         .WillRepeatedly(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
@@ -1607,10 +1607,10 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_NIDisabled_
         .WillOnce(Return(completeValue));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
         .Times(1)
-        .WillOnce(Return(1));
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(completeValue))
         .Times(1)
-        .WillOnce(Return(5));
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
     EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
         .Times(1)
         .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
@@ -1649,10 +1649,10 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_NIEnabledBu
         .WillOnce(Return(completeValue));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
         .Times(1)
-        .WillOnce(Return(1));
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(completeValue))
         .Times(1)
-        .WillOnce(Return(5));
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
     EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
         .Times(1)
         .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
@@ -1687,7 +1687,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_StartingWithZeroTime
         .WillOnce(Return(value));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
         .Times(1)
-        .WillOnce(Return(1));
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
     EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
         .Times(1)
         .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
@@ -1715,7 +1715,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Complete_NoThreadRun
         .WillOnce(Return(value));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
         .Times(1)
-        .WillOnce(Return(5));
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
         .Times(0);
 

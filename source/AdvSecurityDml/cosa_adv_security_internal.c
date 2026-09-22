@@ -72,7 +72,7 @@
 #define SPEEDTEST_STATUS_DML "Device.IP.Diagnostics.X_RDKCENTRAL-COM_SpeedTest.Status"
 #define SPEEDTEST_TIMEOUT_DML "Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"
 #define ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH "/tmp/advsec_networkintelligence_enabled"
-#define CUJONICLI_SET_QOSD_ENABLE_CMD "/usr/bin/cujo-ni-cli \"{\\\"method\\\":\\\"set_configs\\\", \\\"configs\\\": {\\\"cujoniqos.daemon.enable\\\": %d}}\" &"
+#define CUJONICLI_SET_QOSD_ENABLE_CMD "/usr/bin/cujo-ni-cli '{\"method\":\"set_configs\", \"configs\": {\"cujoniqos.daemon.enable\": %d}}' &"
 
 #define ADVSEC_WAIT_FOR_TIMEOUT (60 * 60)
 #define MAX_VALUE 32
@@ -646,7 +646,7 @@ STATIC void speedtestEventReceiveHandler(
     status = rbusValue_GetUInt32(value);
     CcspTraceInfo(("%s: SpeedTest status event received, status=%u\n", __FUNCTION__, status));
 
-    if (status == 1)
+    if (status == ST_TR181_STATUS_STARTING)
     {
         if (!speedtestGetTimeout(&timeout))
         {
@@ -666,7 +666,7 @@ STATIC void speedtestEventReceiveHandler(
             CcspTraceError(("%s: failed to start SpeedTest timer; cujo-qosd will not be paused\n", __FUNCTION__));
         }
     }
-    else if (status == 5)
+    else if (status == ST_TR181_STATUS_COMPLETE)
     {
         ni_speedtest_complete();
     }
