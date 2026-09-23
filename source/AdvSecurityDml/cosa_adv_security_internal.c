@@ -518,6 +518,10 @@ static void *ni_speedtest_handler(void *arg)
     if (!ni_qosd_pause())
     {
         CcspTraceError(("%s: failed to pause Network Intelligence for SpeedTest\n", __FUNCTION__));
+        pthread_mutex_lock(&ni_speedtest_mutex);
+        ni_speedtest_thread_running = FALSE;
+        pthread_mutex_unlock(&ni_speedtest_mutex);
+        return NULL;
     }
 
     pthread_mutex_lock(&ni_speedtest_mutex);
@@ -546,10 +550,19 @@ static void *ni_speedtest_handler(void *arg)
 
     pthread_mutex_lock(&ni_speedtest_mutex);
     ni_speedtest_thread_running = FALSE;
-    pthread_cond_broadcast(&ni_speedtest_cond);
     pthread_mutex_unlock(&ni_speedtest_mutex);
 
     return NULL;
+}
+
+static BOOL is_ni_speedtest_running(void)
+{
+    BOOL running;
+
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    running = ni_speedtest_thread_running;
+    pthread_mutex_unlock(&ni_speedtest_mutex);
+    return running;
 }
 
 static BOOL ni_speedtest_trigger(uint32_t timeout)
@@ -557,7 +570,6 @@ static BOOL ni_speedtest_trigger(uint32_t timeout)
     struct timespec ni_resume_timeout;
     pthread_t tid;
     int err;
-    BOOL alreadyRunning;
 
     if (clock_gettime(CLOCK_REALTIME, &ni_resume_timeout) != 0)
     {
@@ -573,32 +585,15 @@ static BOOL ni_speedtest_trigger(uint32_t timeout)
         return FALSE;
     }
 
-    alreadyRunning = ni_speedtest_thread_running;
     ni_speedtest_timeout = ni_resume_timeout;
-
-    if (alreadyRunning)
-    {
-        pthread_cond_signal(&ni_speedtest_cond);
-        pthread_mutex_unlock(&ni_speedtest_mutex);
-        CcspTraceInfo(("%s: SpeedTest triggered again, refreshed timeout\n", __FUNCTION__));
-        return TRUE;
-    }
 
     ni_speedtest_wake_early = FALSE;
     ni_speedtest_thread_running = TRUE;
 
-    /* Hold the mutex across pthread_create() itself so a concurrent
-     * CosaSecurityRemove() can never observe ni_speedtest_thread_running
-     * == TRUE while thread creation is still in progress (and thus no
-     * thread exists yet to eventually broadcast completion). */
     err = pthread_create(&tid, NULL, ni_speedtest_handler, NULL);
     if (err != 0)
     {
         ni_speedtest_thread_running = FALSE;
-        /* Wake any concurrent waiter (e.g. CosaSecurityRemove blocked in
-         * pthread_cond_wait expecting this thread to finish) since no
-         * thread was actually created to signal it later. */
-        pthread_cond_broadcast(&ni_speedtest_cond);
         pthread_mutex_unlock(&ni_speedtest_mutex);
         CcspTraceError(("%s: failed to create SpeedTest timer thread, error=%d\n", __FUNCTION__, err));
         return FALSE;
@@ -660,6 +655,11 @@ STATIC void speedtestEventReceiveHandler(
 
     if (status == ST_TR181_STATUS_STARTING)
     {
+        if (is_ni_speedtest_running())
+        {
+            CcspTraceInfo(("%s: Network Intelligence SpeedTest handler already in progress, ignoring ST_TR181_STATUS_STARTING event\n", __FUNCTION__));
+            return;
+        }
         if (!speedtestGetTimeout(&timeout))
         {
             CcspTraceError(("%s: failed to get SpeedTest timeout, Network Intelligence will not be paused\n", __FUNCTION__));
@@ -1864,20 +1864,12 @@ CosaSecurityRemove
     PCOSA_DATAMODEL_AGENT            pMyObject    = (PCOSA_DATAMODEL_AGENT)hThisObject;
 
 #ifdef NETWORK_INTELLIGENCE
-    /* Signal shutdown and wake any in-flight (detached) SpeedTest timer
-     * thread so it unpauses Network Intelligence and exits before we tear
-     * down. Wait for it to finish since it is detached and cannot be
-     * joined. */
     pthread_mutex_lock(&ni_speedtest_mutex);
     ni_speedtest_shutdown = TRUE;
     if (ni_speedtest_thread_running)
     {
         ni_speedtest_wake_early = TRUE;
-        pthread_cond_broadcast(&ni_speedtest_cond);
-        while (ni_speedtest_thread_running)
-        {
-            pthread_cond_wait(&ni_speedtest_cond, &ni_speedtest_mutex);
-        }
+        pthread_cond_signal(&ni_speedtest_cond);
     }
     pthread_mutex_unlock(&ni_speedtest_mutex);
 #endif

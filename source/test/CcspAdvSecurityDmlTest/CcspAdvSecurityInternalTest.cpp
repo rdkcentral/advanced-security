@@ -1544,7 +1544,44 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PausesAndCo
     RemoveSpeedtestNIEnabledAndActivated();
 }
 
-TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateStart_RefreshesDeadlineOnly)
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PauseFails_ClearsRunningState)
+{
+    int marker = 0;
+    int timeoutMarker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t timeoutValue = (rbusValue_t)&timeoutMarker;
+    rbusEvent_t event = {};
+    CreateSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(timeoutValue))
+        .Times(1)
+        .WillOnce(Return(86400));
+    EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
+        .Times(1);
+    /* Simulate cujo-ni-cli failing (non-zero exit status) on the pause
+     * attempt. The thread must still clear ni_speedtest_thread_running
+     * so future SpeedTest cycles are not permanently blocked. */
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("cujo-ni-cli"), _))
+        .Times(1)
+        .WillOnce(Return(256));
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    WaitForSpeedtestThreadState(false, 500);
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+
+    RemoveSpeedtestNIEnabledAndActivated();
+}
+
+
 {
     int marker = 0;
     int timeoutMarker = 0;
@@ -1567,13 +1604,13 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateSt
         .Times(1)
         .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
     EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
-        .Times(2)
-        .WillRepeatedly(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(timeoutValue))
-        .Times(2)
-        .WillRepeatedly(Return(86400));
+        .Times(1)
+        .WillOnce(Return(86400));
     EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
-        .Times(2);
+        .Times(1);
     /* Only ONE pause + ONE resume, even though status=1 fires twice. */
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("cujo-ni-cli"), _))
         .Times(2)
@@ -1582,7 +1619,8 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateSt
     speedtestEventReceiveHandler(NULL, &event, NULL);
     WaitForSpeedtestThreadState(true, 200);
 
-    /* Duplicate status=1 while already running: refresh deadline only. */
+    /* Duplicate status=1 while already running: ignored entirely before
+     * even fetching the timeout, no signal sent to the thread. */
     speedtestEventReceiveHandler(NULL, &event, NULL);
     EXPECT_TRUE(IsSpeedtestThreadRunning());
 
