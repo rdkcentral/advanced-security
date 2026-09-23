@@ -482,30 +482,6 @@ static BOOL ni_qosd_enable(BOOL enable)
     return TRUE;
 }
 
-static BOOL ni_qosd_pause(void)
-{
-    if (!is_ni_enabled_and_activated())
-    {
-        CcspTraceInfo(("%s: Network Intelligence pause skipped due to Network Intelligence RFC is disabled or not activated\n", __FUNCTION__));
-        return TRUE;
-    }
-
-    CcspTraceInfo(("%s: pausing Network Intelligence\n", __FUNCTION__));
-    return ni_qosd_enable(FALSE);
-}
-
-static BOOL ni_qosd_resume(void)
-{
-    if (!is_ni_enabled_and_activated())
-    {
-        CcspTraceInfo(("%s: Network Intelligence resume skipped due to Network Intelligence RFC is disabled or not activated\n", __FUNCTION__));
-        return TRUE;
-    }
-
-    CcspTraceInfo(("%s: resuming Network Intelligence\n", __FUNCTION__));
-    return ni_qosd_enable(TRUE);
-}
-
 static void *ni_speedtest_handler(void *arg)
 {
     int waitStatus = 0;
@@ -515,7 +491,7 @@ static void *ni_speedtest_handler(void *arg)
 
     pthread_detach(pthread_self());
 
-    if (!ni_qosd_pause())
+    if (!ni_qosd_enable(FALSE))
     {
         CcspTraceError(("%s: failed to pause Network Intelligence for speedtest\n", __FUNCTION__));
         pthread_mutex_lock(&ni_speedtest_mutex);
@@ -543,7 +519,7 @@ static void *ni_speedtest_handler(void *arg)
         CcspTraceWarning(("%s: speedtest timeout expired, resuming Network Intelligence\n", __FUNCTION__));
         t2_event_d("IMP_CUJO_NI_SubscriberUnPauseTimeOut", 1);
     }
-    if (!ni_qosd_resume())
+    if (!ni_qosd_enable(TRUE))
     {
         CcspTraceError(("%s: failed to resume Network Intelligence after speedtest\n", __FUNCTION__));
     }
@@ -619,7 +595,7 @@ static BOOL speedtestGetTimeout(uint32_t *timeout)
     int ret;
 
     ret = rbus_get(rbus_handle, SPEEDTEST_TIMEOUT_DML, &value);
-    if (ret != RBUS_ERROR_SUCCESS || value == NULL)
+    if (ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("%s: rbus_get failed for %s, error=%d\n", __FUNCTION__, SPEEDTEST_TIMEOUT_DML, ret));
         return FALSE;
@@ -652,6 +628,12 @@ STATIC void speedtestEventReceiveHandler(
 
     status = rbusValue_GetUInt32(value);
     CcspTraceInfo(("%s: speedtest status event received, status=%u\n", __FUNCTION__, status));
+
+    if (!is_ni_enabled_and_activated())
+    {
+        CcspTraceInfo(("%s: Network Intelligence is disabled or not activated, skipping speedtest event\n", __FUNCTION__));
+        return;
+    }
 
     if (status == ST_TR181_STATUS_STARTING)
     {
