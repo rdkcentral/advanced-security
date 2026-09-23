@@ -1619,9 +1619,10 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateSt
 
     speedtestEventReceiveHandler(NULL, &event, NULL);
     WaitForSpeedtestThreadState(true, 200);
+    EXPECT_TRUE(IsSpeedtestThreadRunning());
 
-    /* Duplicate status=1 while already running: ignored entirely before
-     * even fetching the timeout, no signal sent to the thread. */
+    /* Duplicate status=1 while already running: ignored entirely (with
+     * a warning logged) before even fetching the timeout. */
     speedtestEventReceiveHandler(NULL, &event, NULL);
     EXPECT_TRUE(IsSpeedtestThreadRunning());
 

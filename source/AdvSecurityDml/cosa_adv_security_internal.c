@@ -517,7 +517,7 @@ static void *ni_speedtest_handler(void *arg)
 
     if (!ni_qosd_pause())
     {
-        CcspTraceError(("%s: failed to pause Network Intelligence for SpeedTest\n", __FUNCTION__));
+        CcspTraceError(("%s: failed to pause Network Intelligence for speedtest\n", __FUNCTION__));
         pthread_mutex_lock(&ni_speedtest_mutex);
         ni_speedtest_thread_running = FALSE;
         pthread_mutex_unlock(&ni_speedtest_mutex);
@@ -540,12 +540,12 @@ static void *ni_speedtest_handler(void *arg)
 
     if (timedOut)
     {
-        CcspTraceWarning(("%s: SpeedTest timeout expired, resuming Network Intelligence\n", __FUNCTION__));
+        CcspTraceWarning(("%s: speedtest timeout expired, resuming Network Intelligence\n", __FUNCTION__));
         t2_event_d("IMP_CUJO_NI_SubscriberUnPauseTimeOut", 1);
     }
     if (!ni_qosd_resume())
     {
-        CcspTraceError(("%s: failed to resume Network Intelligence after SpeedTest\n", __FUNCTION__));
+        CcspTraceError(("%s: failed to resume Network Intelligence after speedtest\n", __FUNCTION__));
     }
 
     pthread_mutex_lock(&ni_speedtest_mutex);
@@ -595,7 +595,7 @@ static BOOL ni_speedtest_trigger(uint32_t timeout)
     {
         ni_speedtest_thread_running = FALSE;
         pthread_mutex_unlock(&ni_speedtest_mutex);
-        CcspTraceError(("%s: failed to create SpeedTest timer thread, error=%d\n", __FUNCTION__, err));
+        CcspTraceError(("%s: failed to create speedtest timer thread, error=%d\n", __FUNCTION__, err));
         return FALSE;
     }
     pthread_mutex_unlock(&ni_speedtest_mutex);
@@ -651,31 +651,28 @@ STATIC void speedtestEventReceiveHandler(
     }
 
     status = rbusValue_GetUInt32(value);
-    CcspTraceInfo(("%s: SpeedTest status event received, status=%u\n", __FUNCTION__, status));
+    CcspTraceInfo(("%s: speedtest status event received, status=%u\n", __FUNCTION__, status));
 
     if (status == ST_TR181_STATUS_STARTING)
     {
         if (is_ni_speedtest_running())
         {
-            CcspTraceInfo(("%s: Network Intelligence SpeedTest handler already in progress, ignoring ST_TR181_STATUS_STARTING event\n", __FUNCTION__));
+            CcspTraceWarning(("%s: Network Intelligence speedtest handler already in progress, ignoring ST_TR181_STATUS_STARTING event\n", __FUNCTION__));
             return;
         }
         if (!speedtestGetTimeout(&timeout))
         {
-            CcspTraceError(("%s: failed to get SpeedTest timeout, Network Intelligence will not be paused\n", __FUNCTION__));
+            CcspTraceError(("%s: failed to get speedtest unpause timeout, Network Intelligence will not be paused\n", __FUNCTION__));
             return;
         }
         if (timeout == 0)
         {
-            /* SubscriberUnPauseTimeOut of 0 means the pause/unpause
-             * feature is disabled for this cycle: do not pause or, later,
-             * resume Network Intelligence. */
-            CcspTraceInfo(("%s: SpeedTest SubscriberUnPauseTimeOut is 0, skipping Network Intelligence pause\n", __FUNCTION__));
+            CcspTraceInfo(("%s: speedtest unpause timeout is 0, skipping Network Intelligence pause\n", __FUNCTION__));
             return;
         }
         if (!ni_speedtest_trigger(timeout))
         {
-            CcspTraceError(("%s: Network Intelligence SpeedTest trigger failed, Network Intelligence will not be paused\n", __FUNCTION__));
+            CcspTraceError(("%s: Network Intelligence speedtest trigger failed, Network Intelligence will not be paused\n", __FUNCTION__));
         }
     }
     else if (status == ST_TR181_STATUS_COMPLETE)
