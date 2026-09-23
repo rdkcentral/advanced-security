@@ -1582,6 +1582,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PauseFails_
 }
 
 
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateStart_Ignored)
 {
     int marker = 0;
     int timeoutMarker = 0;
