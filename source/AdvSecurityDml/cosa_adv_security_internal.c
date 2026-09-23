@@ -598,6 +598,10 @@ static BOOL speedtestGetTimeout(uint32_t *timeout)
     if (ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("%s: rbus_get failed for %s, error=%d\n", __FUNCTION__, SPEEDTEST_TIMEOUT_DML, ret));
+        if (value != NULL)
+        {
+            rbusValue_Release(value);
+        }
         return FALSE;
     }
 

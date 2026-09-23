@@ -1741,7 +1741,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_StartingWithZeroTime
     RemoveSpeedtestNIEnabledAndActivated();
 }
 
-TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_GetTimeoutFails_NoAction)
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_GetTimeoutFailsWithValue_ReleasesRbusValue)
 {
     int marker = 0;
     int timeoutMarker = 0;
@@ -1756,17 +1756,15 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_GetTimeoutF
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
         .Times(1)
         .WillOnce(Return(ST_TR181_STATUS_STARTING));
-    /* NOTE: rbus_get() fails but still populates a non-NULL value here
-     * (a real rbus behavior in some implementations, e.g. partial/cached
-     * state before returning an error). speedtestGetTimeout() currently
-     * does NOT release it on this path (ret != RBUS_ERROR_SUCCESS short-
-     * circuits before touching value) - this is a known rbus value leak
-     * on the rbus_get() failure path. */
+    /* rbus_get() fails but still populates a non-NULL value (a real
+     * rbus behavior in some implementations, e.g. partial/cached state
+     * before returning an error). speedtestGetTimeout() must release it
+     * instead of leaking it. */
     EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
         .Times(1)
         .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_BUS_ERROR)));
     EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
-        .Times(0);
+        .Times(1);
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
         .Times(0);
 
