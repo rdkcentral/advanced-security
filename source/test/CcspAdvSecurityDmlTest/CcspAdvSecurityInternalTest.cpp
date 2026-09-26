@@ -1582,7 +1582,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PauseFails_
 }
 
 
-TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateStart_Ignored)
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateStart_RefreshesTimeout)
 {
     int marker = 0;
     int timeoutMarker = 0;
@@ -1604,15 +1604,20 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateSt
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(completeValue))
         .Times(1)
         .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
+    /* Timeout is fetched again on the duplicate STARTING event, since
+     * ni_speedtest_trigger() now refreshes the running timer's deadline
+     * instead of ignoring the event. */
     EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
-        .Times(1)
-        .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
+        .Times(2)
+        .WillRepeatedly(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
     EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(timeoutValue))
-        .Times(1)
-        .WillOnce(Return(86400));
+        .Times(2)
+        .WillRepeatedly(Return(86400));
     EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
-        .Times(1);
-    /* Only ONE pause + ONE resume, even though status=1 fires twice. */
+        .Times(2);
+    /* Only ONE pause + ONE resume, even though status=1 fires twice:
+     * the duplicate STARTING event only refreshes the deadline, it does
+     * not re-pause Network Intelligence or spawn a new thread. */
     EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("cujo-ni-cli"), _))
         .Times(2)
         .WillRepeatedly(Return(0));
@@ -1621,8 +1626,8 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateSt
     WaitForSpeedtestThreadState(true, 200);
     EXPECT_TRUE(IsSpeedtestThreadRunning());
 
-    /* Duplicate status=1 while already running: ignored entirely (with
-     * a warning logged) before even fetching the timeout. */
+    /* Duplicate status=1 while already running: refreshes the deadline
+     * on the existing thread, no new pause, no new thread. */
     speedtestEventReceiveHandler(NULL, &event, NULL);
     EXPECT_TRUE(IsSpeedtestThreadRunning());
 

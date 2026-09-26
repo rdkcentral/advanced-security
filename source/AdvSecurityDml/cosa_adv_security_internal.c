@@ -531,16 +531,6 @@ static void *ni_speedtest_handler(void *arg)
     return NULL;
 }
 
-static BOOL is_ni_speedtest_running(void)
-{
-    BOOL running;
-
-    pthread_mutex_lock(&ni_speedtest_mutex);
-    running = ni_speedtest_thread_running;
-    pthread_mutex_unlock(&ni_speedtest_mutex);
-    return running;
-}
-
 static BOOL ni_speedtest_trigger(uint32_t timeout)
 {
     struct timespec ni_resume_timeout;
@@ -559,6 +549,15 @@ static BOOL ni_speedtest_trigger(uint32_t timeout)
     {
         pthread_mutex_unlock(&ni_speedtest_mutex);
         return FALSE;
+    }
+
+    if (ni_speedtest_thread_running)
+    {
+        ni_speedtest_timeout = ni_resume_timeout;
+        pthread_cond_signal(&ni_speedtest_cond);
+        pthread_mutex_unlock(&ni_speedtest_mutex);
+        CcspTraceInfo(("%s: Network Intelligence already paused for speedtest, refreshed timeout\n", __FUNCTION__));
+        return TRUE;
     }
 
     ni_speedtest_timeout = ni_resume_timeout;
@@ -641,11 +640,6 @@ STATIC void speedtestEventReceiveHandler(
 
     if (status == ST_TR181_STATUS_STARTING)
     {
-        if (is_ni_speedtest_running())
-        {
-            CcspTraceWarning(("%s: Network Intelligence speedtest handler already in progress, ignoring ST_TR181_STATUS_STARTING event\n", __FUNCTION__));
-            return;
-        }
         if (!speedtestGetTimeout(&timeout))
         {
             CcspTraceError(("%s: failed to get speedtest unpause timeout, Network Intelligence will not be paused\n", __FUNCTION__));
