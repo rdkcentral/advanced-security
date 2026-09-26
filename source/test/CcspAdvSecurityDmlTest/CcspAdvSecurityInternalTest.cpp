@@ -43,6 +43,7 @@ protected:
         g_syseventMock = new SyseventMock();
         g_webconfigFwMock = new webconfigFwMock();
         g_anscWrapperApiMock = new AnscWrapperApiMock();
+        g_telemetryMock = new telemetryMock();
     }
 
     void TearDown() override {
@@ -62,6 +63,7 @@ protected:
         delete g_syseventMock;
         delete g_webconfigFwMock;
         delete g_anscWrapperApiMock;
+        delete g_telemetryMock;
         g_syscfgMock = nullptr;
         g_securewrapperMock = nullptr;
         g_msgpackMock = nullptr;
@@ -78,6 +80,7 @@ protected:
         g_syseventMock = nullptr;
         g_webconfigFwMock = nullptr;
         g_anscWrapperApiMock = nullptr;
+        g_telemetryMock = nullptr;
     }
 };
 
@@ -1440,6 +1443,419 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetDNSCacheSize)
     free(g_pAdvSecAgent->pRabid);
     free(g_pAdvSecAgent);
 }
+
+#ifdef NETWORK_INTELLIGENCE
+#include <pthread.h>
+
+extern "C" void speedtestEventReceiveHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription);
+/* Internal SpeedTest timer state exposed (non-static in unit-test builds
+ * via the STATIC macro) purely so tests can synchronize with the
+ * asynchronous timer thread. No test-only function is defined in
+ * production source for this. */
+extern "C" pthread_mutex_t ni_speedtest_mutex;
+extern "C" BOOL ni_speedtest_thread_running;
+
+static const char *g_speedtestNIEnabledPath = "/tmp/advsec_networkintelligence_enabled";
+static const char *g_speedtestNIActivatedPath = "/tmp/advsec_networkintelligence_activated";
+
+static void CreateSpeedtestNIEnabledAndActivated(void)
+{
+    FILE *file = fopen(g_speedtestNIEnabledPath, "w");
+    if (file) fclose(file);
+    file = fopen(g_speedtestNIActivatedPath, "w");
+    if (file) fclose(file);
+}
+
+static void RemoveSpeedtestNIEnabledAndActivated(void)
+{
+    remove(g_speedtestNIEnabledPath);
+    remove(g_speedtestNIActivatedPath);
+}
+
+/* Test-only helper: reads the SpeedTest timer thread's running state
+ * under its production mutex. */
+static bool IsSpeedtestThreadRunning(void)
+{
+    BOOL running;
+
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    running = ni_speedtest_thread_running;
+    pthread_mutex_unlock(&ni_speedtest_mutex);
+    return running ? true : false;
+}
+
+/* Polls IsSpeedtestThreadRunning() until the SpeedTest timer thread
+ * reaches the desired state or maxWaitMs elapses. The thread's work
+ * (mocked v_secure_system calls) completes in microseconds, so this
+ * bounds test time while avoiding a fixed, potentially-flaky sleep. */
+static void WaitForSpeedtestThreadState(bool running, int maxWaitMs)
+{
+    int waited = 0;
+    while (IsSpeedtestThreadRunning() != running && waited < maxWaitMs)
+    {
+        usleep(2000);
+        waited += 2;
+    }
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PausesAndCompletes_ResumesNI)
+{
+    int marker = 0;
+    int timeoutMarker = 0;
+    int completeMarker = 5;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t timeoutValue = (rbusValue_t)&timeoutMarker;
+    rbusValue_t completeValue = (rbusValue_t)&completeMarker;
+    rbusEvent_t event = {};
+    CreateSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(2)
+        .WillOnce(Return(value))
+        .WillOnce(Return(completeValue));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(completeValue))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(timeoutValue))
+        .Times(1)
+        .WillOnce(Return(86400));
+    EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
+        .Times(1);
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("cujo-ni-cli"), _))
+        .Times(2)
+        .WillRepeatedly(Return(0));
+
+    /* status=1: starts the timer thread, which pauses NI immediately. */
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    WaitForSpeedtestThreadState(true, 200);
+    EXPECT_TRUE(IsSpeedtestThreadRunning());
+
+    /* status=5: wakes the thread early so it resumes NI and exits. */
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    WaitForSpeedtestThreadState(false, 500);
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+
+    RemoveSpeedtestNIEnabledAndActivated();
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PauseFails_ClearsRunningState)
+{
+    int marker = 0;
+    int timeoutMarker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t timeoutValue = (rbusValue_t)&timeoutMarker;
+    rbusEvent_t event = {};
+    CreateSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(timeoutValue))
+        .Times(1)
+        .WillOnce(Return(86400));
+    EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
+        .Times(1);
+    /* Simulate cujo-ni-cli failing (non-zero exit status) on the pause
+     * attempt. The thread must still clear ni_speedtest_thread_running
+     * so future SpeedTest cycles are not permanently blocked. */
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("cujo-ni-cli"), _))
+        .Times(1)
+        .WillOnce(Return(256));
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    WaitForSpeedtestThreadState(false, 500);
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+
+    RemoveSpeedtestNIEnabledAndActivated();
+}
+
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateStart_RefreshesTimeout)
+{
+    int marker = 0;
+    int timeoutMarker = 0;
+    int completeMarker = 5;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t timeoutValue = (rbusValue_t)&timeoutMarker;
+    rbusValue_t completeValue = (rbusValue_t)&completeMarker;
+    rbusEvent_t event = {};
+    CreateSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(3)
+        .WillOnce(Return(value))
+        .WillOnce(Return(value))
+        .WillOnce(Return(completeValue));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(2)
+        .WillRepeatedly(Return(ST_TR181_STATUS_STARTING));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(completeValue))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
+    /* Timeout is fetched again on the duplicate STARTING event, since
+     * ni_speedtest_trigger() now refreshes the running timer's deadline
+     * instead of ignoring the event. */
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(2)
+        .WillRepeatedly(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(timeoutValue))
+        .Times(2)
+        .WillRepeatedly(Return(86400));
+    EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
+        .Times(2);
+    /* Only ONE pause + ONE resume, even though status=1 fires twice:
+     * the duplicate STARTING event only refreshes the deadline, it does
+     * not re-pause Network Intelligence or spawn a new thread. */
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("cujo-ni-cli"), _))
+        .Times(2)
+        .WillRepeatedly(Return(0));
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    WaitForSpeedtestThreadState(true, 200);
+    EXPECT_TRUE(IsSpeedtestThreadRunning());
+
+    /* Duplicate status=1 while already running: refreshes the deadline
+     * on the existing thread, no new pause, no new thread. */
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    EXPECT_TRUE(IsSpeedtestThreadRunning());
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    WaitForSpeedtestThreadState(false, 500);
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+
+    RemoveSpeedtestNIEnabledAndActivated();
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_NIDisabled_NoAction)
+{
+    int marker = 0;
+    int completeMarker = 5;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t completeValue = (rbusValue_t)&completeMarker;
+    rbusEvent_t event = {};
+    RemoveSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(2)
+        .WillOnce(Return(value))
+        .WillOnce(Return(completeValue));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(completeValue))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
+    /* NI is disabled: speedtestEventReceiveHandler now returns before
+     * ever fetching the timeout, for any status. */
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(0);
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    /* NI is disabled: the top-level is_ni_enabled_and_activated() check
+     * in speedtestEventReceiveHandler skips the event entirely, so
+     * ni_speedtest_thread_running never becomes TRUE. */
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_NIEnabledButNotActivated_NoAction)
+{
+    int marker = 0;
+    int completeMarker = 5;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t completeValue = (rbusValue_t)&completeMarker;
+    rbusEvent_t event = {};
+    remove(g_speedtestNIActivatedPath);
+    FILE *file = fopen(g_speedtestNIEnabledPath, "w");
+    if (file) fclose(file);
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(2)
+        .WillOnce(Return(value))
+        .WillOnce(Return(completeValue));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(completeValue))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
+    /* NI is enabled but not activated: still gated out before ever
+     * fetching the timeout. */
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(0);
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    /* NI is enabled but not activated: the top-level
+     * is_ni_enabled_and_activated() check skips the event entirely. */
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+
+    remove(g_speedtestNIEnabledPath);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_StartingWithZeroTimeout_NoAction)
+{
+    int marker = 0;
+    int timeoutMarker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t timeoutValue = (rbusValue_t)&timeoutMarker;
+    rbusEvent_t event = {};
+    CreateSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(timeoutValue))
+        .Times(1)
+        .WillOnce(Return(0));
+    EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
+        .Times(1);
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+
+    RemoveSpeedtestNIEnabledAndActivated();
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_GetTimeoutFailsWithValue_ReleasesRbusValue)
+{
+    int marker = 0;
+    int timeoutMarker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t timeoutValue = (rbusValue_t)&timeoutMarker;
+    rbusEvent_t event = {};
+    CreateSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
+    /* rbus_get() fails but still populates a non-NULL value (a real
+     * rbus behavior in some implementations, e.g. partial/cached state
+     * before returning an error). speedtestGetTimeout() must release it
+     * instead of leaking it. */
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_BUS_ERROR)));
+    EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
+        .Times(1);
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+
+    RemoveSpeedtestNIEnabledAndActivated();
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Complete_NoThreadRunning_NoAction)
+{
+    int marker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusEvent_t event = {};
+    CreateSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+
+    RemoveSpeedtestNIEnabledAndActivated();
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Complete_NIDisabled_NoAction)
+{
+    int marker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusEvent_t event = {};
+    RemoveSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_COMPLETE));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    /* NI disabled: the top-level is_ni_enabled_and_activated() check now
+     * gates COMPLETE the same as STARTING. */
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_NullValue_NoAction)
+{
+    rbusEvent_t event = {};
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return((rbusValue_t)NULL));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Other_NoAction)
+{
+    int marker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusEvent_t event = {};
+    CreateSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(2));
+    EXPECT_CALL(*g_securewrapperMock, v_secure_system(_, _))
+        .Times(0);
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+
+    RemoveSpeedtestNIEnabledAndActivated();
+}
+#endif
 
 TEST_F(CcspAdvSecurityInternalTestFixture, CosaAdvPCInit)
 {

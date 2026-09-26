@@ -93,7 +93,7 @@ pErr ni_webconfig_process_request(void *Data)
 int ni_webconfig_rollback()
 {
     // return 0 to notify framework when rollback is success
-    CcspTraceInfo((" Entering %s \n",__FUNCTION__));
+    CcspTraceInfo(("Entering %s\n", __FUNCTION__));
 
     int ret = 0;
 
@@ -105,7 +105,7 @@ int ni_webconfig_rollback()
 /* Callback function to free webconfig resources */
 void ni_webconfig_free_resources(void *arg)
 {
-    CcspTraceInfo((" Entering %s \n",__FUNCTION__));
+    CcspTraceInfo(("Entering %s\n", __FUNCTION__));
     execData *blob_exec_data  = (execData*) arg;
 
     if ( blob_exec_data != NULL )
