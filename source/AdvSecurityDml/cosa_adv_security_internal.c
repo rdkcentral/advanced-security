@@ -491,16 +491,15 @@ static void *ni_speedtest_handler(void *arg)
 
     pthread_detach(pthread_self());
 
+    pthread_mutex_lock(&ni_speedtest_mutex);
     if (!ni_qosd_enable(FALSE))
     {
         CcspTraceError(("%s: failed to pause Network Intelligence for speedtest\n", __FUNCTION__));
-        pthread_mutex_lock(&ni_speedtest_mutex);
         ni_speedtest_thread_running = FALSE;
         pthread_mutex_unlock(&ni_speedtest_mutex);
         return NULL;
     }
 
-    pthread_mutex_lock(&ni_speedtest_mutex);
     while (!ni_speedtest_wake_early && !ni_speedtest_shutdown && waitStatus != ETIMEDOUT)
     {
         waitStatus = pthread_cond_timedwait(&ni_speedtest_cond, &ni_speedtest_mutex, &ni_speedtest_timeout);
