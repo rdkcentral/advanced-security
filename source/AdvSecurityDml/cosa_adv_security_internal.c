@@ -69,6 +69,10 @@
 #define ADVSEC_SYSEVENT_CURRENT_WAN_IFNAME_EVENT "current_wan_ifname"
 
 #define LEVL_DML "Device.WiFi.Levl"
+#define SPEEDTEST_STATUS_DML "Device.IP.Diagnostics.X_RDKCENTRAL-COM_SpeedTest.Status"
+#define SPEEDTEST_TIMEOUT_DML "Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"
+#define ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH "/tmp/advsec_networkintelligence_enabled"
+#define CUJONICLI_SET_QOSD_ENABLE_CMD "/usr/bin/cujo-ni-cli '{\"method\":\"set_configs\", \"configs\": {\"cujoniqos.daemon.enable\": %d}}' &"
 
 #define ADVSEC_WAIT_FOR_TIMEOUT (60 * 60)
 #define MAX_VALUE 32
@@ -155,6 +159,11 @@ static char *g_RaptrEnabled = "Adv_RaptrRFCEnable";
 #ifdef NETWORK_INTELLIGENCE
 static char *g_AdvSecNetworkIntelligenceEnabled = "Adv_AdvSecNetworkIntelligenceRFCEnable";
 static char *g_NetworkIntelligenceMemoryLimit = "Advsecurity_NetworkIntelligenceMemoryLimit";
+STATIC pthread_mutex_t ni_speedtest_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t ni_speedtest_cond = PTHREAD_COND_INITIALIZER;
+static struct timespec ni_speedtest_timeout;
+STATIC BOOL ni_speedtest_thread_running = FALSE;
+static BOOL ni_speedtest_wake_early = FALSE;
 static char *g_NetworkIntelligenceActivate = "Adv_AdvSecNetworkIntelligenceActivate";
 #endif
 #ifdef WIFI_DATA_COLLECTION
@@ -430,6 +439,215 @@ static void eventReceiveHandler(
         {
             CcspTraceWarning(("AdvSecurityEventConsumer : New value of CurrentActiveInterface is = %s\n",newValue));
         }
+    }
+}
+#endif
+
+#ifdef NETWORK_INTELLIGENCE
+static BOOL is_ni_enabled_and_activated(void)
+{
+    struct stat st;
+
+    if (stat(ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH, &st) != 0)
+    {
+        return FALSE;
+    }
+    if (stat(ADVSEC_NETWORKINTELLIGENCE_ACTIVATED_PATH, &st) != 0)
+    {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+static BOOL ni_qosd_enable(BOOL enable)
+{
+    errno_t rc;
+
+    rc = v_secure_system(CUJONICLI_SET_QOSD_ENABLE_CMD, enable ? 1 : 0);
+    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    {
+        CcspTraceError(("%s: cujo-ni-cli set_configs cujoniqos.daemon.enable=%d failed, rc=%d\n",
+            __FUNCTION__, enable ? 1 : 0, WEXITSTATUS(rc)));
+        return FALSE;
+    }
+    if (enable)
+    {
+        t2_event_d("SYS_INFO_CUJO_NI_resume", 1);
+    }
+    else
+    {
+        t2_event_d("SYS_INFO_CUJO_NI_pause", 1);
+    }
+    return TRUE;
+}
+
+static void *ni_speedtest_handler(void *arg)
+{
+    int waitStatus = 0;
+    BOOL timedOut;
+
+    (void)arg;
+
+    pthread_detach(pthread_self());
+
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    if (!ni_qosd_enable(FALSE))
+    {
+        CcspTraceError(("%s: failed to pause Network Intelligence for speedtest\n", __FUNCTION__));
+        ni_speedtest_thread_running = FALSE;
+        pthread_mutex_unlock(&ni_speedtest_mutex);
+        return NULL;
+    }
+
+    while (!ni_speedtest_wake_early && waitStatus != ETIMEDOUT)
+    {
+        waitStatus = pthread_cond_timedwait(&ni_speedtest_cond, &ni_speedtest_mutex, &ni_speedtest_timeout);
+        if (waitStatus != 0 && waitStatus != ETIMEDOUT)
+        {
+            CcspTraceError(("%s: pthread_cond_timedwait failed, error=%d\n", __FUNCTION__, waitStatus));
+            break;
+        }
+    }
+    timedOut = (waitStatus == ETIMEDOUT);
+    ni_speedtest_wake_early = FALSE;
+
+    if (timedOut)
+    {
+        CcspTraceWarning(("%s: speedtest timeout expired, resuming Network Intelligence\n", __FUNCTION__));
+        t2_event_d("IMP_CUJO_NI_SubscriberUnPauseTimeOut", 1);
+    }
+    if (!ni_qosd_enable(TRUE))
+    {
+        CcspTraceError(("%s: failed to resume Network Intelligence after speedtest\n", __FUNCTION__));
+    }
+
+    ni_speedtest_thread_running = FALSE;
+    pthread_mutex_unlock(&ni_speedtest_mutex);
+
+    return NULL;
+}
+
+static BOOL ni_speedtest_trigger(uint32_t timeout)
+{
+    struct timespec ni_resume_timeout;
+    pthread_t tid;
+    int err;
+
+    if (clock_gettime(CLOCK_REALTIME, &ni_resume_timeout) != 0)
+    {
+        CcspTraceError(("%s: clock_gettime failed, errno=%d\n", __FUNCTION__, errno));
+        return FALSE;
+    }
+    ni_resume_timeout.tv_sec += timeout;
+
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    if (ni_speedtest_thread_running)
+    {
+        ni_speedtest_timeout = ni_resume_timeout;
+        pthread_cond_signal(&ni_speedtest_cond);
+        pthread_mutex_unlock(&ni_speedtest_mutex);
+        CcspTraceInfo(("%s: Network Intelligence already paused for speedtest, refreshed timeout\n", __FUNCTION__));
+        return TRUE;
+    }
+
+    ni_speedtest_timeout = ni_resume_timeout;
+
+    ni_speedtest_wake_early = FALSE;
+    ni_speedtest_thread_running = TRUE;
+
+    err = pthread_create(&tid, NULL, ni_speedtest_handler, NULL);
+    if (err != 0)
+    {
+        ni_speedtest_thread_running = FALSE;
+        pthread_mutex_unlock(&ni_speedtest_mutex);
+        CcspTraceError(("%s: failed to create speedtest timer thread, error=%d\n", __FUNCTION__, err));
+        return FALSE;
+    }
+    pthread_mutex_unlock(&ni_speedtest_mutex);
+    return TRUE;
+}
+
+static void ni_speedtest_complete(void)
+{
+    pthread_mutex_lock(&ni_speedtest_mutex);
+    if (ni_speedtest_thread_running)
+    {
+        ni_speedtest_wake_early = TRUE;
+        pthread_cond_signal(&ni_speedtest_cond);
+    }
+    pthread_mutex_unlock(&ni_speedtest_mutex);
+}
+
+static BOOL speedtestGetTimeout(uint32_t *timeout)
+{
+    rbusValue_t value = NULL;
+    int ret;
+
+    ret = rbus_get(rbus_handle, SPEEDTEST_TIMEOUT_DML, &value);
+    if (ret != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("%s: rbus_get failed for %s, error=%d\n", __FUNCTION__, SPEEDTEST_TIMEOUT_DML, ret));
+        if (value != NULL)
+        {
+            rbusValue_Release(value);
+        }
+        return FALSE;
+    }
+
+    *timeout = rbusValue_GetUInt32(value);
+    rbusValue_Release(value);
+
+    return TRUE;
+}
+
+STATIC void speedtestEventReceiveHandler(
+    rbusHandle_t handle,
+    rbusEvent_t const* event,
+    rbusEventSubscription_t* subscription)
+{
+    rbusValue_t value;
+    uint32_t status;
+    uint32_t timeout;
+
+    (void)handle;
+    (void)subscription;
+
+    value = rbusObject_GetValue(event->data, NULL);
+    if (value == NULL)
+    {
+        CcspTraceError(("SpeedTest status event has no value\n"));
+        return;
+    }
+
+    status = rbusValue_GetUInt32(value);
+    CcspTraceInfo(("%s: speedtest status event received, status=%u\n", __FUNCTION__, status));
+
+    if (!is_ni_enabled_and_activated())
+    {
+        CcspTraceInfo(("%s: Network Intelligence is disabled or not activated, skipping speedtest event\n", __FUNCTION__));
+        return;
+    }
+
+    if (status == ST_TR181_STATUS_STARTING)
+    {
+        if (!speedtestGetTimeout(&timeout))
+        {
+            CcspTraceError(("%s: failed to get speedtest unpause timeout, Network Intelligence will not be paused\n", __FUNCTION__));
+            return;
+        }
+        if (timeout == 0)
+        {
+            CcspTraceInfo(("%s: speedtest unpause timeout is 0, skipping Network Intelligence pause\n", __FUNCTION__));
+            return;
+        }
+        if (!ni_speedtest_trigger(timeout))
+        {
+            CcspTraceError(("%s: Network Intelligence speedtest trigger failed, Network Intelligence will not be paused\n", __FUNCTION__));
+        }
+    }
+    else if (status == ST_TR181_STATUS_COMPLETE)
+    {
+        ni_speedtest_complete();
     }
 }
 #endif
@@ -1585,6 +1803,14 @@ CosaSecurityInitialize
     if(ret != RBUS_ERROR_SUCCESS)
     {
         CcspTraceError(("AdvSecurityEventConsumer: rbusEvent_Subscribe %s failed: %d\n", LEVL_DML, ret));
+        return ANSC_STATUS_FAILURE;
+    }
+#endif
+#ifdef NETWORK_INTELLIGENCE
+    ret = rbusEvent_Subscribe(rbus_handle, SPEEDTEST_STATUS_DML, speedtestEventReceiveHandler, NULL, 0);
+    if(ret != RBUS_ERROR_SUCCESS)
+    {
+        CcspTraceError(("AdvSecurityEventConsumer: rbusEvent_Subscribe %s failed: %d\n", SPEEDTEST_STATUS_DML, ret));
         return ANSC_STATUS_FAILURE;
     }
 #endif
