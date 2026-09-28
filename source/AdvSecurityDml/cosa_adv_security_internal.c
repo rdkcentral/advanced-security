@@ -164,7 +164,6 @@ static pthread_cond_t ni_speedtest_cond = PTHREAD_COND_INITIALIZER;
 static struct timespec ni_speedtest_timeout;
 STATIC BOOL ni_speedtest_thread_running = FALSE;
 static BOOL ni_speedtest_wake_early = FALSE;
-static BOOL ni_speedtest_shutdown = FALSE;
 static char *g_NetworkIntelligenceActivate = "Adv_AdvSecNetworkIntelligenceActivate";
 #endif
 #ifdef WIFI_DATA_COLLECTION
@@ -500,7 +499,7 @@ static void *ni_speedtest_handler(void *arg)
         return NULL;
     }
 
-    while (!ni_speedtest_wake_early && !ni_speedtest_shutdown && waitStatus != ETIMEDOUT)
+    while (!ni_speedtest_wake_early && waitStatus != ETIMEDOUT)
     {
         waitStatus = pthread_cond_timedwait(&ni_speedtest_cond, &ni_speedtest_mutex, &ni_speedtest_timeout);
         if (waitStatus != 0 && waitStatus != ETIMEDOUT)
@@ -542,12 +541,6 @@ static BOOL ni_speedtest_trigger(uint32_t timeout)
     ni_resume_timeout.tv_sec += timeout;
 
     pthread_mutex_lock(&ni_speedtest_mutex);
-    if (ni_speedtest_shutdown)
-    {
-        pthread_mutex_unlock(&ni_speedtest_mutex);
-        return FALSE;
-    }
-
     if (ni_speedtest_thread_running)
     {
         ni_speedtest_timeout = ni_resume_timeout;
@@ -1814,9 +1807,6 @@ CosaSecurityInitialize
     }
 #endif
 #ifdef NETWORK_INTELLIGENCE
-    pthread_mutex_lock(&ni_speedtest_mutex);
-    ni_speedtest_shutdown = FALSE;
-    pthread_mutex_unlock(&ni_speedtest_mutex);
     ret = rbusEvent_Subscribe(rbus_handle, SPEEDTEST_STATUS_DML, speedtestEventReceiveHandler, NULL, 0);
     if(ret != RBUS_ERROR_SUCCESS)
     {
@@ -1836,17 +1826,6 @@ CosaSecurityRemove
 {
     ANSC_STATUS                     returnStatus = ANSC_STATUS_SUCCESS;
     PCOSA_DATAMODEL_AGENT            pMyObject    = (PCOSA_DATAMODEL_AGENT)hThisObject;
-
-#ifdef NETWORK_INTELLIGENCE
-    pthread_mutex_lock(&ni_speedtest_mutex);
-    ni_speedtest_shutdown = TRUE;
-    if (ni_speedtest_thread_running)
-    {
-        ni_speedtest_wake_early = TRUE;
-        pthread_cond_signal(&ni_speedtest_cond);
-    }
-    pthread_mutex_unlock(&ni_speedtest_mutex);
-#endif
 
     /* Remove self */
     FreeCosaDmAgent(pMyObject);
