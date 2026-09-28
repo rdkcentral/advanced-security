@@ -512,7 +512,6 @@ static void *ni_speedtest_handler(void *arg)
     }
     timedOut = (waitStatus == ETIMEDOUT);
     ni_speedtest_wake_early = FALSE;
-    pthread_mutex_unlock(&ni_speedtest_mutex);
 
     if (timedOut)
     {
@@ -524,7 +523,6 @@ static void *ni_speedtest_handler(void *arg)
         CcspTraceError(("%s: failed to resume Network Intelligence after speedtest\n", __FUNCTION__));
     }
 
-    pthread_mutex_lock(&ni_speedtest_mutex);
     ni_speedtest_thread_running = FALSE;
     pthread_mutex_unlock(&ni_speedtest_mutex);
 
