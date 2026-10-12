@@ -21,6 +21,10 @@
 #include "ansc_platform.h"
 #include "cosa_adv_security_internal.h"
 #include "cosa_adv_security_webconfig.h"
+#ifdef NETWORK_INTELLIGENCE
+#include "cosa_network_intelligence_webconfig.h"
+#include "networkintelligence_param.h"
+#endif
 #include "syslog.h"
 #include "ccsp_trace.h"
 #include "msgpack.h"
@@ -573,7 +577,7 @@ AdvancedSecurity_SetParamStringValue
     errno_t rc = -1;
     int ind = -1;
 
-    if(ParamName == NULL)
+    if((ParamName == NULL) || (pString == NULL))
         return FALSE;
     /* check the parameter name and set the corresponding value */
     rc = strcmp_s("Data", strlen("Data"), ParamName, &ind);
@@ -592,9 +596,29 @@ AdvancedSecurity_SetParamStringValue
         msgpack_unpack_return unpack_ret;
 
         decodeMsgSize = b64_get_decoded_buffer_size(strlen(pString));
+        if(decodeMsgSize <= 0)
+        {
+            CcspTraceError(("Invalid base64 decoded buffer size %d\n", decodeMsgSize));
+            return FALSE;
+        }
+
         decodeMsg = (char *) AnscAllocateMemory(sizeof(char) * decodeMsgSize);
+        if(decodeMsg == NULL)
+        {
+            CcspTraceError(("decodeMsg AnscAllocateMemory failed\n"));
+            return FALSE;
+        }
+
         size = b64_decode((uint8_t *) pString, strlen(pString),(uint8_t *) decodeMsg );
         CcspTraceInfo(("base64 decoded data contains %d bytes\n",size));
+
+        if((size <= 0) || (size > decodeMsgSize))
+        {
+            CcspTraceError(("base64 decode failed, invalid length %d (buffer %d)\n", size, decodeMsgSize));
+            AnscFreeMemory(decodeMsg);
+            decodeMsg = NULL;
+            return FALSE;
+        }
 
         msgpack_zone_init(&mempool, 2048);
         unpack_ret = msgpack_unpack(decodeMsg, size, NULL, &mempool, &deserialized);
@@ -629,23 +653,14 @@ AdvancedSecurity_SetParamStringValue
             err = errno;
             CcspTraceInfo(("errno: %s\n", advsecuritydoc_strerror(err)));
 
-            if(ad != NULL)
+            if(ad != NULL && ad->param != NULL && ad->subdoc_name != NULL)
             {
                 CcspTraceInfo(("ad->subdoc_name is %s\n", ad->subdoc_name));
                 CcspTraceInfo(("ad->version is %lu\n", (long)ad->version));
                 CcspTraceInfo(("ad->transaction_id %lu\n",(long) ad->transaction_id));
-                if (ad->param->network_intelligence_present)
-                {
-                    CcspTraceInfo(("fingerprint_enable:[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d], network_intelligence_activate[%d]\n",
-                        ad->param->fingerprint_enable,ad->param->softflowd_enable,ad->param->safebrowsing_enable,
-                        ad->param->parental_control_activate,ad->param->privacy_protection_activate,ad->param->network_intelligence_activate));
-                }
-                else
-                {
-                    CcspTraceInfo(("fingerprint_enable:[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d]\n",
-                        ad->param->fingerprint_enable,ad->param->softflowd_enable,ad->param->safebrowsing_enable,
-                        ad->param->parental_control_activate,ad->param->privacy_protection_activate));
-                }
+                CcspTraceInfo(("fingerprint_enable:[%d], softflowd_enable[%d], safebrowsing_enable[%d], parental_control_activate[%d], privacy_protection_activate[%d]\n",
+                    ad->param->fingerprint_enable,ad->param->softflowd_enable,ad->param->safebrowsing_enable,
+                    ad->param->parental_control_activate,ad->param->privacy_protection_activate));
 
                 execData *execDataAdvsec = NULL ;
                 execDataAdvsec = (execData*) AnscAllocateMemory (sizeof(execData));
@@ -690,6 +705,17 @@ AdvancedSecurity_SetParamStringValue
                     advsecuritydoc_destroy(ad);
                     ret_val = FALSE;
                 }
+            }
+            else if(ad != NULL)
+            {
+                CcspTraceError(("advsecuritydoc missing mandatory fields\n"));
+                advsecuritydoc_destroy(ad);
+                ret_val = FALSE;
+            }
+            else
+            {
+                CcspTraceError(("advsecuritydoc_convert failed\n"));
+                ret_val = FALSE;
             }
         }
         else
@@ -4211,6 +4237,196 @@ NetworkIntelligence_RFC_SetParamUlongValue
 
         return TRUE;
     }
+    CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
+    return FALSE;
+}
+
+/**********************************************************************
+
+    caller:     owner of this object
+
+    prototype:
+
+        BOOL
+        NetworkIntelligence_SetParamStringValue
+            (
+                ANSC_HANDLE                 hInsContext,
+                char*                       ParamName,
+                char*                       pString
+            );
+
+    description:
+
+        This function is called to set string parameter value;
+
+    argument:   ANSC_HANDLE                 hInsContext,
+                The instance handle;
+
+                char*                       ParamName,
+                The parameter name;
+
+                char*                       pString
+                The updated string value;
+
+    return:     TRUE if succeeded.
+
+**********************************************************************/
+BOOL
+NetworkIntelligence_SetParamStringValue
+    (
+        ANSC_HANDLE                 hInsContext,
+        char*                       ParamName,
+        char*                       pString
+    )
+{
+    UNREFERENCED_PARAMETER(hInsContext);
+    errno_t rc = -1;
+    int ind = -1;
+
+    if(ParamName == NULL || pString == NULL)
+        return FALSE;
+
+    /* check the parameter name and set the corresponding value */
+    rc = strcmp_s("Data", strlen("Data"), ParamName, &ind);
+    ERR_CHK(rc);
+    if((rc == EOK) && (!ind))
+    {
+        networkintelligencedoc_t *nd = NULL;
+        int err;
+        char * decodeMsg = NULL;
+        int decodeMsgSize = 0;
+        int size = 0;
+        BOOL ret_val = TRUE;
+
+        msgpack_zone mempool;
+        msgpack_object deserialized;
+        msgpack_unpack_return unpack_ret;
+
+        decodeMsgSize = b64_get_decoded_buffer_size(strlen(pString));
+        if (decodeMsgSize <= 0)
+        {
+            CcspTraceError(("Invalid base64 decoded buffer size %d\n", decodeMsgSize));
+            return FALSE;
+        }
+
+        decodeMsg = (char *) AnscAllocateMemory(sizeof(char) * decodeMsgSize);
+        if (decodeMsg == NULL)
+        {
+            CcspTraceError(("decodeMsg AnscAllocateMemory failed\n"));
+            return FALSE;
+        }
+        size = b64_decode((uint8_t *) pString, strlen(pString),(uint8_t *) decodeMsg );
+        CcspTraceInfo(("base64 decoded data contains %d bytes\n",size));
+
+        if ((size <= 0) || (size > decodeMsgSize))
+        {
+            CcspTraceError(("base64 decode failed, invalid length %d (buffer %d)\n", size, decodeMsgSize));
+            AnscFreeMemory(decodeMsg);
+            decodeMsg = NULL;
+            return FALSE;
+        }
+
+        msgpack_zone_init(&mempool, 2048);
+        unpack_ret = msgpack_unpack(decodeMsg, size, NULL, &mempool, &deserialized);
+        switch(unpack_ret)
+        {
+            case MSGPACK_UNPACK_SUCCESS:
+                CcspTraceInfo(("MSGPACK_UNPACK_SUCCESS :%d\n",unpack_ret));
+                break;
+            case MSGPACK_UNPACK_EXTRA_BYTES:
+                CcspTraceInfo(("MSGPACK_UNPACK_EXTRA_BYTES :%d\n",unpack_ret));
+                break;
+            case MSGPACK_UNPACK_CONTINUE:
+                CcspTraceInfo(("MSGPACK_UNPACK_CONTINUE :%d\n",unpack_ret));
+                break;
+            case MSGPACK_UNPACK_PARSE_ERROR:
+                CcspTraceError(("MSGPACK_UNPACK_PARSE_ERROR :%d\n",unpack_ret));
+                break;
+            case MSGPACK_UNPACK_NOMEM_ERROR:
+                CcspTraceError(("MSGPACK_UNPACK_NOMEM_ERROR :%d\n",unpack_ret));
+            break;
+            default:
+                CcspTraceError(("Message Pack decode failed with error: %d\n", unpack_ret));
+        }
+        msgpack_zone_destroy(&mempool);
+
+        CcspTraceInfo(("---------------End of b64 decode--------------\n"));
+
+        if(unpack_ret == MSGPACK_UNPACK_SUCCESS)
+        {
+            CcspTraceInfo(("Msg unpack success\n"));
+            nd = networkintelligencedoc_convert(decodeMsg, size);//used to process the incoming msgobject
+            err = errno;
+            CcspTraceInfo(("errno: %s\n", networkintelligencedoc_strerror(err)));
+
+            if(nd != NULL && nd->param != NULL && nd->subdoc_name != NULL)
+            {
+                CcspTraceInfo(("nd->subdoc_name is %s\n", nd->subdoc_name));
+                CcspTraceInfo(("nd->version is %lu\n", (long)nd->version));
+                CcspTraceInfo(("nd->transaction_id %lu\n",(long) nd->transaction_id));
+                CcspTraceInfo(("network_intelligence_activate:[%d]\n",
+                    nd->param->network_intelligence_activate));
+
+                execData *execDataNi = NULL ;
+                execDataNi = (execData*) AnscAllocateMemory (sizeof(execData));
+
+                if ( execDataNi != NULL )
+                {
+                    rc = memset_s(execDataNi, sizeof(execData), 0, sizeof(execData));
+                    ERR_CHK(rc);
+
+                    execDataNi->txid = nd->transaction_id;
+                    execDataNi->version = nd->version;
+                    execDataNi->numOfEntries = 1;
+
+                    rc = strcpy_s(execDataNi->subdoc_name, sizeof(execDataNi->subdoc_name), nd->subdoc_name);
+                    if(rc != EOK)
+                    {
+                       ERR_CHK(rc);
+                       AnscFreeMemory(execDataNi);
+                       execDataNi = NULL;
+                       networkintelligencedoc_destroy(nd);
+                       AnscFreeMemory(decodeMsg);
+                       decodeMsg = NULL;
+                       return FALSE;
+                    }
+
+                    execDataNi->user_data = (void*) nd;
+                    execDataNi->calcTimeout = NULL ;
+                    execDataNi->executeBlobRequest = ni_webconfig_process_request;
+                    execDataNi->rollbackFunc = ni_webconfig_rollback;
+                    execDataNi->freeResources = ni_webconfig_free_resources;
+                    PushBlobRequest(execDataNi);
+                    CcspTraceInfo(("PushBlobRequest complete\n"));
+                }
+                else
+                {
+                    CcspTraceError(("execData AnscAllocateMemory failed\n"));
+                    networkintelligencedoc_destroy(nd);
+                    ret_val = FALSE;
+                }
+            }
+            else
+            {
+                CcspTraceError(("Failed to convert networkintelligence subdoc\n"));
+                networkintelligencedoc_destroy(nd);
+                ret_val = FALSE;
+            }
+        }
+        else
+        {
+            CcspTraceError(("Failed to unpack msgpack\n"));
+            ret_val = FALSE;
+        }
+
+        if ( decodeMsg )
+        {
+            AnscFreeMemory (decodeMsg);
+            decodeMsg = NULL;
+        }
+        return ret_val;
+    }
+
     CcspTraceWarning(("Unsupported parameter '%s'\n", ParamName));
     return FALSE;
 }

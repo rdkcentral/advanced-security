@@ -31,8 +31,15 @@
 
 #include "webconfig_framework.h"
 #include "advsecurity_param.h"
+#ifdef NETWORK_INTELLIGENCE
+#include "networkintelligence_param.h"
+#endif
 
+#ifdef NETWORK_INTELLIGENCE
+#define SUBDOC_COUNT 2
+#else
 #define SUBDOC_COUNT 1
+#endif
 
 #define BLOCK_SIZE 32
 

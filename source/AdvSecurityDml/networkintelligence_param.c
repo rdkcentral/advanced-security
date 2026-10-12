@@ -1,0 +1,196 @@
+/*
+ *
+ * Copyright 2016 Comcast Cable Communications Management, LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0
+*/
+
+#include <errno.h>
+#include <string.h>
+#include <msgpack.h>
+#include <stdarg.h>
+#include "ccsp_trace.h"
+#include "advsecurity_helpers.h"
+#include "networkintelligence_param.h"
+#include "ansc_platform.h"
+
+/*----------------------------------------------------------------------------*/
+/*                                   Macros                                   */
+/*----------------------------------------------------------------------------*/
+/* none */
+/*----------------------------------------------------------------------------*/
+/*                               Data Structures                              */
+/*----------------------------------------------------------------------------*/
+enum {
+    OK                       = HELPERS_OK,
+    OUT_OF_MEMORY            = HELPERS_OUT_OF_MEMORY,
+    INVALID_FIRST_ELEMENT    = HELPERS_INVALID_FIRST_ELEMENT,
+    MISSING_ENTRY            = HELPERS_MISSING_WRAPPER,
+    INVALID_OBJECT,
+    INVALID_VERSION,
+};
+/*----------------------------------------------------------------------------*/
+/*                            File Scoped Variables                           */
+/*----------------------------------------------------------------------------*/
+/* none */
+/*----------------------------------------------------------------------------*/
+/*                             Function Prototypes                            */
+/*----------------------------------------------------------------------------*/
+int process_networkintelligenceparams( networkintelligenceparam_t *e, msgpack_object_map *map );
+int process_networkintelligencedoc( networkintelligencedoc_t *nd, int num, ...);
+/*----------------------------------------------------------------------------*/
+/*                             External Functions                             */
+/*----------------------------------------------------------------------------*/
+/* See networkintelligence_param.h for details. */
+networkintelligencedoc_t* networkintelligencedoc_convert( const void *buf, size_t len )
+{
+    return comp_helper_convert( buf, len, sizeof(networkintelligencedoc_t), NI_WEBCONFIG_SUBDOC_NAME,
+                            MSGPACK_OBJECT_MAP, true,
+                           (process_fn_t) process_networkintelligencedoc,
+                           (destroy_fn_t) networkintelligencedoc_destroy );
+}
+/* See networkintelligence_param.h for details. */
+void networkintelligencedoc_destroy( networkintelligencedoc_t *nd )
+{
+    if( NULL != nd )
+    {
+        if( NULL != nd->subdoc_name )
+        {
+            AnscFreeMemory ( nd->subdoc_name );
+        }
+        if( NULL != nd->param )
+        {
+            AnscFreeMemory ( nd->param );
+        }
+        AnscFreeMemory ( nd );
+    }
+}
+/* See networkintelligence_param.h for details. */
+const char* networkintelligencedoc_strerror( int errnum )
+{
+    struct error_map {
+        int v;
+        const char *txt;
+    } map[] = {
+        { .v = OK,                               .txt = "No errors." },
+        { .v = OUT_OF_MEMORY,                    .txt = "Out of memory." },
+        { .v = INVALID_FIRST_ELEMENT,            .txt = "Invalid first element." },
+        { .v = INVALID_VERSION,                  .txt = "Invalid 'version' value." },
+        { .v = INVALID_OBJECT,                   .txt = "Invalid 'value' array." },
+        { .v = 0, .txt = NULL }
+    };
+    int i = 0;
+    while( (map[i].v != errnum) && (NULL != map[i].txt) ) { i++; }
+    if( NULL == map[i].txt )
+    {
+        CcspTraceError(("----%s----\n", __FUNCTION__));
+        return "Unknown error.";
+    }
+    return map[i].txt;
+}
+/*----------------------------------------------------------------------------*/
+/*                             Internal functions                             */
+/*----------------------------------------------------------------------------*/
+/**
+ *  Convert the msgpack map into the doc_t structure.
+ *
+ *  @param e    the entry pointer
+ *  @param map  the msgpack map pointer
+ *
+ *  @return 0 on success, error otherwise
+ */
+int process_networkintelligenceparams( networkintelligenceparam_t *e, msgpack_object_map *map )
+{
+    int left = map->size;
+    uint8_t objects_left = 0x01;
+    msgpack_object_kv *p;
+    p = map->ptr;
+    while( (0 < left--) && (0 != objects_left) )
+    {
+        if( MSGPACK_OBJECT_STR == p->key.type )
+        {
+            if( MSGPACK_OBJECT_BOOLEAN == p->val.type )
+            {
+                if( 0 == match(p, "NetworkIntelligenceActivate") )
+                {
+                    e->network_intelligence_activate = p->val.via.boolean;
+                    objects_left &= ~(1 << 0);
+                }
+            }
+        }
+        p++;
+    }
+
+    if( 1 & objects_left ) {
+    } else {
+        errno = OK;
+    }
+
+    return (0 == objects_left) ? 0 : -1;
+}
+int process_networkintelligencedoc( networkintelligencedoc_t *nd, int num, ... )
+{
+//To access the variable arguments use va_list
+    va_list valist;
+    va_start(valist, num);//start of variable argument loop
+
+    msgpack_object *obj = va_arg(valist, msgpack_object *);//each usage of va_arg fn argument iterates by one time
+    msgpack_object *obj1 = va_arg(valist, msgpack_object *);
+    msgpack_object *obj2 = va_arg(valist, msgpack_object *);
+    msgpack_object *obj3 = va_arg(valist, msgpack_object *);
+    va_end(valist);//End of variable argument loop
+
+    if( (NULL == obj) || (NULL == obj1) || (NULL == obj2) || (NULL == obj3) )
+    {
+        CcspTraceError(("%s missing mandatory element(s) in subdoc\n", __FUNCTION__));
+        return -1;
+    }
+
+    if( (MSGPACK_OBJECT_MAP != obj->type) ||
+        (MSGPACK_OBJECT_STR != obj1->type) ||
+        (MSGPACK_OBJECT_POSITIVE_INTEGER != obj2->type) ||
+        (MSGPACK_OBJECT_POSITIVE_INTEGER != obj3->type) )
+    {
+        CcspTraceError(("%s unexpected element type(s) in subdoc\n", __FUNCTION__));
+        return -1;
+    }
+
+    msgpack_object_map *mapobj = &obj->via.map;
+
+    nd->subdoc_name = strndup( obj1->via.str.ptr, obj1->via.str.size );
+    if( NULL == nd->subdoc_name )
+    {
+        CcspTraceError(("%s subdoc_name strndup failed\n", __FUNCTION__));
+        return -1;
+    }
+
+    nd->version = (uint32_t) obj2->via.u64;
+    nd->transaction_id = (uint16_t) obj3->via.u64;
+
+    nd->param = (networkintelligenceparam_t *) AnscAllocateMemory( sizeof(networkintelligenceparam_t) );
+    if( NULL == nd->param )
+    {
+        CcspTraceError(("%s entries count AnscAllocateMemory failed\n", __FUNCTION__));
+        return -1;
+    }
+    memset( nd->param, 0, sizeof(networkintelligenceparam_t));
+
+    if( 0 != process_networkintelligenceparams(nd->param, mapobj) )
+    {
+        CcspTraceError(("%s failed\n", __FUNCTION__));
+        return -1;
+    }
+
+    return 0;
+}
