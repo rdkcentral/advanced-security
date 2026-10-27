@@ -406,6 +406,8 @@ int main(int argc, char* argv[])
     AnscSetTraceLevel(CCSP_TRACE_LEVEL_INFO);
 #endif
 
+    t2_init("advanced-security");
+
     for (idx = 1; idx < argc; idx++)
     {
         /* get the susbsytem type based on the command line argurments */
