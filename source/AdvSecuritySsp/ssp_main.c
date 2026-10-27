@@ -31,6 +31,7 @@
 #include "stdlib.h"
 #include "webconfig_framework.h"
 #include "safec_lib_common.h"
+#include "telemetry_busmessage_sender.h"
 #include <sys/stat.h>
 #define MAX_SUBSYSTEM_SIZE 32
 
