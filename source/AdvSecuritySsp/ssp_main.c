@@ -31,6 +31,7 @@
 #include "stdlib.h"
 #include "webconfig_framework.h"
 #include "safec_lib_common.h"
+#include "telemetry_busmessage_sender.h"
 #include <sys/stat.h>
 #define MAX_SUBSYSTEM_SIZE 32
 
@@ -405,6 +406,8 @@ int main(int argc, char* argv[])
 #if defined(_DEBUG) && defined(_COSA_SIM_)
     AnscSetTraceLevel(CCSP_TRACE_LEVEL_INFO);
 #endif
+
+    t2_init("advanced-security");
 
     for (idx = 1; idx < argc; idx++)
     {
