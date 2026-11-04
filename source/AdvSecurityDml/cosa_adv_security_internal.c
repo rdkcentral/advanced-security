@@ -49,6 +49,10 @@
 #include <sys/stat.h>
 #include <ev.h>
 #include <pthread.h>
+#include <errno.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
 #if defined(_COSA_BCM_MIPS_)
 #include <ccsp/dpoe_hal.h>
 #else
@@ -72,7 +76,10 @@
 #define SPEEDTEST_STATUS_DML "Device.IP.Diagnostics.X_RDKCENTRAL-COM_SpeedTest.Status"
 #define SPEEDTEST_TIMEOUT_DML "Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"
 #define ADVSEC_NETWORKINTELLIGENCE_ENABLED_PATH "/tmp/advsec_networkintelligence_enabled"
-#define CUJONICLI_SET_QOSD_ENABLE_CMD "/usr/bin/cujo-ni-cli '{\"method\":\"set_configs\", \"configs\": {\"cujoniqos.daemon.enable\": %d}}' &"
+#define CUJONICLI_PATH "/usr/bin/cujo-ni-cli"
+#define CUJONICLI_SET_QOSD_ENABLE_JSON "{\"method\":\"set_configs\", \"configs\": {\"cujoniqos.daemon.enable\": %d}}"
+#define CUJONICLI_TIMEOUT_MS 5000
+#define CUJONICLI_POLL_US 50000
 
 #define ADVSEC_WAIT_FOR_TIMEOUT (60 * 60)
 #define MAX_VALUE 32
@@ -459,15 +466,69 @@ static BOOL is_ni_enabled_and_activated(void)
     return TRUE;
 }
 
+/* Run cujo-ni-cli with a timeout. Returns TRUE only on exit status 0. */
+static BOOL ni_cujo_cli_run(const char *json)
+{
+    pid_t pid;
+    int status = 0;
+    int waited_ms = 0;
+    pid_t ret;
+
+    pid = fork();
+    if (pid < 0)
+    {
+        CcspTraceError(("%s: fork failed, errno=%d\n", __FUNCTION__, errno));
+        return FALSE;
+    }
+    if (pid == 0)
+    {
+        execl(CUJONICLI_PATH, CUJONICLI_PATH, json, (char *)NULL);
+        _exit(127);
+    }
+
+    while ((ret = waitpid(pid, &status, WNOHANG)) == 0)
+    {
+        if (waited_ms >= CUJONICLI_TIMEOUT_MS)
+        {
+            CcspTraceError(("%s: cujo-ni-cli timed out after %d ms, killing\n",
+                __FUNCTION__, CUJONICLI_TIMEOUT_MS));
+            if (kill(pid, SIGKILL) != 0)
+            {
+                CcspTraceError(("%s: kill failed, errno=%d\n", __FUNCTION__, errno));
+            }
+            while (waitpid(pid, &status, 0) < 0 && errno == EINTR) { }
+            return FALSE;
+        }
+        usleep(CUJONICLI_POLL_US);
+        waited_ms += CUJONICLI_POLL_US / 1000;
+    }
+    if (ret < 0)
+    {
+        CcspTraceError(("%s: waitpid failed, errno=%d\n", __FUNCTION__, errno));
+        return FALSE;
+    }
+    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
+    {
+        return FALSE;
+    }
+    return TRUE;
+}
+
 static BOOL ni_qosd_enable(BOOL enable)
 {
-    errno_t rc;
+    char json[128];
+    int len;
 
-    rc = v_secure_system(CUJONICLI_SET_QOSD_ENABLE_CMD, enable ? 1 : 0);
-    if (!WIFEXITED(rc) || WEXITSTATUS(rc) != 0)
+    len = snprintf(json, sizeof(json), CUJONICLI_SET_QOSD_ENABLE_JSON, enable ? 1 : 0);
+    if (len < 0 || (size_t)len >= sizeof(json))
     {
-        CcspTraceError(("%s: cujo-ni-cli set_configs cujoniqos.daemon.enable=%d failed, rc=%d\n",
-            __FUNCTION__, enable ? 1 : 0, WEXITSTATUS(rc)));
+        CcspTraceError(("%s: failed to build cujo-ni-cli JSON, len=%d\n", __FUNCTION__, len));
+        return FALSE;
+    }
+    if (!ni_cujo_cli_run(json))
+    {
+        CcspTraceError(("%s: cujo-ni-cli set_configs cujoniqos.daemon.enable=%d failed\n",
+            __FUNCTION__, enable ? 1 : 0));
         return FALSE;
     }
     if (enable)
