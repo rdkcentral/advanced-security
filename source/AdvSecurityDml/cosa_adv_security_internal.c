@@ -533,10 +533,12 @@ static BOOL ni_qosd_enable(BOOL enable)
     }
     if (enable)
     {
+        CcspTraceInfo(("%s: Network Intelligence resumed\n", __FUNCTION__));
         t2_event_d("SYS_INFO_CUJO_NI_resume", 1);
     }
     else
     {
+        CcspTraceInfo(("%s: Network Intelligence paused\n", __FUNCTION__));
         t2_event_d("SYS_INFO_CUJO_NI_pause", 1);
     }
     return TRUE;
