@@ -1446,6 +1446,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, CosaRabidSetDNSCacheSize)
 
 #ifdef NETWORK_INTELLIGENCE
 #include <pthread.h>
+#include <sys/stat.h>
 
 extern "C" void speedtestEventReceiveHandler(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription);
 /* Internal SpeedTest timer state exposed (non-static in unit-test builds
@@ -1470,6 +1471,27 @@ static void RemoveSpeedtestNIEnabledAndActivated(void)
 {
     remove(g_speedtestNIEnabledPath);
     remove(g_speedtestNIActivatedPath);
+}
+
+/* Fake cujo-ni-cli binary. The production code execs CUJONICLI_PATH
+ * (/usr/bin/cujo-ni-cli), so tests control its
+ * behavior by writing a small shell script there. */
+static const char *g_fakeCujoCliPath = "/usr/bin/cujo-ni-cli";
+
+static void WriteFakeCujoCli(const char *body)
+{
+    FILE *file = fopen(g_fakeCujoCliPath, "w");
+    if (file)
+    {
+        fprintf(file, "#!/bin/sh\n%s\n", body);
+        fclose(file);
+        chmod(g_fakeCujoCliPath, 0755);
+    }
+}
+
+static void RemoveFakeCujoCli(void)
+{
+    remove(g_fakeCujoCliPath);
 }
 
 /* Test-only helper: reads the SpeedTest timer thread's running state
@@ -1527,9 +1549,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PausesAndCo
         .WillOnce(Return(86400));
     EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
         .Times(1);
-    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("cujo-ni-cli"), _))
-        .Times(2)
-        .WillRepeatedly(Return(0));
+    WriteFakeCujoCli("exit 0");
 
     /* status=1: starts the timer thread, which pauses NI immediately. */
     speedtestEventReceiveHandler(NULL, &event, NULL);
@@ -1542,6 +1562,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PausesAndCo
     EXPECT_FALSE(IsSpeedtestThreadRunning());
 
     RemoveSpeedtestNIEnabledAndActivated();
+    RemoveFakeCujoCli();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PauseFails_ClearsRunningState)
@@ -1570,15 +1591,50 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PauseFails_
     /* Simulate cujo-ni-cli failing (non-zero exit status) on the pause
      * attempt. The thread must still clear ni_speedtest_thread_running
      * so future SpeedTest cycles are not permanently blocked. */
-    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("cujo-ni-cli"), _))
-        .Times(1)
-        .WillOnce(Return(256));
+    WriteFakeCujoCli("exit 1");
 
     speedtestEventReceiveHandler(NULL, &event, NULL);
     WaitForSpeedtestThreadState(false, 500);
     EXPECT_FALSE(IsSpeedtestThreadRunning());
 
     RemoveSpeedtestNIEnabledAndActivated();
+    RemoveFakeCujoCli();
+}
+
+TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_PauseTimesOut_ClearsRunningState)
+{
+    int marker = 0;
+    int timeoutMarker = 0;
+    rbusValue_t value = (rbusValue_t)&marker;
+    rbusValue_t timeoutValue = (rbusValue_t)&timeoutMarker;
+    rbusEvent_t event = {};
+    CreateSpeedtestNIEnabledAndActivated();
+
+    EXPECT_CALL(*g_rbusMock, rbusObject_GetValue(_, _))
+        .Times(1)
+        .WillOnce(Return(value));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(value))
+        .Times(1)
+        .WillOnce(Return(ST_TR181_STATUS_STARTING));
+    EXPECT_CALL(*g_rbusMock, rbus_get(_, StrEq("Device.IP.Diagnostics.X_RDK_SpeedTest.SubscriberUnPauseTimeOut"), _))
+        .Times(1)
+        .WillOnce(DoAll(SetArgPointee<2>(timeoutValue), Return(RBUS_ERROR_SUCCESS)));
+    EXPECT_CALL(*g_rbusMock, rbusValue_GetUInt32(timeoutValue))
+        .Times(1)
+        .WillOnce(Return(86400));
+    EXPECT_CALL(*g_rbusMock, rbusValue_Release(timeoutValue))
+        .Times(1);
+    /* cujo-ni-cli hangs far longer than the 5 s timeout. The helper must
+     * kill it, report failure, and the thread must clear its running
+     * state instead of blocking. */
+    WriteFakeCujoCli("exec sleep 30");
+
+    speedtestEventReceiveHandler(NULL, &event, NULL);
+    WaitForSpeedtestThreadState(false, 8000);
+    EXPECT_FALSE(IsSpeedtestThreadRunning());
+
+    RemoveSpeedtestNIEnabledAndActivated();
+    RemoveFakeCujoCli();
 }
 
 
@@ -1618,9 +1674,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateSt
     /* Only ONE pause + ONE resume, even though status=1 fires twice:
      * the duplicate STARTING event only refreshes the deadline, it does
      * not re-pause Network Intelligence or spawn a new thread. */
-    EXPECT_CALL(*g_securewrapperMock, v_secure_system(HasSubstr("cujo-ni-cli"), _))
-        .Times(2)
-        .WillRepeatedly(Return(0));
+    WriteFakeCujoCli("exit 0");
 
     speedtestEventReceiveHandler(NULL, &event, NULL);
     WaitForSpeedtestThreadState(true, 200);
@@ -1636,6 +1690,7 @@ TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_DuplicateSt
     EXPECT_FALSE(IsSpeedtestThreadRunning());
 
     RemoveSpeedtestNIEnabledAndActivated();
+    RemoveFakeCujoCli();
 }
 
 TEST_F(CcspAdvSecurityInternalTestFixture, SpeedTest_Status_Starting_NIDisabled_NoAction)
