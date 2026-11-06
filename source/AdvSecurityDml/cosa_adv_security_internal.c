@@ -553,15 +553,16 @@ static void *ni_speedtest_handler(void *arg)
 
     pthread_detach(pthread_self());
 
-    pthread_mutex_lock(&ni_speedtest_mutex);
     if (!ni_qosd_enable(FALSE))
     {
         CcspTraceError(("%s: failed to pause Network Intelligence for speedtest\n", __FUNCTION__));
+        pthread_mutex_lock(&ni_speedtest_mutex);
         ni_speedtest_thread_running = FALSE;
         pthread_mutex_unlock(&ni_speedtest_mutex);
         return NULL;
     }
 
+    pthread_mutex_lock(&ni_speedtest_mutex);
     while (!ni_speedtest_wake_early && waitStatus != ETIMEDOUT)
     {
         waitStatus = pthread_cond_timedwait(&ni_speedtest_cond, &ni_speedtest_mutex, &ni_speedtest_timeout);
@@ -573,6 +574,7 @@ static void *ni_speedtest_handler(void *arg)
     }
     timedOut = (waitStatus == ETIMEDOUT);
     ni_speedtest_wake_early = FALSE;
+    pthread_mutex_unlock(&ni_speedtest_mutex);
 
     if (timedOut)
     {
@@ -584,6 +586,7 @@ static void *ni_speedtest_handler(void *arg)
         CcspTraceError(("%s: failed to resume Network Intelligence after speedtest\n", __FUNCTION__));
     }
 
+    pthread_mutex_lock(&ni_speedtest_mutex);
     ni_speedtest_thread_running = FALSE;
     pthread_mutex_unlock(&ni_speedtest_mutex);
 
@@ -1903,7 +1906,8 @@ ANSC_STATUS CosaGetSysCfgUlong(char* setting, ULONG* value)
     char buf[32] = {0};
     ANSC_STATUS         ret = ANSC_STATUS_SUCCESS;
 
-    if(ANSC_STATUS_SUCCESS == (ret = syscfg_get( NULL, setting, buf, sizeof(buf))))
+    int sc_ret = syscfg_get( NULL, setting, buf, sizeof(buf));
+    if(sc_ret == 0)
     {
         char *endptr = NULL;
         errno = 0;
@@ -1917,6 +1921,7 @@ ANSC_STATUS CosaGetSysCfgUlong(char* setting, ULONG* value)
     else
     {
         CcspTraceError(("syscfg_get failed for [%s]\n", setting));
+        ret = ANSC_STATUS_FAILURE;
     }
 
     return ret;
@@ -1934,15 +1939,17 @@ ANSC_STATUS CosaSetSysCfgUlong(char* setting, ULONG value)
         ERR_CHK(rc);
         return ANSC_STATUS_FAILURE;
     }
-    if(ANSC_STATUS_SUCCESS != (ret = syscfg_set( NULL, setting, buf)))
+    if(syscfg_set( NULL, setting, buf) != 0)
     {
         CcspTraceError(("syscfg_set failed for [%s]\n", setting));
+        ret = ANSC_STATUS_FAILURE;
     }
     else
     {
-        if (ANSC_STATUS_SUCCESS != (ret = syscfg_commit()))
+        if (syscfg_commit() != 0)
         {
             CcspTraceError(("syscfg_commit failed\n"));
+            ret = ANSC_STATUS_FAILURE;
         }
     }
 
@@ -2101,9 +2108,9 @@ ANSC_STATUS CosaAdvWifiDataConsumerInit(void)
 {
     ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
 
-    returnStatus = cujoagent_wifidatacollection_init(g_cujoagent_dcl);
-    if (ANSC_STATUS_SUCCESS != returnStatus)
+    if (cujoagent_wifidatacollection_init(g_cujoagent_dcl) != 0)
     {
+         returnStatus = ANSC_STATUS_FAILURE;
          CcspTraceError(("%s: failed to initialize wifi data collection\n", __FUNCTION__));
     }
 
@@ -2114,9 +2121,9 @@ ANSC_STATUS CosaAdvWifiDataConsumerDeInit(void)
 {
     ANSC_STATUS returnStatus = ANSC_STATUS_SUCCESS;
 
-    returnStatus = cujoagent_wifidatacollection_deinit(g_cujoagent_dcl, TRUE);
-    if (ANSC_STATUS_SUCCESS != returnStatus)
+    if (cujoagent_wifidatacollection_deinit(g_cujoagent_dcl, TRUE) != 0)
     {
+         returnStatus = ANSC_STATUS_FAILURE;
          CcspTraceError(("%s: failed to deinitialize wifi data collection\n", __FUNCTION__));
     }
 
@@ -3037,9 +3044,17 @@ ULONG CosaAdvSecGetLookupTimeoutExceededCount()
     fp = fopen(ADVSEC_LOOKUP_EXCEED_COUNT_FILE, "r");
     if ( fp != NULL)
     {
-        fgets(buf, COMMAND_MAX, (FILE*)fp);
+        if (fgets(buf, COMMAND_MAX, (FILE*)fp) != NULL)
+        {
+            char *endptr = NULL;
+            errno = 0;
+            unsigned long parsed = strtoul(buf, &endptr, 10);
+            if (errno == 0 && endptr != buf)
+            {
+                lcount = (ULONG)parsed;
+            }
+        }
         fclose(fp);
-        lcount = atol(buf);
     }
 
     return lcount;
