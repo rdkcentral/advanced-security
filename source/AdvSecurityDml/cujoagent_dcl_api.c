@@ -1085,12 +1085,6 @@ cujoagent_start_l1_collection(struct cujo_fpc_l1_collection_start *l1_start_tlv,
     CcspTraceError(("Failed to start L1 collector thread for mac [%s]\n",
                     collect_mac_str));
     pthread_mutex_lock(&consumer->l1_lock);
-    if (consumer->l1_collections[slot] != collector) {
-      /* Ownership changed while unlocked; do not touch/free collector. */
-      pthread_mutex_unlock(&consumer->l1_lock);
-      pthread_attr_destroy(&attr);
-      return -1;
-    }
     if (epoll_ctl(consumer->queue_epoll, EPOLL_CTL_DEL,
                   collector->notification_ack, NULL)) {
       CcspTraceError(("Failed to remove L1 collector stop_ack eventfd from the "
